@@ -2,10 +2,4 @@ This repository contains HTML- Files for easyier access and download of Swiss Me
 
 Please use the respective file for the respective collection. 
 
-Important information:
-Each downloader takes in account the montly and archive CH items only. It is not meant to be used for download of actual daily datasets. Daily datasets can be downloaded from the respective daily items. 
-Not all parameters are available for all year. For surface based grid e.g. only the reconstructed parameters go back 'til 1864. The normal ones are only available since 1961/1971. 
-
-
-
 All scripts have been created with the help of AI (Claude.com & CHATGPT.com) 
