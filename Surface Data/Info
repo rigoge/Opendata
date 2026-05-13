@@ -1,1 +1,4 @@
+These scripts enable the download of multiple station data files together from the open data portal.
 
+The differences are in the granularity, station types or download periods only. 
+Usually the "precipitation bulletin" files covers all three types of precipitation stations: SMN, SMN-precip and manual precip (NIME).
