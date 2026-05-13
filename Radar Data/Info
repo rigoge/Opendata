@@ -1,1 +1,3 @@
 
+This script enables to access the latest Radar Datasets from the open data platform. It's not an automated download script! 
+It enables also to download multiple files for a whole 24h (0-24h UTC) up to 14 days back. 
