@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<!--
+MIT License
+
+Copyright (c) 2026 Surface Data Downloader contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Data attribution for downloaded MeteoSwiss data: Source: MeteoSwiss
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Switzerland Surface Data Downloader</title>
+</head>
+<body>
+
+  <section id="license-and-source" style="margin: 1rem 0; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; max-width: 900px;">
+    <p><strong>License:</strong> This downloader HTML file is released under the MIT License.</p>
+    <p><strong>Data attribution:</strong> For all downloaded data, use the required source statement: <strong>Source: MeteoSwiss</strong>.</p>
+  </section>
+  <h1>Switzerland Surface Data Downloader historical daily values for precipitation bulletin stations </h1>
+
+  <p>Select station type:</p>
+  <select id="datatype">
+    <option value="ch.meteoschweiz.ogd-smn">ogd-smn (SMN automatic stations )</option>
+    <option value="ch.meteoschweiz.ogd-smn-precip">ogd-smn-precip (SMN automatic precipitation stations)</option>
+    <option value="ch.meteoschweiz.ogd-nime">ogd-nime (NIME manual precipitation stations )</option>
+  </select>
+
+  <p>Station type (diveded by a colon ","):</p>
+  <input type="text" id="stations" value="TAE,COM,ABO">
+
+  <button onclick="downloadFiles()">Download CSV files</button>
+
+<h3> Attention: Only select for each station types stations from the respective network! Otherwise you will get an error message.  </h3>
+
+<h4> Please copy the respective list into the field above to get ALL the available station type data. 
+
+You have to run this separately for each stations type with the appropriate list used. </h4>
+
+<p>
+</>
+for SMN: 
+</>
+TAE,COM,ABO,AIG,ALT,ARH,AND,ANT,ARO,RAG,BAN,BAS,LAT,BER,BEZ,BIA,BIN,BIZ,BIV,BIE,BLA,BOL,BOU,BRZ,BUS,BUF,FRE,CEV,CHZ,CHA,CHM,CHU,CHD,CIM,CDM,GSB,COY,CMA,CRM,DAV,DEM,DIS,EBK,EGH,EGO,EIN,ELM,ENG,EVI,EVO,FAH,FLU,GRA,FRU,GVE,GES,GIH,GLA,GOR,GRE,GRH,GRO,GRC,GOS,GOE,GUE,GUT,HLL,HOE,ILZ,INT,JUN,KOP,BRL,CDF,DOL,LAC,LAG,MLS,LEI,ATT,CHB,DIA,MAR,OTL,LUG,LUZ,LAE,MAG,MAS,MAH,MTR,MER,MOB,MVE,GEN,MOA,MTE,MOE,MUB,NAS,NAP,NEU,CGI,OBR,AEG,ORO,BEH,PAY,PFA,PIL,PIO,COV,PMA,PLF,ROB,PUY,QUI,ROE,RUE,SBE,HAI,SAM,SAG,SHA,SRS,SCM,SPF,SCU,SIA,SIM,SIO,PRE,STC,STG,SMM,SBO,STK,SAE,THU,TIT,UEB,ULR,VAD,VAB,VLS,VEV,VIO,VIT,VIS,WFJ,WYN,WAE,PSI,ZER,REH,SMA,KLO
+</>
+for SMN precip:
+ABE,AIE,AIR,ALS,AMW,AFI,VSANZ,APP,VSARO,AGATT,VSBAS,BAW,VSGDX,BEY,BLZ,BEP,DOB,BEC,BEX,BOS,VSBSP,BRW,VSBRI,BRI,BRT,VSBRU,BRP,UBB,BUE,VSCHY,VSCHA,VSCHO,VSCLU,COL,COS,COU,VSDER,DIT,VSDUR,EGR,OED,VSEMO,ENT,VSERG,ESZ,FAI,FIT,VSFIN,FIO,FLW,GAD,GSG,GTT,GOA,HIW,HUT,INN,VSISE,VSJEI,JON,KAI,KAS,KIE,KIS,KLA,KUE,AUB,VSFLY,VST,LAB,LGA,LAP,LSN,LTB,AVA,VSCOL,LEU,LOH,LON,MGL,MAL,MAB,MAT,VSMAT,MEV,VSMOI,MMO,MSG,MUR,VSNEN,NEB,OBI,OPF,ORS,REM,WHF,ROM,ROG,ROT,VSSAB,SAP,SAI,VSSFE,VSSAL,SAX,SVG,SUA,SNG,SIE,VSSIE,SIH,SOG,VSSOR,SAN,VSSTA,STB,AGSTE,STP,SUS,THS,CTO,VSTRI,TRU,VSTSN,TST,VSTUR,UNK,URN,UST,VSVER,VSVIS,VRI,VAE,WAG,WAR,WEE,WIN,WIT,ZEV,ZWE,ZWK
+</>
+and for manual precipitation stations (NIME):
+AFT,ALW,APT,ALM,ALV,ARB,ARI,AVE,AVB,BAT,BAU,BAM,BMU,BIS,BLU,BOV,BSP,BRA,BNU,BSG,BRO,BLS,BUC,BUD,CMD,CAC,CAV,CNZ,CHY,CBS,COG,COP,DEH,DIE,DMA,ECH,EFF,EIT,EPT,ERI,ERB,EKO,EHM,EUT,FIL,CTA,FLI,FRF,FRI,FRC,FRA,GEP,GEA,GRI,GWA,GSS,STF,GHS,GRY,GIN,GUG,HAU,HTW,HES,HEB,HEK,HOY,HON,HER,INF,IST,JAU,JUS,KIB,KSE,KLT,KRO,KUA,KUB,KAR,ABG,CUE,EGL,LAN,LAF,LFB,LOC,LEN,LEH,BIO,BNE,DIB,PDM,TFD,LOT,LUN,LUT,MAD,MBA,MES,MGB,MST,MOD,MTO,MOS,MAC,MGI,MDO,MOU,MUT,MOW,MUL,MUE,MUS,NIE,OBD,OLI,BOZ,ORZ,OTE,PAV,PIG,LOB,POT,PON,PUD,REG,RIC,RIH,RIX,SRL,SBA,SAF,SAB,SAR,SRN,SCH,SZB,SCE,SWZ,SWA,SCA,SCD,SED,SPA,SEM,SEV,SRE,SIS,SON,SDO,SPZ,STU,AST,SKO,SNS,STE,SGD,TAF,TAM,TAV,TEU,TIC,TDG,TRO,UNS,URB,VAR,VVI,VEL,VIG,WDO,TAW,WAN,WIE,WEF,WET,WBR,WCH,WHA,WIS,WIW,YVN,ZNZ,ZOF,ZUB
+</p>
+
+  <script>
+    async function downloadFiles() {
+      const dataType = document.getElementById('datatype').value;
+      const input = document.getElementById('stations').value;
+      const stations = input.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+      for (const station of stations) {
+        // URL automatisch zusammensetzen
+        // Beispiel:
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bas/ogd-smn_bas_d_historical.csv
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn-precip/app/ogd-smn-precip_app_d_historical.csv
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-nime/alt/ogd-nime_alt_d_historical.csv
+        const baseName = dataType.split('.').pop(); // z.B. ogd-smn, ogd-smn-precip, ogd-nime
+        const url = `https://data.geo.admin.ch/${dataType}/${station}/` +
+                    `${baseName}_${station}_d_historical.csv`;
+
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Fehler beim Laden: ${station}`);
+
+          const blob = await response.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${baseName}_${station}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          console.log(`Download abgeschlossen: ${station}`);
+        } catch (err) {
+          console.error(err);
+          alert(`Download fehlgeschlagen für Station ${station} (Typ: ${baseName})`);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+	
