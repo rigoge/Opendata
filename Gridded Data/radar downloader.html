@@ -112,6 +112,16 @@ header::after {
 .tag-anom { background:#ede9fe; color:var(--c-anom); }
 .tag-clim { background:#fee2e2; color:var(--c-clim); }
 
+
+/* Data range toggle */
+.range-toggle { display:grid; grid-template-columns:1fr 1fr; gap:6px; }
+.range-btn { padding:9px 8px; border:2px solid var(--border); border-radius:7px; cursor:pointer; font-family:var(--sans); font-size:11px; font-weight:700; color:var(--muted); background:var(--surface2); transition:all .15s; text-align:center; }
+.range-btn:hover { border-color:var(--accent); color:var(--accent); background:var(--sky); }
+.range-btn.selected { border-color:var(--accent); background:var(--accent); color:#fff; }
+.range-btn:focus { outline:2px solid rgba(91,33,182,.25); outline-offset:2px; }
+.range-hint { margin-top:8px; font-size:10px; color:var(--muted); line-height:1.45; }
+.range-hint code { font-family:var(--mono); background:var(--sky); color:var(--accent); padding:1px 4px; border-radius:3px; }
+
 /* RP */
 .rp-type-toggle { display:grid; grid-template-columns:1fr 1fr; gap:4px; margin-bottom:10px; }
 .rp-type-btn { padding:8px; border:2px solid var(--border); border-radius:7px; cursor:pointer; font-family:var(--sans); font-size:11px; font-weight:700; color:var(--muted); background:var(--surface2); transition:all .15s; text-align:center; }
@@ -250,6 +260,16 @@ tr:last-child td { border-bottom:none; }
 <div class="layout">
   <div class="sidebar">
 
+    <!-- Data range -->
+    <div class="sidebar-section">
+      <div class="section-label">🗂 Data range</div>
+      <div class="range-toggle">
+        <button type="button" class="range-btn selected" id="rangeArchive" data-mode="archive">CH archive</button>
+        <button type="button" class="range-btn" id="rangeLast14" data-mode="last14">Last 14 months</button>
+      </div>
+      <div class="range-hint" id="rangeHint">Archive mode uses the consolidated <code>CH archive</code> item and the selected years.</div>
+    </div>
+
     <!-- Hail parameters -->
     <div class="sidebar-section">
       <div class="section-label">🌨 Hail parameters</div>
@@ -301,7 +321,6 @@ tr:last-child td { border-bottom:none; }
   </div>
 
   <div class="main">
-    <div class="info-box"><strong>Data source: MeteoSwiss. Source attribution required when reproducing or redistributing downloaded data: “Source: MeteoSwiss”.</strong></div>
 
     
     <section class="source-notice" aria-label="Open source software licence and download reminder">
@@ -311,8 +330,6 @@ tr:last-child td { border-bottom:none; }
       Please think before downloading if you really need all the  selected data.
       <span class="source-meta"><a href="https://opensource.org/license/MIT" target="_blank" rel="noopener noreferrer">MIT License text</a></span>
     </section>
-
-
 
 <div class="info-box">
       <h4>ℹ Hail climatology</h4>
@@ -325,6 +342,8 @@ tr:last-child td { border-bottom:none; }
       The parameter list is loaded automatically from the STAC API.
       <br>
       <a href="https://www.nccs.admin.ch/nccs/de/home/das-nccs/themenschwerpunkte/hagelklima-schweiz/wiederkehrperioden.html" target="_blank" rel="noopener noreferrer">NCCS return periods</a>
+    
+      <br><strong>Data source: MeteoSwiss. Source attribution required when reproducing or redistributing downloaded data: “Source: MeteoSwiss”.</strong>
     </div>
 
     <div class="stats-bar">
@@ -436,6 +455,7 @@ let rpTypees           = new Set(['meshs','leha1']);
 let selectedRpPeriods = new Set();
 let selectedParams    = new Set();
 let selectedYears     = new Set();
+let dataMode          = 'archive'; // 'archive' = consolidated CH archive, 'last14' = rolling monthly CH items
 let allItems          = [];
 let filteredItems     = [];
 let queue             = [];
@@ -443,6 +463,7 @@ let downloadCount     = 0;
 
 // ─── Init ──────────────────────────────────────────────────────────────────
 async function init() {
+  bindRangeControls();
   buildYearGrid();
   updateStats();
   try {
@@ -546,6 +567,43 @@ function clearRp() {
   document.querySelectorAll('.rp-chip').forEach(el => el.classList.remove('selected'));
 }
 
+
+// ─── UI: Data range ───────────────────────────────────────────────────────
+function setDataMode(mode) {
+  mode = String(mode || '').toLowerCase();
+  if (mode !== 'last14') mode = 'archive';
+  dataMode = mode;
+  document.getElementById('rangeArchive')?.classList.toggle('selected', mode === 'archive');
+  document.getElementById('rangeLast14')?.classList.toggle('selected', mode === 'last14');
+
+  const yearSec = document.getElementById('yearSection');
+  const rpSec   = document.getElementById('rpSection');
+  const hint    = document.getElementById('rangeHint');
+
+  if (mode === 'last14') {
+    if (yearSec) yearSec.style.opacity = '0.45';
+    if (rpSec) rpSec.style.opacity = '0.45';
+    if (hint) hint.innerHTML = 'Last-14-month mode searches the rolling monthly STAC items such as <code>CH at 04.2026</code>. Year selection and return periods are ignored.';
+  } else {
+    if (yearSec) yearSec.style.opacity = '1';
+    if (rpSec) rpSec.style.opacity = '1';
+    if (hint) hint.innerHTML = 'Archive mode uses the consolidated <code>CH archive</code> item and the selected years.';
+  }
+}
+
+
+function bindRangeControls() {
+  document.querySelectorAll('[data-mode]').forEach(btn => {
+    btn.addEventListener('click', (ev) => {
+      ev.preventDefault();
+      setDataMode(btn.dataset.mode);
+    });
+  });
+  // Keep a global function for compatibility with older cached HTML fragments.
+  window.setDataMode = setDataMode;
+  setDataMode(dataMode);
+}
+
 // ─── UI: Year-Grid ─────────────────────────────────────────────────────────
 function buildYearGrid() {
   const grid = document.getElementById('yearGrid');
@@ -570,64 +628,29 @@ function selectLastN(n)   { for(let y=CUR_YEAR;y>=Math.max(MIN_YEAR,CUR_YEAR-n+1
 // ─── Fetch ─────────────────────────────────────────────────────────────────
 async function fetchItems() {
   const wantNormal = selectedParams.size > 0;
-  const wantRp     = selectedRpPeriods.size > 0 && rpTypees.size > 0;
+  const wantRp     = dataMode === 'archive' && selectedRpPeriods.size > 0 && rpTypees.size > 0;
 
   if (!wantNormal && !wantRp) {
     showToast('Please select hail parameters or return periods', 'error'); return;
   }
-  if (wantNormal && selectedYears.size === 0) {
-    showToast('For hail parameters, please select at least one year', 'error'); return;
+  if (dataMode === 'archive' && wantNormal && selectedYears.size === 0) {
+    showToast('For archive mode, please select at least one year', 'error'); return;
+  }
+  if (dataMode === 'last14' && !wantNormal) {
+    showToast('Last-14-month mode needs at least one hail parameter', 'error'); return;
   }
 
   const btn = document.getElementById('fetchBtn');
   btn.disabled = true; btn.textContent = '⏳ Loading…';
   document.getElementById('tableBody').innerHTML = '';
   document.getElementById('tableState').innerHTML =
-    `<div class="loading-state"><div class="spinner"></div><span id="loadMsg">Loading archive-ch…</span></div>`;
+    `<div class="loading-state"><div class="spinner"></div><span id="loadMsg">Loading…</span></div>`;
   allItems = [];
 
   try {
-    const res = await fetch(
-      `${BASE_API}/collections/${COLLECTION}/items/${ITEM_ID}`,
-      { headers:{ Accept:'application/json' } }
-    );
-    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-    const data = await res.json();
-    const assets = data.assets || {};
-    const total  = Object.keys(assets).length;
-    document.getElementById('loadMsg').textContent = `${total} assets found — filtering…`;
-
-    const parsed = [];
-    for (const [, asset] of Object.entries(assets)) {
-      const href  = asset.href || '';
-      const fname = decodeURIComponent(href.split('/').pop());
-      if (!fname.toLowerCase().endsWith('.nc')) continue;
-
-      const info = parseFilenameInfo(fname);
-      if (!info) continue;
-
-      if (info.isRp) {
-        // Return period: kein Yearesfilter, nur Type + Periode
-        if (!wantRp) continue;
-        if (!rpTypees.has(info.rpTypee)) continue;
-        if (!selectedRpPeriods.has(info.rpYears)) continue;
-      } else {
-        if (!wantNormal) continue;
-        if (!selectedParams.has(info.productKey)) continue;
-        if (info.startYear && !selectedYears.has(info.startYear)) continue;
-      }
-
-      parsed.push({
-        filename:  fname,
-        param:     info.productKey,
-        type:      info.type,
-        isRp:      info.isRp,
-        startYear: info.startYear,
-        rpYears:   info.rpYears,
-        rpTypee:    info.rpTypee,
-        url:       href,
-      });
-    }
+    const parsed = dataMode === 'last14'
+      ? await fetchLast14MonthItems()
+      : await fetchArchiveItems(wantNormal, wantRp);
 
     allItems = parsed;
     populateFilterOptions();
@@ -635,11 +658,14 @@ async function fetchItems() {
     updateStats();
 
     if (!parsed.length) {
+      const msg = dataMode === 'last14'
+        ? 'No .nc files were found in the monthly CH items for the selected parameters. Check whether the selected parameter exists in the latest monthly items.'
+        : 'No .nc files are available in the archive for the selected combination.';
       document.getElementById('tableState').innerHTML = `
         <div class="empty-state">
           <div class="empty-icon">🔍</div>
           <div class="empty-title">No files found</div>
-          <div class="empty-sub">No .nc files are available in the archive for the selected combination.</div>
+          <div class="empty-sub">${msg}</div>
         </div>`;
     } else {
       document.getElementById('tableState').innerHTML = '';
@@ -654,33 +680,266 @@ async function fetchItems() {
   btn.disabled = false; btn.textContent = '🔍 Load files';
 }
 
+async function fetchArchiveItems(wantNormal, wantRp) {
+  document.getElementById('loadMsg').textContent = 'Loading CH archive…';
+  const data = await fetchJson(`${BASE_API}/collections/${COLLECTION}/items/${ITEM_ID}`);
+  const assets = data.assets || {};
+  document.getElementById('loadMsg').textContent = `${Object.keys(assets).length} archive assets found — filtering…`;
+  return parseAssetsToItems(assets, { wantNormal, wantRp, useYearFilter:true, monthKey:null });
+}
+
+async function fetchLast14MonthItems() {
+  const monthKeys = getLast14MonthKeys();
+  document.getElementById('loadMsg').textContent = 'Searching monthly CH items…';
+  const features = await fetchCollectionItems();
+
+  let monthly = features
+    .map(f => ({ feature:f, monthKey:extractMonthKeyFromItem(f) }))
+    .filter(x => x.monthKey && monthKeys.has(x.monthKey));
+
+  // New monthly items are sometimes easier to identify by title (e.g. "CH at 04.2026") than by ID.
+  // Always add direct candidate lookups as a supplement because the item listing can be paged or ordered
+  // in a way that does not expose the latest monthly items early enough.
+  const byKeyAndId = new Map();
+  for (const entry of monthly) byKeyAndId.set(`${entry.monthKey}::${entry.feature.id || ''}`, entry);
+  for (const entry of await fetchMonthlyItemsByCandidateIds(monthKeys)) {
+    byKeyAndId.set(`${entry.monthKey}::${entry.feature.id || ''}`, entry);
+  }
+  for (const entry of await fetchMonthlyItemsViaSearch(monthKeys)) {
+    byKeyAndId.set(`${entry.monthKey}::${entry.feature.id || ''}`, entry);
+  }
+  monthly = [...byKeyAndId.values()];
+
+  monthly.sort((a,b) => monthKeyToSortable(b.monthKey) - monthKeyToSortable(a.monthKey));
+  document.getElementById('loadMsg').textContent = `${monthly.length} monthly item(s) found — loading assets…`;
+
+  const parsed = [];
+  for (const entry of monthly) {
+    let item = entry.feature;
+    if (!item.assets || !Object.keys(item.assets).length) {
+      const self = (item.links || []).find(l => l.rel === 'self')?.href;
+      if (self) item = await fetchJson(self);
+      else if (item.id) item = await fetchJson(`${BASE_API}/collections/${COLLECTION}/items/${encodeURIComponent(item.id)}`);
+    }
+    const assets = item.assets || {};
+    parsed.push(...parseAssetsToItems(assets, { wantNormal:true, wantRp:false, useYearFilter:false, monthKey:entry.monthKey }));
+  }
+  return parsed;
+}
+
+
+async function fetchMonthlyItemsViaSearch(monthKeys) {
+  const found = [];
+  const sorted = [...monthKeys].sort((a,b) => monthKeyToSortable(a) - monthKeyToSortable(b));
+  if (!sorted.length) return found;
+  const [startMm, startYyyy] = sorted[0].split('.');
+  const [endMm, endYyyy] = sorted[sorted.length - 1].split('.');
+  const endDate = new Date(Number(endYyyy), Number(endMm), 0, 23, 59, 59);
+  const body = {
+    collections: [COLLECTION],
+    limit: 500,
+    datetime: `${startYyyy}-${startMm}-01T00:00:00Z/${endDate.toISOString().replace('.000Z','Z')}`
+  };
+  try {
+    const res = await fetch(`${BASE_API}/search`, {
+      method: 'POST',
+      headers: { 'Accept': 'application/geo+json, application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify(body)
+    });
+    if (!res.ok) return found;
+    const data = await res.json();
+    for (const feature of data.features || []) {
+      const monthKey = extractMonthKeyFromItem(feature);
+      if (monthKey && monthKeys.has(monthKey)) found.push({ feature, monthKey });
+    }
+  } catch (_) { /* search endpoint optional */ }
+  return found;
+}
+
+async function fetchJson(url) {
+  const absoluteUrl = new URL(url, BASE_API).href;
+  const res = await fetch(absoluteUrl, { headers:{ Accept:'application/json' } });
+  if (!res.ok) throw new Error(`${absoluteUrl} → HTTP ${res.status}`);
+  return await res.json();
+}
+
+async function fetchCollectionItems() {
+  let url = `${BASE_API}/collections/${COLLECTION}/items?limit=500`;
+  const features = [];
+  const seen = new Set();
+  for (let page = 0; url && page < 200 && !seen.has(url); page++) {
+    seen.add(url);
+    const data = await fetchJson(url);
+    features.push(...(data.features || []));
+    const next = (data.links || []).find(l => l.rel === 'next');
+    url = next?.href || null;
+  }
+  return features;
+}
+
+function getLast14MonthKeys() {
+  const keys = new Set();
+  const now = new Date();
+  for (let i = 0; i < 14; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+    keys.add(`${String(d.getMonth()+1).padStart(2,'0')}.${d.getFullYear()}`);
+  }
+  return keys;
+}
+
+function extractMonthKeyFromItem(item) {
+  const props = item.properties || {};
+  const text = [item.id, props.title, props.description, item.title].filter(Boolean).join(' ');
+  let m = text.match(/\b(?:CH\s+at\s*)?(0[1-9]|1[0-2])\.(20\d{2})\b/i);
+  if (m) return `${m[1]}.${m[2]}`;
+  m = text.match(/\b(20\d{2})[-_.](0[1-9]|1[0-2])\b/);
+  if (m) return `${m[2]}.${m[1]}`;
+  m = text.match(/\b(0[1-9]|1[0-2])[-_](20\d{2})\b/);
+  if (m) return `${m[1]}.${m[2]}`;
+  return null;
+}
+
+async function fetchMonthlyItemsByCandidateIds(monthKeys) {
+  const found = [];
+  for (const key of monthKeys) {
+    const [mm, yyyy] = key.split('.');
+    const ids = [
+      `CH at ${mm}.${yyyy}`,
+      `ch at ${mm}.${yyyy}`,
+      `ch-at-${mm}.${yyyy}`,
+      `ch_at_${mm}.${yyyy}`,
+      `ch.${mm}.${yyyy}`,
+      `ch-${yyyy}-${mm}`,
+      `ch-${yyyy}${mm}`,
+      `ch-${yyyy}.${mm}`,
+      `ch.${yyyy}.${mm}`,
+      `ch_${yyyy}${mm}`,
+      `ch${yyyy}${mm}`,
+      `ch-${mm}-${yyyy}`,
+      `ch-${mm}.${yyyy}`,
+      `ch-at-${mm}-${yyyy}`,
+      `ch-at-${yyyy}-${mm}`,
+      `ch_${yyyy}_${mm}`,
+      `ch_${mm}_${yyyy}`,
+      `CH ${mm}.${yyyy}`,
+      `ch ${mm}.${yyyy}`
+    ];
+    for (const id of ids) {
+      try {
+        const item = await fetchJson(`${BASE_API}/collections/${COLLECTION}/items/${encodeURIComponent(id)}`);
+        found.push({ feature:item, monthKey:key });
+        break;
+      } catch (_) { /* try next candidate */ }
+    }
+  }
+  return found;
+}
+
+function monthKeyToSortable(key) {
+  const [mm, yyyy] = key.split('.').map(Number);
+  return yyyy * 100 + mm;
+}
+
+
+function matchesSelectedParameter(productKey) {
+  if (selectedParams.has(productKey)) return true;
+  // Monthly filenames sometimes omit or separate the granularity part. Accept conservative prefix matches.
+  for (const sel of selectedParams) {
+    if (sel === productKey) return true;
+    if (sel.startsWith(productKey) || productKey.startsWith(sel)) return true;
+  }
+  return false;
+}
+
+function parseAssetsToItems(assets, opts) {
+  const parsed = [];
+  for (const [assetKey, asset] of Object.entries(assets)) {
+    const href = asset.href || '';
+    const sourceName = href || assetKey || asset.title || '';
+    const fname = decodeURIComponent(sourceName.split('/').pop().split('?')[0].split('#')[0]);
+    const candidates = [fname, assetKey, asset.title, href].filter(Boolean);
+    if (!candidates.some(x => String(x).toLowerCase().includes('.nc'))) continue;
+
+    let info = null;
+    for (const candidate of candidates) {
+      info = parseFilenameInfo(candidate);
+      if (info) break;
+    }
+    if (!info) continue;
+
+    if (info.isRp) {
+      if (!opts.wantRp) continue;
+      if (!rpTypees.has(info.rpTypee)) continue;
+      if (!selectedRpPeriods.has(info.rpYears)) continue;
+    } else {
+      if (!opts.wantNormal) continue;
+      if (!matchesSelectedParameter(info.productKey)) continue;
+      if (opts.useYearFilter && info.startYear && !selectedYears.has(info.startYear)) continue;
+    }
+
+    parsed.push({
+      filename:  fname,
+      param:     info.productKey,
+      type:      info.type,
+      isRp:      info.isRp,
+      startYear: info.startYear,
+      startTime: info.startTime,
+      monthKey:  opts.monthKey || null,
+      rpYears:   info.rpYears,
+      rpTypee:   info.rpTypee,
+      url:       href || assetKey,
+    });
+  }
+  return parsed;
+}
+
 // ─── filename-Parser ─────────────────────────────────────────────────────
 // Format: ogd-radar-derived-grid-archive.{CODE}_{grid}_lv95_{TS14}[_{TS14}].nc
 function parseFilenameInfo(filename) {
   try {
-    const lo  = filename.toLowerCase();
-    const idx = lo.indexOf('grid-archive.');
-    if (idx < 0) return null;
+    const clean = decodeURIComponent(String(filename).split('?')[0].split('#')[0]);
+    const lo = clean.toLowerCase();
 
-    const after  = filename.slice(idx + 'grid-archive.'.length);
-    const usIdx  = after.indexOf('_');
-    const rawKey = (usIdx > -1 ? after.slice(0, usIdx) : after).replace(/\.nc$/i,'').toLowerCase();
+    let rawKey = null;
 
-    // Zeitstempel (14-stellig) nach _lv95_
-    const tsMtch = [...after.matchAll(/(\d{14})/g)];
+    // Archive filenames usually contain "ogd-radar-derived-grid-archive.{CODE}_...".
+    // Monthly items can contain an additional item/month token before the parameter, e.g.
+    // "...CH at 04.2026...{CODE}_...". Therefore we first try known/selected parameter
+    // tokens, then fall back to the classic product-code pattern.
+    const knownParams = [...new Set([
+      ...selectedParams,
+      ...allNonRpParams.map(p => p.code),
+      ...allRpPeriods.flatMap(t => [...rpTypees].map(rp => `returnperiod${t}y${rp}`))
+    ])].sort((a,b) => b.length - a.length);
+
+    for (const code of knownParams) {
+      const esc = code.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      const re = new RegExp(`(^|[.\-_\s])${esc}(?=(_|[.\-\s]))`, 'i');
+      if (re.test(lo)) { rawKey = code.toLowerCase(); break; }
+    }
+
+    if (!rawKey) {
+      const m = lo.match(/ogd-radar-derived-grid(?:[-_.a-z0-9 ]*)?\.([a-z][a-z0-9]{2,})_/i) ||
+                lo.match(/grid(?:[-_.a-z0-9 ]*)?\.([a-z][a-z0-9]{2,})_/i) ||
+                lo.match(/(?:^|[.\-_\s])([a-z][a-z0-9]{2,})(?=_ch|_lv95|_)/i);
+      if (!m) return null;
+      rawKey = m[1].toLowerCase();
+    }
+
+    const tsMtch = [...lo.matchAll(/(\d{14})/g)];
+    const startTime = tsMtch.length ? tsMtch[0][1] : null;
     let startYear = null;
-    if (tsMtch.length >= 1) {
-      const y = parseInt(tsMtch[0][1].slice(0,4));
+    if (startTime) {
+      const y = parseInt(startTime.slice(0,4));
       if (!isNaN(y)) startYear = y;
     }
 
-    // Return period?
     const rpMtch = rawKey.match(/^returnperiod(\d+)y(.+)$/);
     if (rpMtch) {
-      return { productKey:rawKey, isRp:true, rpYears:parseInt(rpMtch[1]), rpTypee:rpMtch[2], type:'rp', startYear:null };
+      return { productKey:rawKey, isRp:true, rpYears:parseInt(rpMtch[1]), rpTypee:rpMtch[2], type:'rp', startYear:null, startTime:null };
     }
 
-    return { productKey:rawKey, isRp:false, rpYears:null, rpTypee:null, type:classifyParam(rawKey), startYear };
+    return { productKey:rawKey, isRp:false, rpYears:null, rpTypee:null, type:classifyParam(rawKey), startYear, startTime };
   } catch(e) { return null; }
 }
 
@@ -688,13 +947,15 @@ function parseFilenameInfo(filename) {
 function populateFilterOptions() {
   const params = [...new Set(allItems.map(i=>i.param))].sort();
   const years  = [...new Set(allItems.filter(i=>!i.isRp&&i.startYear).map(i=>i.startYear))].sort((a,b)=>b-a);
+  const months = [...new Set(allItems.filter(i=>i.monthKey).map(i=>i.monthKey))].sort((a,b)=>monthKeyToSortable(b)-monthKeyToSortable(a));
   const rps    = [...new Set(allItems.filter(i=>i.isRp).map(i=>i.rpYears))].sort((a,b)=>a-b);
 
   document.getElementById('filterParam').innerHTML = `<option value="">All parameters</option>` +
     params.map(p=>`<option value="${p}">${p}</option>`).join('');
   document.getElementById('filterYear').innerHTML = `<option value="">All years / T</option>` +
+    months.map(m=>`<option value="m${m}">${m}</option>`).join('') +
     years.map(y=>`<option value="y${y}">${y}</option>`).join('') +
-    rps.map(t=>`<option value="rp${t}">T=${t} Yeare (RP)</option>`).join('');
+    rps.map(t=>`<option value="rp${t}">T=${t} years (RP)</option>`).join('');
 }
 
 function applyFilter() {
@@ -707,6 +968,7 @@ function applyFilter() {
     if (search && !item.filename.toLowerCase().includes(search)) return false;
     if (fp && item.param !== fp) return false;
     if (fy) {
+      if (fy.startsWith('m')  && String(item.monthKey)  !== fy.slice(1)) return false;
       if (fy.startsWith('y')  && String(item.startYear) !== fy.slice(1)) return false;
       if (fy.startsWith('rp') && String(item.rpYears)   !== fy.slice(2)) return false;
     }
@@ -714,7 +976,7 @@ function applyFilter() {
   });
 
   filteredItems.sort((a,b) => {
-    if (sort === 'date')  return (b.startYear||0) - (a.startYear||0);
+    if (sort === 'date')  return (monthKeyToSortable(b.monthKey||'00.0000') || Number(b.startTime||0) || b.startYear || 0) - (monthKeyToSortable(a.monthKey||'00.0000') || Number(a.startTime||0) || a.startYear || 0);
     if (sort === 'name')  return a.filename.localeCompare(b.filename);
     if (sort === 'param') return a.param.localeCompare(b.param);
     return 0;
@@ -732,7 +994,7 @@ function renderTable() {
     const label = TYPE_LABEL[item.type] || item.type;
     const yearCol = item.isRp
       ? `<span class="badge badge-rp">T=${item.rpYears} a · ${item.rpTypee.toUpperCase()}</span>`
-      : `<span class="badge badge-y">${item.startYear || '–'}</span>`;
+      : `<span class="badge badge-y">${item.monthKey || item.startYear || '–'}</span>`;
 
     return `<tr onclick="toggleRowCheck(${i})">
       <td class="col-check" onclick="event.stopPropagation()"><input type="checkbox" id="chk-${i}" onchange="onRowCheck()"></td>
