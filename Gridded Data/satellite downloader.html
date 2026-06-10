@@ -900,6 +900,9 @@ const PARAMETER_CATALOG = [
   { code: 'msg.siscf.y', desc: 'Yearly clear-sky surface incoming solar radiation (SISCF)', group: 'Solar radiation' },
   { code: 'msg.siscf-no-horizon.h', desc: 'Hourly SISCF without terrain/shadow correction', group: 'Solar radiation' },
   { code: 'msg.sisdif.h', desc: 'Hourly diffuse surface incoming solar radiation (SISDIF)', group: 'Solar radiation' },
+  { code: 'msg.sisdif.d', desc: 'Daily diffuse surface incoming solar radiation (SISDIF)', group: 'Solar radiation' },
+  { code: 'msg.sisdif.m', desc: 'Monthly diffuse surface incoming solar radiation (SISDIF)', group: 'Solar radiation' },
+  { code: 'msg.sisdif.y', desc: 'Yearly diffuse surface incoming solar radiation (SISDIF)', group: 'Solar radiation' },
   { code: 'msg.sisdif-no-horizon.h', desc: 'Hourly SISDIF without terrain/shadow correction', group: 'Solar radiation' },
   { code: 'msg.sisdir.h', desc: 'Hourly direct surface incoming solar radiation (SISDIR)', group: 'Solar radiation' },
   { code: 'msg.sisdir.d', desc: 'Daily direct surface incoming solar radiation (SISDIR)', group: 'Solar radiation' },
@@ -915,8 +918,14 @@ const PARAMETER_CATALOG = [
   { code: 'msg.sisdircf.y', desc: 'Yearly clear-sky direct solar radiation (SISDIRCF)', group: 'Solar radiation' },
   { code: 'msg.sisdircf-no-horizon.h', desc: 'Hourly SISDIRCF without terrain/shadow correction', group: 'Solar radiation' },
   { code: 'msg.sisdni.h', desc: 'Hourly direct normal radiation (SISDNI)', group: 'Solar radiation' },
+  { code: 'msg.sisdni.d', desc: 'Daily direct normal radiation (SISDNI)', group: 'Solar radiation' },
+  { code: 'msg.sisdni.m', desc: 'Monthly direct normal radiation (SISDNI)', group: 'Solar radiation' },
+  { code: 'msg.sisdni.y', desc: 'Yearly direct normal radiation (SISDNI)', group: 'Solar radiation' },
   { code: 'msg.sisdni-no-horizon.h', desc: 'Hourly SISDNI without terrain/shadow correction', group: 'Solar radiation' },
   { code: 'msg.ki.h', desc: 'Hourly cloud index (KI)', group: 'Solar radiation' },
+  { code: 'msg.ki.d', desc: 'Daily cloud index (KI)', group: 'Solar radiation' },
+  { code: 'msg.ki.m', desc: 'Monthly cloud index (KI)', group: 'Solar radiation' },
+  { code: 'msg.ki.y', desc: 'Yearly cloud index (KI)', group: 'Solar radiation' },
   { code: 'msg.sdl.h', desc: 'Hourly surface downward longwave radiation (SDL)', group: 'Longwave radiation' },
   { code: 'msg.sdl.d', desc: 'Daily surface downward longwave radiation (SDL)', group: 'Longwave radiation' },
   { code: 'msg.sdl.m', desc: 'Monthly surface downward longwave radiation (SDL)', group: 'Longwave radiation' },
@@ -938,7 +947,7 @@ const PARAMETER_CATALOG = [
   { code: 'msg.srb.m', desc: 'Monthly surface radiation budget (SRB)', group: 'Radiation budget' },
   { code: 'msg.srb.y', desc: 'Yearly surface radiation budget (SRB)', group: 'Radiation budget' },
   { code: 'msg.bb_em.d', desc: 'Daily broad-band emissivity (BB_EM)', group: 'Radiation budget' },
-  { code: 'lst-pmw.h', desc: 'Hourly land surface temperature from PMW (LST-PMW)', group: 'Land surface temperature', fileCode: 'lst-pmw.h', aliases: ['lst_pmw.h', 'msg.lst-pmw.h'] },
+  { code: 'msg.lst-pmw.h', desc: 'Hourly land surface temperature from PMW (LST-PMW)', group: 'Land surface temperature', fileCode: 'lst-pmw.h', aliases: ['lst-pmw.h', 'lst_pmw.h'] },
   { code: 'msg.cmask.h', desc: 'Hourly cloud mask (CMASK)', group: 'Clouds' },
   { code: 'msg.cfc.h', desc: 'Hourly cloud fractional cover (CFC)', group: 'Clouds' },
   { code: 'msg.cfc.d', desc: 'Daily cloud fractional cover (CFC)', group: 'Clouds' },
@@ -948,7 +957,8 @@ const PARAMETER_CATALOG = [
   { code: 'msg.ctt.h', desc: 'Hourly cloud top temperature (CTT)', group: 'Clouds' },
   { code: 'msg.pcfc.h', desc: 'Hourly probability cloud fractional cover (PCFC)', group: 'Cloud ancillary' },
   { code: 'msg.cmaskscore.h', desc: 'Hourly cloud mask score (CMASKSCORE)', group: 'Cloud ancillary', aliases: ['msg.cmaskscores.h'] },
-  { code: 'saa.h', desc: 'Hourly solar azimuth angle (SAA)', group: 'Cloud ancillary', fileCode: 'saa.h', aliases: ['msg.saa.h'] },
+  { code: 'msg.saa.h', desc: 'Hourly solar azimuth angle (SAA)', group: 'Cloud ancillary', fileCode: 'saa.h', aliases: ['saa.h'] },
+  { code: 'msg.sza.h', desc: 'Hourly solar zenith angle (SZA)', group: 'Cloud ancillary', fileCode: 'sza.h', aliases: ['sza.h'] },
   { code: 'msg.ir.i', desc: 'Instantaneous infrared brightness temperature (IR)', group: 'Cloud ancillary', fileCode: 'msg.ir', gran: 'I' },
   { code: 'msg.vis.i', desc: 'Instantaneous visible radiance (VIS)', group: 'Cloud ancillary', fileCode: 'msg.vis', gran: 'I' },
   { code: 'msg.saa.i', desc: 'Instantaneous solar azimuth angle (SAA)', group: 'Cloud ancillary', fileCode: 'msg.saa', gran: 'I' },
@@ -956,8 +966,8 @@ const PARAMETER_CATALOG = [
   { code: 'msg.scan_time.i', desc: 'Instantaneous Meteosat scan time (SCAN_TIME)', group: 'Cloud ancillary', fileCode: 'msg.scan_time', gran: 'I' },
 ];
 
-const FALLBACK_PUBLISHED_CODES = new Set(['msg.sis.h', 'msg.sis.d', 'msg.sis.m', 'msg.sis.y', 'msg.siscf.h', 'msg.siscf.d', 'msg.siscf.m', 'msg.siscf.y', 'msg.sisdir.h', 'msg.sisdir.d', 'msg.sisdir.m', 'msg.sisdir.y', 'msg.sisdircf.h', 'msg.sisdircf.d', 'msg.sisdircf.m', 'msg.sisdircf.y', 'msg.sisdif.h', 'msg.sisdif.d', 'msg.sisdif.m', 'msg.sisdif.y', 'msg.sisdni.h', 'msg.sisdni.d', 'msg.sisdni.m', 'msg.sisdni.y', 'msg.nsr.h', 'msg.nsr.d', 'msg.nsr.m', 'msg.nsr.y', 'msg.nlr.h', 'msg.nlr.d', 'msg.nlr.m', 'msg.nlr.y', 'msg.srb.h', 'msg.srb.d', 'msg.srb.m', 'msg.srb.y', 'msg.sol.h', 'msg.sol.d', 'msg.sol.m', 'msg.sol.y', 'msg.sdl.h', 'msg.sdl.d', 'msg.sdl.m', 'msg.sdl.y', 'msg.cfc.h', 'msg.cfc.d', 'msg.cfc.m', 'msg.cfc.y', 'msg.pcfc.h', 'msg.pcfc.d', 'msg.pcfc.m', 'msg.pcfc.y', 'msg.ki.h', 'msg.ki.d', 'msg.ki.m', 'msg.ki.y', 'msg.alb.d', 'msg.alb.m', 'msg.alb.y', 'msg.saa.h', 'msg.saa.d', 'msg.saa.m', 'msg.saa.y', 'msg.sisdir-no-horizon.h', 'msg.sisdir-no-horizon.d', 'msg.sisdir-no-horizon.m', 'msg.sisdir-no-horizon.y', 'lst-pmw.h', 'saa.h']);
-let PARAMETERS = PARAMETER_CATALOG.filter(p => FALLBACK_PUBLISHED_CODES.has(p.code));
+const FALLBACK_PUBLISHED_CODES = new Set([]);
+let PARAMETERS = [];
 
 // The sidebar is populated from the actually published STAC assets when the page loads.
 // Year selector starts automatically with the current calendar year at page load.
@@ -983,28 +993,33 @@ async function init() {
 async function discoverPublishedParameters() {
   const grid = document.getElementById('paramGrid');
   if (grid) {
-    grid.innerHTML = `<div class="loading-state" style="padding:18px 4px;"><div class="spinner"></div><span>Checking published STAC assets...</span></div>`;
+    grid.innerHTML = `<div class="loading-state" style="padding:18px 4px;"><div class="spinner"></div><span>Checking published STAC assets via API...</span></div>`;
   }
 
   try {
     const discovered = await collectPublishedParameterCodes();
-    const filtered = PARAMETER_CATALOG.filter(p => discovered.has(normalizeParamCode(p.code)) || FALLBACK_PUBLISHED_CODES.has(p.code));
 
-    // Only include parameters that either were found in live STAC item assets or are known published fallback entries.
-    // The collection metadata itself does not enumerate every asset code; hourly assets such as lst-pmw.h and saa.h
-    // may only appear in item-level assets. Documentation-only helper fields such as IR/VIS stay hidden unless published.
-    PARAMETERS = filtered.length ? filtered : PARAMETER_CATALOG.filter(p => FALLBACK_PUBLISHED_CODES.has(p.code));
+    // API-driven only: show exactly those catalog entries that are backed by currently
+    // published item assets. No screenshot/manual/fallback list is mixed in here.
+    PARAMETERS = PARAMETER_CATALOG.filter(p => discovered.has(normalizeParamCode(p.code)));
 
-    if (!PARAMETERS.some(p => p.code === 'msg.sis.m')) {
+    // Keep a deterministic group/order from PARAMETER_CATALOG, but report what the API found.
+    console.info(`Published satellite parameters discovered via STAC API: ${PARAMETERS.length}`, PARAMETERS.map(p => p.code));
+
+    if (!PARAMETERS.some(p => selectedParams.has(p.code))) {
       selectedParams.clear();
-      if (PARAMETERS[0]) selectedParams.add(PARAMETERS[0].code);
+      if (PARAMETERS.some(p => p.code === 'msg.sis.m')) selectedParams.add('msg.sis.m');
+      else if (PARAMETERS[0]) selectedParams.add(PARAMETERS[0].code);
     }
 
     buildParamGrid();
+    if (!PARAMETERS.length) {
+      showToast('No published parameters found in STAC item assets.', 'error');
+    }
   } catch (err) {
-    PARAMETERS = PARAMETER_CATALOG.filter(p => FALLBACK_PUBLISHED_CODES.has(p.code));
+    PARAMETERS = [];
     buildParamGrid();
-    showToast('Could not verify live STAC assets; using conservative published fallback list.', 'error');
+    showToast(`Could not verify STAC assets via API: ${err.message}`, 'error');
   }
 }
 
@@ -1032,8 +1047,8 @@ async function collectPublishedParameterCodes() {
   const archiveItemIds = ['ch', 'archive-ch'];
   const reps = [...new Set([
     ...archiveItemIds,
-    ...itemIds.filter(id => /^\d{6}-ch$/.test(id) || /^\d{8}-ch$/.test(id))
-  ])].slice(0, 100);
+    ...itemIds
+  ])].slice(0, 500);
 
   for (const id of reps) {
     try {
@@ -1354,8 +1369,18 @@ function parseFilenameInfo(filename) {
     const afterSep = name.slice(sepIdx + sep.length);
 
     const us1 = afterSep.indexOf('_');
-    const rawParam = us1 > -1 ? afterSep.slice(0, us1) : afterSep;
+    let rawParam = us1 > -1 ? afterSep.slice(0, us1) : afterSep;
     const after    = us1 > -1 ? afterSep.slice(us1 + 1) : '';
+
+    // Normalize aliases from asset filenames, e.g. `saa.h`, `sza.h`,
+    // `msg.SZA.H`, `msg.LST-PMW.H`, to the canonical catalog code.
+    const normalizedRawParam = normalizeParamCode(rawParam);
+    for (const p of PARAMETER_CATALOG) {
+      if (parameterMatchesFileCode(p, normalizedRawParam)) {
+        rawParam = p.code;
+        break;
+      }
+    }
 
     const tsMatches = [...after.matchAll(/(\d{14})/g)];
     let startDate = null, endDate = null;
