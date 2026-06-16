@@ -357,7 +357,7 @@ tr:hover td { background: var(--sky); }
         <label class="product-item selected" id="lbl-tzc">
           <input type="checkbox" value="tzc" checked onchange="toggleProduct('tzc', this.checked)">
           <span class="product-code" style="background:#0891b2">tzc</span>
-          <span class="product-desc">Total Column Z<br>every 10 min</span>
+          <span class="product-desc">Precip-SV (Sideview)<br>every 5 min</span>
         </label>
       </div>
     </div>
@@ -483,14 +483,15 @@ const BASE_API   = 'https://data.geo.admin.ch/api/stac/v1';
 const COLLECTION = 'ch.meteoschweiz.ogd-radar-precip';
 const BASE_URL   = `${BASE_API}/collections/${COLLECTION}`;
 
-// Always bypass browser/proxy cache for STAC metadata.
-// The daily radar item can change during the day while keeping the same item URL.
+// Cache-busting for STAC metadata only.
+// The daily STAC item can change during the day while keeping the same URL.
+// Download file URLs are intentionally left unchanged.
 function noCacheUrl(url) {
   const sep = url.includes('?') ? '&' : '?';
   return `${url}${sep}_=${Date.now()}`;
 }
 
-const NO_CACHE_FETCH = {
+const STAC_FETCH_OPTIONS = {
   cache: 'no-store',
   headers: { Accept: 'application/json' }
 };
@@ -499,7 +500,7 @@ const PRODUCTS_INFO = {
   CPC: { prefix: 'cpc', intervalMin: 5,  desc: 'Combiprecip' },
   CPCH: { prefix: 'cpc', intervalMin: 60, desc: 'Combiprecip hourly', virtual: true, baseProduct: 'CPC', hourlyOnly: true, minAgeDays: 8 },
   rzc: { prefix: 'rzc', intervalMin: 5,  desc: 'Radar Composite CH' },
-  tzc: { prefix: 'tzc', intervalMin: 10, desc: 'Total Column Z' },
+  tzc: { prefix: 'tzc', intervalMin: 5, desc: 'Precip-SV (Sideview)' },
 };
 
 // ─── State ─────────────────────────────────────────────────────────────────
@@ -593,7 +594,7 @@ function formatDT(dt) {
 // ─── API ───────────────────────────────────────────────────────────────────
 async function fetchItem(itemId) {
   const url = noCacheUrl(`${BASE_URL}/items/${itemId}`);
-  const r = await fetch(url, NO_CACHE_FETCH);
+  const r = await fetch(url, STAC_FETCH_OPTIONS);
   if (!r.ok) throw new Error(`HTTP ${r.status} for ${itemId}`);
   return r.json();
 }
@@ -603,7 +604,7 @@ async function fetchAllItemIds(targetPrefix) {
   let url = noCacheUrl(`${BASE_URL}/items?limit=200`);
   let pages = 0;
   while (url && pages < 20) {
-    const r = await fetch(noCacheUrl(url), NO_CACHE_FETCH);
+    const r = await fetch(noCacheUrl(url), STAC_FETCH_OPTIONS);
     if (!r.ok) break;
     const data = await r.json();
     for (const f of (data.features || [])) {
@@ -898,7 +899,7 @@ async function downloadQueue() {
     renderQueue();
 
     try {
-      const r = await fetch(item.url, { cache: 'no-store' });
+      const r = await fetch(item.url);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const blob = await r.blob();
 
