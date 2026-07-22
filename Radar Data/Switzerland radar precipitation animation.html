@@ -1,0 +1,190 @@
+<!--
+MIT License
+
+Copyright (c) 2026 CPC/RZC Precipitation Viewer contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Data and map content are not covered by this software licence. See the licence
+and attribution section in the page footer.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swiss CPC and RZC precipitation – daily animation</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{--bg:#f3f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#d8e2ec;--accent:#1769aa;--accent2:#0b4f82;--ok:#147a4b;--warn:#9a6700;--err:#b42318}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+header{padding:22px clamp(16px,4vw,44px);background:linear-gradient(120deg,#0b4f82,#1982c4);color:#fff}header h1{margin:0 0 5px;font-size:clamp(22px,3vw,34px)}header p{margin:0;opacity:.92}
+main{padding:20px clamp(12px,3vw,34px) 32px;max-width:1550px;margin:auto}.layout{display:grid;grid-template-columns:minmax(320px,410px) 1fr;gap:18px}@media(max-width:950px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 20px rgba(16,24,40,.06)}.controls{padding:18px}.controls h2{font-size:17px;margin:0 0 14px}
+.field{margin:0 0 14px}.field label{display:block;font-weight:650;margin-bottom:6px}select,input,button{width:100%;font:inherit;border-radius:9px;border:1px solid #bfc9d8;background:#fff;padding:10px 11px;color:var(--ink)}
+button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}button:hover{background:var(--accent2)}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#eaf2f9;color:#164c73;border:1px solid #bfd5e6}.secondary:hover{background:#dceaf5}.danger{background:#a9382d}.danger:hover{background:#842b23}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.row3{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:9px}.status{margin-top:14px;padding:10px 11px;border-radius:9px;background:#eef4fa;color:#344054;min-height:43px;white-space:pre-wrap}.status.ok{background:#ecfdf3;color:var(--ok)}.status.warn{background:#fffaeb;color:var(--warn)}.status.err{background:#fef3f2;color:var(--err)}
+.meta{font-size:13px;color:var(--muted);margin-top:12px;overflow-wrap:anywhere}.hint{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:16px;padding-top:13px}.small{font-size:12px;color:var(--muted)}
+.timeline{margin-top:15px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#f8fafc}.timehead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}.timehead strong{font-size:18px}.timehead span{font-size:12px;color:var(--muted)}input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
+.hours{display:grid;grid-template-columns:repeat(12,1fr);gap:4px;margin-top:10px}.hour{padding:5px 2px;border-radius:5px;font-size:10px;background:#e9eef5;color:#667085;text-align:center}.hour.available{background:#ccebdc;color:#0f5e3a}.hour.active{outline:2px solid #1769aa;font-weight:800}.hour.missing{background:#f4dfdc;color:#9b2c20}
+.mapcard{overflow:hidden;position:relative}.maptop{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line)}.maptop strong{font-size:16px}.maptop span{font-size:13px;color:var(--muted);text-align:right}#map{height:min(75vh,800px);min-height:540px;background:#dce9f3}
+.legend{position:absolute;z-index:500;right:15px;bottom:24px;background:rgba(255,255,255,.96);padding:10px 11px;border-radius:9px;box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:12px;min-width:230px}.legend-title{font-weight:700;margin-bottom:6px}.bar{height:12px;border-radius:4px;margin-bottom:4px}.ticks{display:flex;justify-content:space-between;color:#475467}.loader{display:none;position:absolute;z-index:1000;inset:0;background:rgba(255,255,255,.72);align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;font-weight:700}.loader.on{display:flex}
+.progress{height:7px;border-radius:999px;background:#dbe4ee;overflow:hidden;margin-top:9px}.progress>div{height:100%;width:0;background:#1769aa;transition:width .15s}
+footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-size:13px;color:var(--muted)}footer .license-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}footer a{color:#1769aa}footer details{margin-top:10px}footer summary{cursor:pointer;font-weight:700;color:#344054}footer pre{white-space:pre-wrap;font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:300px;overflow:auto}
+</style>
+</head>
+<body>
+<header><h1>Swiss radar precipitation</h1><p>CPC 60-minute totals and RZC rates for one day in 5-minute or hourly steps</p></header>
+<main><div class="layout">
+<section class="card controls">
+<h2>Precipitation time series</h2>
+<div class="field"><label for="productSelect">Product</label><select id="productSelect"><option value="CPC" selected>CPC · CombiPrecip, 60-minute total</option><option value="RZC">RZC · PRECIP, instantaneous precipitation rate</option></select></div>
+<div class="field"><label for="dateSelect">Day (UTC)</label><select id="dateSelect"></select></div>
+<div class="field"><label for="modeSelect">Time steps</label><select id="modeSelect"><option value="5min">Every 5 minutes</option><option value="hourly" selected>Full hours only</option></select></div>
+<div class="field"><label for="orientationSelect">Raster orientation</label><select id="orientationSelect"><option value="auto" selected>Automatic (LV95 extent)</option><option value="normal">Original</option><option value="transpose">90° counterclockwise</option><option value="transposeCW">90° clockwise</option><option value="rotate180">180°</option><option value="flipX">Flip horizontally</option><option value="flipY">Flip vertically</option></select></div>
+<div class="row"><button id="refreshBtn" class="secondary" type="button">Refresh catalogue</button><button id="loadDayBtn" type="button">Load day</button></div>
+<div class="timeline">
+  <div class="timehead"><strong id="timeLabel">–</strong><span id="frameLabel">No data loaded yet</span></div>
+  <input id="timeSlider" type="range" min="0" max="23" step="1" value="0" disabled aria-label="Time step">
+  <div class="row3" style="margin-top:9px"><button id="playBtn" type="button" disabled>▶ Play</button><button id="prevBtn" class="secondary" type="button" disabled>◀ Previous</button><button id="nextBtn" class="secondary" type="button" disabled>Next ▶</button></div>
+  <div class="field" style="margin:10px 0 0"><label for="speedSelect">Animation speed</label><select id="speedSelect"><option value="1500">Slow · 1.5 s</option><option value="800" selected>Normal · 0.8 s</option><option value="350">Fast · 0.35 s</option></select></div>
+  <div id="hours" class="hours"></div>
+</div>
+<div id="status" class="status">Initializing…</div><div class="progress"><div id="progressBar"></div></div>
+<div id="fileMeta" class="meta"></div>
+<div class="field" style="margin-top:18px"><label for="localFiles">Open local CPC/RZC HDF5 files</label><input id="localFiles" type="file" multiple accept=".h5,.hdf5,application/x-hdf5"><div class="small">Multiple time steps can be selected together and are sorted by time using only the file name.</div></div>
+<div class="hint"><b>File filters:</b><br><code>CPCyyjjjHHMMQ_00060.XYZ.h5</code> for CPC and <code>RZCyyjjjHHMMKK.XYZ.h5</code> for RZC. Date and UTC time are taken exclusively from the file name. In 5-minute mode, <code>MM = 00, 05, …, 55</code>; in hourly mode, only <code>MM = 00</code> are used.<br><br>CPC shows the precipitation total for the preceding 60 minutes in mm. RZC shows the instantaneous radar-based precipitation rate in mm/h. If several CPC versions exist for the same time, the highest quality code is preferred; if tied, the most recently updated file is used.</div>
+</section>
+<section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div id="map"></div><div id="legend" class="legend"><div id="legendTitle" class="legend-title">CPC precipitation total for the last 60 minutes</div><div class="bar" style="background:linear-gradient(90deg,#d9f2ff,#70c8ef,#42ba72,#f5df3f,#f39a2f,#df3b32,#8c1d7d)"></div><div id="legendTicks" class="ticks"><span>0</span><span>1</span><span>5</span><span>20</span><span>≥50 mm</span></div></div><div id="loader" class="loader">Processing data…</div></section>
+</div></main>
+<footer><div class="license-box"><strong>License and source information</strong><br>
+Software code of this viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. Data source: MeteoSchweiz / data.geo.admin.ch; required attribution when reproducing or redistributing: <q>Source: MeteoSwiss</q>. Base map and map data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>. Standard tiles used in accordance with the <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener">OpenStreetMap Tile Usage Policy</a>. External libraries retain their licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), jsfive and pako (MIT/Zlib).
+<details><summary>Full MIT License text</summary><pre>MIT License
+
+Copyright (c) 2026 CPC/RZC Precipitation Viewer contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre></details></div></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
+<script type="module">
+const STAC='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items';
+const $=id=>document.getElementById(id);
+const ui={product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),orientation:$('orientationSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),local:$('localFiles'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks')};
+const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
+L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);
+let overlay=null,catalog=new Map(),frames=[],currentIndex=0,timer=null,loading=false;
+const frameCache=new Map();
+function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
+function setBusy(on,text='Processing data…'){loading=on;ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on;ui.refresh.disabled=on}
+function utcKey(d){return d.toISOString().slice(0,10)}
+function makeDates(){ui.date.innerHTML='';const now=new Date();for(let i=0;i<14;i++){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-i));ui.date.add(new Option(new Intl.DateTimeFormat('de-CH',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(d),utcKey(d)))} }
+function dateFromYyDoy(yy,doy){const year=yy>=70?1900+yy:2000+yy;return utcKey(new Date(Date.UTC(year,0,doy)))}
+function fileNameFromHref(href,key){try{return decodeURIComponent(new URL(href,location.href).pathname.split('/').pop()||key)}catch{return decodeURIComponent(String(href).split('/').pop().split('?')[0]||key)}}
+function parseProductName(name){
+  // CPC: CPCyyjjjHHMMQ_00060.XYZ.h5
+  let m=/^CPC(\d{2})(\d{3})(\d{2})(\d{2})([0-9A-Za-z])_00060\.([0-9A-Za-z]*01)\.h5$/i.exec(name);
+  if(m)return {product:'CPC',date:dateFromYyDoy(Number(m[1]),Number(m[2])),hour:Number(m[3]),minute:Number(m[4]),quality:/^\d$/.test(m[5])?Number(m[5]):-1,qualityRaw:m[5],suffix:m[6]};
+  // RZC: RZCyyjjjHHMMKK.XYZ.h5; KK and XYZ are reserved fields.
+  m=/^RZC(\d{2})(\d{3})(\d{2})(\d{2})([^.]*)\.([0-9A-Za-z]*01)\.h5$/i.exec(name);
+  if(m)return {product:'RZC',date:dateFromYyDoy(Number(m[1]),Number(m[2])),hour:Number(m[3]),minute:Number(m[4]),quality:-1,qualityRaw:m[5]||'–',suffix:m[6]};
+  return null;
+}
+function candidateBetter(a,b){
+  if(!b)return true;
+  if(a.product==='CPC'&&a.quality!==b.quality)return a.quality>b.quality;
+  return Number(a.updatedMs||0)>Number(b.updatedMs||0);
+}
+function collectAssets(json){for(const f of json.features||[]){for(const [key,a] of Object.entries(f.assets||{})){const href=a.href||'',name=fileNameFromHref(href,key),p=parseProductName(name);if(!p||p.hour>23||p.minute>59||p.minute%5!==0)continue;const updated=a.updated||f.properties?.updated||'';const item={...p,name,href,size:a['file:size'],updated,updatedMs:Date.parse(updated)||0};const ck=`${p.product}|${p.date}|${String(p.hour).padStart(2,'0')}${String(p.minute).padStart(2,'0')}`;if(candidateBetter(item,catalog.get(ck)))catalog.set(ck,item)}}}
+async function loadCatalog(){stopAnimation();setBusy(true,'Loading STAC catalogue…');catalog.clear();frameCache.clear();setStatus('Loading STAC catalogue…');try{let url=STAC+'?limit=100';let pages=0;while(url&&pages<20){const r=await fetch(url,{cache:'no-store'});if(!r.ok)throw new Error(`STAC HTTP ${r.status}`);const j=await r.json();collectAssets(j);url=(j.links||[]).find(x=>x.rel==='next')?.href||null;pages++;ui.progress.style.width=Math.min(90,pages*8)+'%'}ui.progress.style.width='100%';prepareDay();const cpc=[...catalog.values()].filter(x=>x.product==='CPC').length,rzc=[...catalog.values()].filter(x=>x.product==='RZC').length;setStatus(`${cpc} CPC and ${rzc} RZC files found.`,'ok')}catch(e){setStatus('STAC request failed: '+e.message+'\nLocal files can still be opened.','err');prepareDay()}finally{setBusy(false);setTimeout(()=>ui.progress.style.width='0%',700)}}
+function frameTime(f){return `${String(f.hour).padStart(2,'0')}:${String(f.minute).padStart(2,'0')}`}
+function productInfo(product=ui.product.value){return product==='RZC'?{name:'RZC',long:'PRECIP · instantaneous precipitation rate',unit:'mm/h',legend:'RZC · instantaneous radar-based precipitation rate',ticks:'<span>0</span><span>1</span><span>5</span><span>20</span><span>≥50 mm/h</span>'}:{name:'CPC',long:'CombiPrecip · 60-minute total',unit:'mm',legend:'CPC precipitation total for the last 60 minutes',ticks:'<span>0</span><span>1</span><span>5</span><span>20</span><span>≥50 mm</span>'}}
+function updateProductUi(){const i=productInfo();ui.legendTitle.textContent=i.legend;ui.legendTicks.innerHTML=i.ticks;ui.title.textContent=`No ${i.name} map loaded`;}
+function prepareDay(){stopAnimation();frames=[];const hourly=ui.mode.value==='hourly',product=ui.product.value;for(const item of catalog.values()){if(item.product===product&&item.date===ui.date.value&&(!hourly||item.minute===0))frames.push({...item,source:'remote'})}frames.sort((a,b)=>a.hour-b.hour||a.minute-b.minute);currentIndex=0;updateProductUi();renderHourBoxes();const ok=frames.length>0;ui.slider.disabled=!ok;ui.play.disabled=!ok;ui.prev.disabled=!ok;ui.next.disabled=!ok;ui.slider.min='0';ui.slider.max=String(Math.max(0,frames.length-1));ui.slider.value='0';const expected=hourly?24:288,info=productInfo(product);ui.frame.textContent=ok?`${frames.length} time steps available`:'No time steps found';ui.time.textContent=ok?`${frameTime(frames[0])} UTC`:'–';ui.meta.innerHTML=ok?`Product: <b>${info.long}</b><br>Day from file name: <code>${ui.date.value}</code><br>Mode: <b>${hourly?'full hours':'5-minute steps'}</b><br>Available: <b>${frames.length}/${expected}</b>`:`Product: <b>${info.name}</b><br>Day: <code>${ui.date.value}</code><br>No matching files found.`;if(!ok)setStatus(`No matching ${info.name} files were found for this day.`,'warn')}
+function renderHourBoxes(){ui.hours.innerHTML='';for(let h=0;h<24;h++){const count=frames.filter(f=>f.hour===h).length,d=document.createElement('div');d.className='hour '+(count?'available':'missing');d.textContent=ui.mode.value==='5min'?`${String(h).padStart(2,'0')} (${count})`:String(h).padStart(2,'0');d.dataset.hour=String(h);ui.hours.appendChild(d)}markActiveHour()}
+function markActiveHour(){const hour=frames[currentIndex]?.hour;for(const el of ui.hours.children)el.classList.toggle('active',Number(el.dataset.hour)===hour)}
+function loadScript(src){return new Promise((resolve,reject)=>{const old=document.querySelector(`script[data-src="${src}"]`);if(old){if(old.dataset.loaded==='1')return resolve();old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const el=document.createElement('script');el.src=src;el.async=true;el.dataset.src=src;el.onload=()=>{el.dataset.loaded='1';resolve()};el.onerror=()=>reject(new Error('Library could not be loaded: '+src));document.head.appendChild(el)})}
+function attrsObj(node){const o={};for(const [k,v] of Object.entries(node?.attrs||{})){let x=v?.value??v;if(ArrayBuffer.isView(x))x=x.length===1?x[0]:Array.from(x);if(Array.isArray(x)&&x.length===1)x=x[0];if(typeof x==='string')x=x.replace(/\0/g,'').trim();o[k]=x}return o}
+function children(node){try{const keys=typeof node?.keys==='function'?Array.from(node.keys()):Array.isArray(node?.keys)?node.keys:Array.from(node?.keys||[]);return keys.map(k=>[k,node.get(k)])}catch{return[]}}
+function shapeOf(node){try{const s=typeof node?.shape==='function'?node.shape():node?.shape;if(Array.isArray(s))return s.map(Number);if(ArrayBuffer.isView(s))return Array.from(s,Number)}catch{}return null}
+function getNode(root,path){try{return root.get(path)}catch{return null}}
+function findDatasets(root){const out=[],seen=new Set();function walk(n,path,depth=0){if(!n||depth>12||seen.has(n))return;seen.add(n);for(const [k,c] of children(n)){const p=(path+'/'+k).replace(/\/+/g,'/'),s=shapeOf(c),type=String(c?.type||c?.constructor?.name||'').toLowerCase();if(s?.length||type.includes('dataset'))out.push({node:c,path:p,shape:s});else walk(c,p,depth+1)}}walk(root,'');return out}
+function pickDataset(root){for(const path of ['/dataset1/data1/data','dataset1/data1/data','/dataset1/data2/data','dataset1/data2/data','/data','data']){const node=getNode(root,path),shape=shapeOf(node);if(node&&shape?.length===2)return{node,path:path.startsWith('/')?path:'/'+path,shape}}const ds=findDatasets(root).filter(x=>x.shape?.length===2);if(!ds.length)throw new Error('No two-dimensional raster was found in the HDF5 file.');return ds.sort((a,b)=>(b.shape[0]*b.shape[1])-(a.shape[0]*a.shape[1]))[0]}
+function findGroupAttrs(root,path,name){const parts=path.split('/').filter(Boolean);for(let i=parts.length;i>=0;i--){const base='/'+parts.slice(0,i).join('/'),n=getNode(root,(base==='/'?'':base)+'/'+name);if(n)return attrsObj(n)}return{}}
+function num(a,...keys){for(const k of keys)if(a[k]!==undefined&&Number.isFinite(Number(a[k])))return Number(a[k]);return NaN}
+proj4.defs('EPSG:2056','+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs');
+function boundsFromH5(root,ds,w,h){const where={...attrsObj(getNode(root,'/where')||{}),...findGroupAttrs(root,ds.path,'where')};
+  const lonKeys=[['LL_lon','LL_lat'],['UL_lon','UL_lat'],['UR_lon','UR_lat'],['LR_lon','LR_lat']];
+  const geo=lonKeys.map(([x,y])=>[num(where,x,x.toLowerCase()),num(where,y,y.toLowerCase())]);
+  if(geo.every(p=>p.every(Number.isFinite))){const lats=geo.map(p=>p[1]),lons=geo.map(p=>p[0]);return[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]]}
+  let xmin=num(where,'LL_x','ll_x','xmin','x0'),ymin=num(where,'LL_y','ll_y','ymin','y0'),xmax=num(where,'UR_x','ur_x','xmax'),ymax=num(where,'UR_y','ur_y','ymax');
+  const xs=num(where,'xscale','x_scale'),ys=num(where,'yscale','y_scale');
+  if(!Number.isFinite(xmax)&&Number.isFinite(xmin)&&Number.isFinite(xs))xmax=xmin+w*xs;
+  if(!Number.isFinite(ymax)&&Number.isFinite(ymin)&&Number.isFinite(ys))ymax=ymin+h*ys;
+  if(![xmin,ymin,xmax,ymax].every(Number.isFinite))throw new Error('LV95 map extent (LL_x/LL_y/UR_x/UR_y or xscale/yscale) is missing from the HDF5 file.');
+  const corners=[[xmin,ymin],[xmin,ymax],[xmax,ymin],[xmax,ymax]].map(c=>proj4('EPSG:2056','EPSG:4326',c));
+  const lons=corners.map(c=>c[0]),lats=corners.map(c=>c[1]);
+  if(!lats.every(Number.isFinite)||!lons.every(Number.isFinite))throw new Error('LV95 coordinates could not be transformed to WGS84.');
+  return[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]]}
+const LEVELS=[0,0.1,0.5,1,2,5,10,20,35,50];const COLORS=[[217,242,255],[151,216,245],[90,190,232],[63,181,116],[166,207,74],[245,223,63],[243,154,47],[223,59,50],[156,29,99],[92,12,82]];
+function rainColor(v){if(!Number.isFinite(v)||v<=0)return[0,0,0,0];let i=1;while(i<LEVELS.length&&v>LEVELS[i])i++;if(i>=LEVELS.length)return[...COLORS.at(-1),225];const lo=LEVELS[i-1],hi=LEVELS[i],t=(v-lo)/(hi-lo||1),a=COLORS[i-1],b=COLORS[i];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t,215].map(Math.round)}
+async function decodeFrame(buffer,name,product){await loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');await loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js');const H5=window.hdf5;if(!H5?.File)throw new Error('jsfive could not be initialized.');const f=new H5.File(buffer,String(name||'radar.h5')),ds=pickDataset(f),shape=ds.shape.map(Number),dim0=shape[0],dim1=shape[1];let raw=ds.node.value;if(raw?.then)raw=await raw;if(raw&&typeof raw==='object'&&'value'in raw&&raw.value!==raw)raw=raw.value;if(Array.isArray(raw)&&Array.isArray(raw[0]))raw=raw.flat();if(!raw||raw.length<dim0*dim1)throw new Error(`Raster ${ds.path} is incomplete.`);const what={...findGroupAttrs(f,ds.path,'what'),...attrsObj(ds.node)},where={...attrsObj(getNode(f,'/where')||{}),...findGroupAttrs(f,ds.path,'where')},gain=Number.isFinite(Number(what.gain))?Number(what.gain):1,offset=Number.isFinite(Number(what.offset))?Number(what.offset):0,nodata=Number(what.nodata??what._FillValue??NaN),undetect=Number(what.undetect??NaN),xsize=num(where,'xsize','x_size','cols','width'),ysize=num(where,'ysize','y_size','rows','height');
+// Orientation is no longer derived from xsize/ysize alone. The deciding factor
+// is which arrangement of the two HDF5 dimensions matches the aspect ratio of
+// the actual LV95 map extent. This prevents an incorrect 90° rotation.
+function projectedAspect(a){
+  let xmin=num(a,'LL_x','ll_x','xmin','x0'),ymin=num(a,'LL_y','ll_y','ymin','y0'),xmax=num(a,'UR_x','ur_x','xmax'),ymax=num(a,'UR_y','ur_y','ymax');
+  if([xmin,ymin,xmax,ymax].every(Number.isFinite)&&Math.abs(ymax-ymin)>0)return Math.abs(xmax-xmin)/Math.abs(ymax-ymin);
+  const pts=[['LL_lon','LL_lat'],['UL_lon','UL_lat'],['UR_lon','UR_lat'],['LR_lon','LR_lat']].map(([kx,ky])=>[num(a,kx,kx.toLowerCase()),num(a,ky,ky.toLowerCase())]);
+  if(pts.every(q=>q.every(Number.isFinite))){const lv=pts.map(q=>proj4('EPSG:4326','EPSG:2056',q)),xs=lv.map(q=>q[0]),ys=lv.map(q=>q[1]);return (Math.max(...xs)-Math.min(...xs))/(Math.max(...ys)-Math.min(...ys));}
+  return NaN;
+}
+const mapAspect=projectedAspect(where),normalAspect=dim1/dim0,transposedAspect=dim0/dim1;
+let mode=ui.orientation?.value||'auto';
+if(mode==='auto'){
+  if(Number.isFinite(mapAspect)&&mapAspect>0)mode=Math.abs(Math.log(normalAspect/mapAspect))<=Math.abs(Math.log(transposedAspect/mapAspect))?'normal':'transpose';
+  else if(Number.isFinite(xsize)&&Number.isFinite(ysize))mode=(dim1===xsize&&dim0===ysize)?'normal':((dim0===xsize&&dim1===ysize)?'transpose':'normal');
+  else mode='normal';
+}
+const swaps=mode==='transpose'||mode==='transposeCW';
+const gridW=swaps?dim0:dim1,gridH=swaps?dim1:dim0;
+function rawAt(x,y){
+  if(mode==='transpose') return Number(raw[x*dim1+y]);
+  if(mode==='transposeCW') return Number(raw[(dim0-1-x)*dim1+(dim1-1-y)]);
+  if(mode==='rotate180') return Number(raw[(dim0-1-y)*dim1+(dim1-1-x)]);
+  if(mode==='flipX') return Number(raw[y*dim1+(dim1-1-x)]);
+  if(mode==='flipY') return Number(raw[(dim0-1-y)*dim1+x]);
+  return Number(raw[y*dim1+x]);
+}
+const labels={normal:'Original (north up)',transpose:'90° counterclockwise',transposeCW:'90° clockwise',rotate180:'180°',flipX:'flipped horizontally',flipY:'flipped vertically'};
+const step=Math.max(1,Math.ceil(Math.max(gridW,gridH)/1200)),cw=Math.ceil(gridW/step),ch=Math.ceil(gridH/step),canvas=document.createElement('canvas');canvas.width=cw;canvas.height=ch;const ctx=canvas.getContext('2d'),img=ctx.createImageData(cw,ch);let min=Infinity,max=-Infinity,valid=0;for(let oy=0;oy<ch;oy++)for(let ox=0;ox<cw;ox++){const sy=Math.min(gridH-1,oy*step),sx=Math.min(gridW-1,ox*step),rv=rawAt(sx,sy),bad=!Number.isFinite(rv)||(Number.isFinite(nodata)&&rv===nodata)||(Number.isFinite(undetect)&&rv===undetect),v=bad?NaN:rv*gain+offset;if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);valid++}const c=rainColor(v),di=(oy*cw+ox)*4;img.data[di]=c[0];img.data[di+1]=c[1];img.data[di+2]=c[2];img.data[di+3]=c[3]}ctx.putImageData(img,0,0);return{url:canvas.toDataURL('image/png'),bounds:boundsFromH5(f,ds,gridW,gridH),w:gridW,h:gridH,min,max,valid,path:ds.path,orientation:`${labels[mode]||mode}; Raster ${normalAspect.toFixed(3)}, Map ${Number.isFinite(mapAspect)?mapAspect.toFixed(3):'n/a'}`}}
+async function getFrameData(frame){const key=frame.href||frame.name;if(frameCache.has(key))return frameCache.get(key);let buffer;if(frame.file)buffer=await frame.file.arrayBuffer();else{const r=await fetch(frame.href,{cache:'no-store'});if(!r.ok)throw new Error(`HDF5 HTTP ${r.status}`);buffer=await r.arrayBuffer()}const decoded=await decodeFrame(buffer,frame.name,frame.product);frameCache.set(key,decoded);return decoded}
+async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=`${frameTime(frame)} UTC`;ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);if(overlay)map.removeLayer(overlay);overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map);if(fit||currentIndex===0)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(frame.product);ui.title.textContent=`${frame.product} · ${frame.date} · ${frameTime(frame)} UTC`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTime(frame)} UTC</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${frame.product} map displayed: ${frameTime(frame)} UTC · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
+async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});ui.progress.style.width='100%';setTimeout(()=>ui.progress.style.width='0%',600)}
+function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
+function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
+ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',loadDay);ui.product.addEventListener('change',prepareDay);ui.date.addEventListener('change',prepareDay);ui.mode.addEventListener('change',prepareDay);ui.orientation.addEventListener('change',()=>{frameCache.clear();if(frames.length)showFrame(currentIndex,{fit:true})});ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
+ui.local.addEventListener('change',async()=>{stopAnimation();const selected=Array.from(ui.local.files||[]),parsed=[];for(const file of selected){const p=parseProductName(file.name);if(p&&p.minute%5===0)parsed.push({...p,name:file.name,file,source:'local'})}const product=ui.product.value;const matching=parsed.filter(f=>f.product===product);matching.sort((a,b)=>a.date.localeCompare(b.date)||a.hour-b.hour||a.minute-b.minute||b.quality-a.quality);const unique=new Map();for(const f of matching){const k=`${f.product}|${f.date}|${String(f.hour).padStart(2,'0')}${String(f.minute).padStart(2,'0')}`;if(candidateBetter(f,unique.get(k)))unique.set(k,f)}frames=Array.from(unique.values()).sort((a,b)=>a.date.localeCompare(b.date)||a.hour-b.hour||a.minute-b.minute);frames=frames.filter(f=>ui.mode.value==='5min'||f.minute===0);if(!frames.length){setStatus(`No correctly named ${product} files were selected for the chosen mode.`,'warn');return}ui.date.value=frames[0].date;currentIndex=0;updateProductUi();renderHourBoxes();ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=false;ui.slider.max=String(frames.length-1);ui.frame.textContent=`${frames.length} local time steps available`;await showFrame(0,{fit:true})});
+makeDates();renderHourBoxes();loadCatalog();
+</script>
+</body>
+</html>
