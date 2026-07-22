@@ -57,9 +57,11 @@ button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:point
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}.tab{background:#edf2f7;color:#344054}.tab.active{background:#1769aa;color:#fff}
 .small{font-size:12px;color:var(--muted)}.search-results{margin-top:8px}.search-results[hidden]{display:none}.place-marker{filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-size:13px;color:var(--muted)}footer .license-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}footer a{color:#1769aa}footer details{margin-top:10px}footer summary{cursor:pointer;font-weight:700;color:#344054}footer pre{white-space:pre-wrap;font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:320px;overflow:auto}
+.disclaimer{background:#fff3cd;border-bottom:3px solid #f0ad4e;color:#7a5b00;padding:12px clamp(16px,4vw,44px);font-size:14px;font-weight:600;text-align:center;line-height:1.5}
 </style>
 </head>
 <body>
+<div class="disclaimer">This program is intended solely for the visualization of MeteoSwiss Open Data POH and MESHS files. No rights whatsoever may be derived from it with respect to insurance companies, etc.</div>
 <header><h1>Swiss hail maps</h1><p>BZC – Probability of Hail (POH) and MZC – Maximum Estimated Severe Hail Size (MESHS)</p></header>
 <main><div class="layout">
 <section class="card controls">
@@ -147,7 +149,8 @@ function pixelPopupContent(latlng,pixel){
   const isUndetect=!isGap&&Number.isFinite(d.undetect)&&raw===d.undetect;
   const v=isGap?NaN:(isUndetect?d.offset:raw*d.gain+d.offset);
   const label=d.product==='BZC'?'Probability of Hail (POH)':'MESHS';
-  const valueText=isGap?'no radar coverage (gap)':(d.product==='BZC'?(v*100).toFixed(1)+' %':v.toFixed(1)+' mm');
+  const belowMeshsRange=d.product==='MZC'&&Number.isFinite(v)&&v<20;
+  const valueText=isGap?'no radar coverage (gap)':belowMeshsRange?'no hail indicated (below the 20 mm reporting threshold)':(d.product==='BZC'?(v*100).toFixed(1)+' %':v.toFixed(1)+' mm');
   return `<b>${label}</b><br>${valueText}<br><span style="color:#667085;font-size:12px">Pixel column ${gx}, row ${gy} · raw value ${Number.isFinite(raw)?raw:'–'}${isUndetect?' (undetect = measured, nothing found)':''}<br>${latlng.lat.toFixed(5)}°N, ${latlng.lng.toFixed(5)}°E<br>white lines: true 1&nbsp;km cell grid around this point</span>`;
 }
 map.on('click',e=>{
@@ -394,7 +397,19 @@ function projectionInfo(root,ds,w,h){
   throw new Error('No usable LV95 map extent (metric LL/UR or geographic LL_lon/UR_lon corners) was found in the HDF5 file.');
 }
 const POH_COLORS=[[255,255,178],[254,235,132],[254,209,90],[254,175,63],[253,141,60],[244,105,45],[227,68,28],[204,33,25],[166,0,53],[104,0,80]];
-function color(v,p){if(!Number.isFinite(v)||v<=0)return [0,0,0,0];if(p==='BZC'){const t=Math.max(0,Math.min(0.999999,v));const idx=Math.min(POH_COLORS.length-1,Math.floor(t*POH_COLORS.length));return [...POH_COLORS[idx],215]}const t=Math.max(0,Math.min(1,v/80));const stops=[[0,220,255],[0,90,255],[95,35,220],[210,0,190],[245,20,45],[255,120,0],[255,235,0]];return interp(stops,t,238)}
+function color(v,p){
+  if(!Number.isFinite(v))return [0,0,0,0];
+  if(p==='BZC'){
+    if(v<=0)return [0,0,0,0];
+    const t=Math.max(0,Math.min(0.999999,v));const idx=Math.min(POH_COLORS.length-1,Math.floor(t*POH_COLORS.length));return [...POH_COLORS[idx],215];
+  }
+  // MESHS (MZC): MeteoSwiss only reports hailstone sizes from 20 mm upward
+  // (https://opendatadocs.meteoswiss.ch/d-radar-data/d3-hail-radar-products);
+  // below that, no hail is indicated, so render as transparent rather than a
+  // misleadingly "real" low colour.
+  if(v<20)return [0,0,0,0];
+  const t=Math.max(0,Math.min(1,(v-20)/(80-20)));const stops=[[0,220,255],[0,90,255],[95,35,220],[210,0,190],[245,20,45],[255,120,0],[255,235,0]];return interp(stops,t,238);
+}
 function interp(stops,t,a){const x=t*(stops.length-1),i=Math.min(stops.length-2,Math.floor(x)),f=x-i;return [0,1,2].map(k=>Math.round(stops[i][k]*(1-f)+stops[i+1][k]*f)).concat(a)}
 function sampleRaw(raw,rowStride,mode,x,y){if(mode==='transpose')return Number(raw[x*rowStride+y]);return Number(raw[y*rowStride+x])}
 async function renderBuffer(buf,fileName){
@@ -508,7 +523,7 @@ async function renderBuffer(buf,fileName){
     busy(false);
   }
 }
-function makeLegend(p){ui.legend.hidden=false;ui.legend.innerHTML=p==='BZC'?'<div class="legend-title">Probability of hail (POH)</div><div class="bar" style="background:linear-gradient(90deg,#ffffb2 0% 10%,#feeb84 10% 20%,#fed15a 20% 30%,#feaf3f 30% 40%,#fd8d3c 40% 50%,#f4692d 50% 60%,#e3441c 60% 70%,#cc2119 70% 80%,#a60035 80% 90%,#680050 90% 100%)"></div><div class="ticks"><span>0 %</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100 %</span></div>':'<div class="legend-title">MESHS hail size</div><div class="bar" style="background:linear-gradient(90deg,#00dcff,#005aff,#5f23dc,#d200be,#f5142d,#ff7800,#ffeb00);box-shadow:0 0 0 1px rgba(0,0,0,.35) inset"></div><div class="ticks"><span>0 mm</span><span>20</span><span>40</span><span>60</span><span>≥80 mm</span></div>'}
+function makeLegend(p){ui.legend.hidden=false;ui.legend.innerHTML=p==='BZC'?'<div class="legend-title">Probability of hail (POH)</div><div class="bar" style="background:linear-gradient(90deg,#ffffb2 0% 10%,#feeb84 10% 20%,#fed15a 20% 30%,#feaf3f 30% 40%,#fd8d3c 40% 50%,#f4692d 50% 60%,#e3441c 60% 70%,#cc2119 70% 80%,#a60035 80% 90%,#680050 90% 100%)"></div><div class="ticks"><span>0 %</span><span>20</span><span>40</span><span>60</span><span>80</span><span>100 %</span></div>':'<div class="legend-title">MESHS hail size</div><div class="bar" style="background:linear-gradient(90deg,#00dcff,#005aff,#5f23dc,#d200be,#f5142d,#ff7800,#ffeb00);box-shadow:0 0 0 1px rgba(0,0,0,.35) inset"></div><div class="ticks"><span>20 mm</span><span>35</span><span>50</span><span>65</span><span>≥80 mm</span></div>'}
 makeDates();loadCatalog();
 </script>
 </body></html>
