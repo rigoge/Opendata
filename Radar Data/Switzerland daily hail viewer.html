@@ -40,7 +40,7 @@ main{padding:20px clamp(12px,3vw,34px) 32px;max-width:1500px;margin:auto}
 .layout{display:grid;grid-template-columns:minmax(300px,390px) 1fr;gap:18px}@media(max-width:900px){.layout{grid-template-columns:1fr}}
 .card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 20px rgba(16,24,40,.06)}
 .controls{padding:18px}.controls h2{font-size:17px;margin:0 0 14px}.field{margin:0 0 14px}.field label{display:block;font-weight:650;margin-bottom:6px}
-select,input[type=file],button{width:100%;font:inherit;border-radius:9px;border:1px solid #bfc9d8;background:#fff;padding:10px 11px;color:var(--ink)}
+select,input[type=file],input[type=search],button{width:100%;font:inherit;border-radius:9px;border:1px solid #bfc9d8;background:#fff;padding:10px 11px;color:var(--ink)}
 button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}button:hover{background:var(--accent2)}button:disabled{opacity:.55;cursor:not-allowed}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.secondary{background:#eaf2f9;color:#164c73;border:1px solid #bfd5e6}.secondary:hover{background:#dceaf5}.download{background:#147a4b}.download:hover{background:#0e623b}
 .status{margin-top:14px;padding:10px 11px;border-radius:9px;background:#eef4fa;color:#344054;min-height:42px;white-space:pre-wrap}.status.ok{background:#ecfdf3;color:var(--ok)}.status.warn{background:#fffaeb;color:var(--warn)}.status.err{background:#fef3f2;color:var(--err)}
@@ -49,7 +49,7 @@ button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:point
 #map{height:min(74vh,780px);min-height:520px;background:#dce9f3}.legend{position:absolute;z-index:500;right:15px;bottom:24px;background:rgba(255,255,255,.95);padding:10px 11px;border-radius:9px;box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:12px;min-width:170px}.legend-title{font-weight:700;margin-bottom:6px}.bar{height:12px;border-radius:4px;margin-bottom:4px}.ticks{display:flex;justify-content:space-between;color:#475467}
 .loader{display:none;position:absolute;z-index:1000;inset:0;background:rgba(255,255,255,.72);align-items:center;justify-content:center;font-size:16px;font-weight:700}.loader.on{display:flex}
 .tabs{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin-bottom:14px}.tab{background:#edf2f7;color:#344054}.tab.active{background:#1769aa;color:#fff}
-.small{font-size:12px;color:var(--muted)}
+.small{font-size:12px;color:var(--muted)}.search-results{margin-top:8px}.search-results[hidden]{display:none}.place-marker{filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-size:13px;color:var(--muted)}footer .license-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}footer a{color:#1769aa}footer details{margin-top:10px}footer summary{cursor:pointer;font-weight:700;color:#344054}footer pre{white-space:pre-wrap;font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;background:#f7f9fc;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:320px;overflow:auto}
 </style>
 </head>
@@ -61,6 +61,7 @@ footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div class="tabs"><button id="tabBZC" class="tab active" type="button">BZC · POH</button><button id="tabMZC" class="tab" type="button">MZC · MESHS</button></div>
 <div class="field"><label for="dateSelect">Date (UTC)</label><select id="dateSelect"></select></div>
 <div class="field"><label for="orientationSelect">Raster orientation</label><select id="orientationSelect"><option value="auto" selected>Automatic (LV95 extent)</option><option value="normal">Original</option><option value="transpose">90° counterclockwise</option><option value="transposeCW">90° clockwise</option><option value="rotate180">180°</option><option value="flipX">Flip horizontally</option><option value="flipY">Flip vertically</option></select></div>
+<div class="field"><label for="placeSearch">Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <div class="row"><button id="refreshBtn" class="secondary" type="button">Refresh files</button><button id="showBtn" type="button">Show on map</button></div>
 <div class="row" style="margin-top:9px"><button id="downloadBtn" class="download" type="button" disabled>Download HDF5</button><button id="clearBtn" class="secondary" type="button">Clear map</button></div>
 <div id="status" class="status">Initializing…</div>
@@ -75,7 +76,7 @@ footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
     <strong>License and source information</strong><br>
     Software code of this hail map viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>.
     MeteoSwiss hail data: <a href="https://opendatadocs.meteoswiss.ch/general/terms-of-use" target="_blank" rel="noopener">CC BY 4.0</a>; required attribution: <q>Source: MeteoSwiss</q>.
-    Base map and map data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.
+    Location search: official <a href="https://docs.geo.admin.ch/access-data/search.html" target="_blank" rel="noopener">geo.admin.ch Search service</a>. Base map and map data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.
     The standard tiles are used in accordance with the <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener">OpenStreetMap Tile Usage Policy</a>.
     External libraries retain their own licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), jsfive and pako (MIT/Zlib).
     <details><summary>Full MIT License text</summary><pre>MIT License
@@ -106,11 +107,86 @@ SOFTWARE.</pre></details>
 <script type="module">
 const STAC='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-hail/items';
 const $=id=>document.getElementById(id);
-const ui={date:$('dateSelect'),orientation:$('orientationSelect'),status:$('status'),meta:$('fileMeta'),show:$('showBtn'),download:$('downloadBtn'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legend:$('legend')};
-let product='BZC', catalog=new Map(), currentAsset=null, overlay=null, lastRender=null;
+const ui={date:$('dateSelect'),orientation:$('orientationSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),status:$('status'),meta:$('fileMeta'),show:$('showBtn'),download:$('downloadBtn'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legend:$('legend')};
+let product='BZC', catalog=new Map(), currentAsset=null, overlay=null, lastRender=null, placeMarker=null, placeSearchController=null;
 const map=L.map('map',{zoomControl:true}).setView([46.82,8.23],7);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'}).addTo(map);
+
 L.control.scale({imperial:false}).addTo(map);
+function plainText(value){
+  const box=document.createElement('div');
+  box.innerHTML=String(value??'');
+  return (box.textContent||box.innerText||'').replace(/\s+/g,' ').trim();
+}
+function selectPlace(result){
+  const a=result?.attrs||{};
+  const lat=Number(a.lat),lon=Number(a.lon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+    setStatus('The selected search result has no usable coordinates.','err');
+    return;
+  }
+  const label=plainText(a.label||a.detail||'Selected location');
+  const zoomRaw=Number(a.zoomlevel);
+  const zoom=Number.isFinite(zoomRaw)&&zoomRaw>=8&&zoomRaw<=18?zoomRaw:13;
+  if(placeMarker)map.removeLayer(placeMarker);
+  placeMarker=L.circleMarker([lat,lon],{
+    radius:8,weight:3,color:'#ffffff',fillColor:'#d92d20',fillOpacity:1,className:'place-marker'
+  }).addTo(map).bindPopup(`<strong>${label}</strong>`);
+  map.setView([lat,lon],zoom,{animate:true});
+  placeMarker.openPopup();
+}
+async function searchPlaces(){
+  const query=ui.placeSearch.value.trim();
+  if(query.length<2){
+    setStatus('Enter at least two characters or a Swiss postcode.','warn');
+    ui.placeResults.hidden=true;
+    return;
+  }
+  if(placeSearchController)placeSearchController.abort();
+  placeSearchController=new AbortController();
+  ui.placeSearchBtn.disabled=true;
+  ui.placeResults.hidden=true;
+  try{
+    const url=new URL('https://api3.geo.admin.ch/rest/services/ech/SearchServer');
+    url.searchParams.set('searchText',query);
+    url.searchParams.set('type','locations');
+    url.searchParams.set('sr','2056');
+    url.searchParams.set('lang','en');
+    url.searchParams.set('limit','12');
+    const response=await fetch(url,{signal:placeSearchController.signal,headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error(`Location service returned HTTP ${response.status}.`);
+    const data=await response.json();
+    const results=(data.results||[]).filter(r=>Number.isFinite(Number(r?.attrs?.lat))&&Number.isFinite(Number(r?.attrs?.lon)));
+    if(!results.length){
+      setStatus(`No Swiss place or postcode found for “${query}”.`,'warn');
+      return;
+    }
+    ui.placeResults.innerHTML='';
+    results.forEach((r,i)=>{
+      const a=r.attrs||{};
+      const label=plainText(a.label||a.detail||`Result ${i+1}`);
+      const detail=plainText(a.detail||'');
+      const text=detail&&detail.toLowerCase()!==label.toLowerCase()?`${label} — ${detail}`:label;
+      const option=new Option(text,String(i));
+      ui.placeResults.add(option);
+    });
+    ui.placeResults._geoResults=results;
+    ui.placeResults.hidden=false;
+    ui.placeResults.selectedIndex=0;
+    selectPlace(results[0]);
+  }catch(error){
+    if(error?.name!=='AbortError')setStatus(`Place search failed: ${error?.message||error}`,'err');
+  }finally{
+    ui.placeSearchBtn.disabled=false;
+  }
+}
+ui.placeSearchBtn.addEventListener('click',searchPlaces);
+ui.placeSearch.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPlaces()}});
+ui.placeResults.addEventListener('change',()=>{
+  const results=ui.placeResults._geoResults||[];
+  const selected=results[Number(ui.placeResults.value)];
+  if(selected)selectPlace(selected);
+});
 function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
 function busy(on){ui.loader.classList.toggle('on',on);ui.show.disabled=on}
 function utcDateKey(d){return d.toISOString().slice(0,10)}
