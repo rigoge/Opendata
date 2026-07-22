@@ -131,19 +131,34 @@ function pickDataset(root){for(const path of ['/dataset1/data1/data','dataset1/d
 function findGroupAttrs(root,path,name){const parts=path.split('/').filter(Boolean);for(let i=parts.length;i>=0;i--){const base='/'+parts.slice(0,i).join('/'),n=getNode(root,(base==='/'?'':base)+'/'+name);if(n)return attrsObj(n)}return{}}
 function num(a,...keys){for(const k of keys)if(a[k]!==undefined&&Number.isFinite(Number(a[k])))return Number(a[k]);return NaN}
 proj4.defs('EPSG:2056','+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs');
-function boundsFromH5(root,ds,w,h){const where={...attrsObj(getNode(root,'/where')||{}),...findGroupAttrs(root,ds.path,'where')};
-  const lonKeys=[['LL_lon','LL_lat'],['UL_lon','UL_lat'],['UR_lon','UR_lat'],['LR_lon','LR_lat']];
-  const geo=lonKeys.map(([x,y])=>[num(where,x,x.toLowerCase()),num(where,y,y.toLowerCase())]);
-  if(geo.every(p=>p.every(Number.isFinite))){const lats=geo.map(p=>p[1]),lons=geo.map(p=>p[0]);return[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]]}
+function geoExtentFromH5(root,ds,w,h){const where={...attrsObj(getNode(root,'/where')||{}),...findGroupAttrs(root,ds.path,'where')};
+  function fromLV95Rect(xa,ya,xb,yb,coordNote){
+    const xlo=Math.min(xa,xb),xhi=Math.max(xa,xb),ylo=Math.min(ya,yb),yhi=Math.max(ya,yb);
+    const toWgs84=xy=>proj4('EPSG:2056','EPSG:4326',xy);
+    const sw=toWgs84([xlo,ylo]),nw=toWgs84([xlo,yhi]),ne=toWgs84([xhi,yhi]),se=toWgs84([xhi,ylo]);
+    const lons=[sw,nw,ne,se].map(c=>c[0]),lats=[sw,nw,ne,se].map(c=>c[1]);
+    if([...lons,...lats].some(v=>!Number.isFinite(v)))throw new Error('LV95 coordinates could not be transformed to WGS84.');
+    return{bounds:[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]],source:'EPSG:2056',sourceExtent:{xmin:xlo,ymin:ylo,xmax:xhi,ymax:yhi},coordNote};
+  }
+  // 1) Direct metric LV95 extent, if the file happens to provide one.
   let xmin=num(where,'LL_x','ll_x','xmin','x0'),ymin=num(where,'LL_y','ll_y','ymin','y0'),xmax=num(where,'UR_x','ur_x','xmax'),ymax=num(where,'UR_y','ur_y','ymax');
   const xs=num(where,'xscale','x_scale'),ys=num(where,'yscale','y_scale');
   if(!Number.isFinite(xmax)&&Number.isFinite(xmin)&&Number.isFinite(xs))xmax=xmin+w*xs;
   if(!Number.isFinite(ymax)&&Number.isFinite(ymin)&&Number.isFinite(ys))ymax=ymin+h*ys;
-  if(![xmin,ymin,xmax,ymax].every(Number.isFinite))throw new Error('LV95 map extent (LL_x/LL_y/UR_x/UR_y or xscale/yscale) is missing from the HDF5 file.');
-  const corners=[[xmin,ymin],[xmin,ymax],[xmax,ymin],[xmax,ymax]].map(c=>proj4('EPSG:2056','EPSG:4326',c));
-  const lons=corners.map(c=>c[0]),lats=corners.map(c=>c[1]);
-  if(!lats.every(Number.isFinite)||!lons.every(Number.isFinite))throw new Error('LV95 coordinates could not be transformed to WGS84.');
-  return[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]]}
+  if([xmin,ymin,xmax,ymax].every(Number.isFinite))return fromLV95Rect(xmin,ymin,xmax,ymax,'direct LV95 metric coordinates from the file');
+  // 2) Standard ODIM case: only the four geographic (lon/lat) corners are
+  // given. Re-deriving the true LV95 rectangle from LL/UR and reprojecting all
+  // four corners (instead of treating LL/UR as an axis-aligned WGS84 bounding
+  // box) is required because the Swiss LV95 grid is tilted relative to true
+  // north and bows measurably over the size of this domain.
+  const llLon=num(where,'LL_lon','ll_lon'),llLat=num(where,'LL_lat','ll_lat'),urLon=num(where,'UR_lon','ur_lon'),urLat=num(where,'UR_lat','ur_lat');
+  if([llLon,llLat,urLon,urLat].every(Number.isFinite)){
+    const ll=proj4('EPSG:4326','EPSG:2056',[llLon,llLat]),ur=proj4('EPSG:4326','EPSG:2056',[urLon,urLat]);
+    if(![...ll,...ur].every(Number.isFinite))throw new Error('Geographic corner coordinates could not be converted to LV95.');
+    return fromLV95Rect(ll[0],ll[1],ur[0],ur[1],'derived from geographic LL/UR corners, re-projected via LV95');
+  }
+  throw new Error('LV95 map extent (LL_x/LL_y/UR_x/UR_y, xscale/yscale, or LL_lon/UR_lon corners) is missing from the HDF5 file.');
+}
 const LEVELS=[0,0.1,0.5,1,2,5,10,20,35,50];const COLORS=[[217,242,255],[151,216,245],[90,190,232],[63,181,116],[166,207,74],[245,223,63],[243,154,47],[223,59,50],[156,29,99],[92,12,82]];
 function rainColor(v){if(!Number.isFinite(v)||v<=0)return[0,0,0,0];let i=1;while(i<LEVELS.length&&v>LEVELS[i])i++;if(i>=LEVELS.length)return[...COLORS.at(-1),225];const lo=LEVELS[i-1],hi=LEVELS[i],t=(v-lo)/(hi-lo||1),a=COLORS[i-1],b=COLORS[i];return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t,215].map(Math.round)}
 async function decodeFrame(buffer,name,product){await loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');await loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js');const H5=window.hdf5;if(!H5?.File)throw new Error('jsfive could not be initialized.');const f=new H5.File(buffer,String(name||'radar.h5')),ds=pickDataset(f),shape=ds.shape.map(Number),dim0=shape[0],dim1=shape[1];let raw=ds.node.value;if(raw?.then)raw=await raw;if(raw&&typeof raw==='object'&&'value'in raw&&raw.value!==raw)raw=raw.value;if(Array.isArray(raw)&&Array.isArray(raw[0]))raw=raw.flat();if(!raw||raw.length<dim0*dim1)throw new Error(`Raster ${ds.path} is incomplete.`);const what={...findGroupAttrs(f,ds.path,'what'),...attrsObj(ds.node)},where={...attrsObj(getNode(f,'/where')||{}),...findGroupAttrs(f,ds.path,'where')},gain=Number.isFinite(Number(what.gain))?Number(what.gain):1,offset=Number.isFinite(Number(what.offset))?Number(what.offset):0,nodata=Number(what.nodata??what._FillValue??NaN),undetect=Number(what.undetect??NaN),xsize=num(where,'xsize','x_size','cols','width'),ysize=num(where,'ysize','y_size','rows','height');
@@ -169,7 +184,30 @@ function rawAt(x,y){
   return Number(raw[y*dim1+x]);
 }
 const labels={normal:'Original (north up)',transpose:'90° counterclockwise'};
-const step=Math.max(1,Math.ceil(Math.max(gridW,gridH)/1200)),cw=Math.ceil(gridW/step),ch=Math.ceil(gridH/step),canvas=document.createElement('canvas');canvas.width=cw;canvas.height=ch;const ctx=canvas.getContext('2d'),img=ctx.createImageData(cw,ch);let min=Infinity,max=-Infinity,valid=0;for(let oy=0;oy<ch;oy++)for(let ox=0;ox<cw;ox++){const sy=Math.min(gridH-1,oy*step),sx=Math.min(gridW-1,ox*step),rv=rawAt(sx,sy),bad=!Number.isFinite(rv)||(Number.isFinite(nodata)&&rv===nodata)||(Number.isFinite(undetect)&&rv===undetect),v=bad?NaN:rv*gain+offset;if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);valid++}const c=rainColor(v),di=(oy*cw+ox)*4;img.data[di]=c[0];img.data[di+1]=c[1];img.data[di+2]=c[2];img.data[di+3]=c[3]}ctx.putImageData(img,0,0);return{url:canvas.toDataURL('image/png'),bounds:boundsFromH5(f,ds,gridW,gridH),w:gridW,h:gridH,min,max,valid,path:ds.path,orientation:`${labels[mode]||mode}; Raster ${normalAspect.toFixed(3)}, Map ${Number.isFinite(mapAspect)?mapAspect.toFixed(3):'n/a'}`}}
+const geo=geoExtentFromH5(f,ds,gridW,gridH),ext=geo.sourceExtent;
+const toMercY=lat=>Math.log(Math.tan(Math.PI/4+lat*Math.PI/360)),fromMercY=y=>(2*Math.atan(Math.exp(y))-Math.PI/2)*180/Math.PI;
+const boundLats=geo.bounds.map(b=>b[0]),boundLons=geo.bounds.map(b=>b[1]);
+const lonW=Math.min(...boundLons),lonE=Math.max(...boundLons),latS=Math.min(...boundLats),latN=Math.max(...boundLats);
+const mercN=toMercY(latN),mercS=toMercY(latS);
+const outMaxDim=800,aspect=((lonE-lonW)*Math.PI/180)/(mercN-mercS);
+const outW=aspect>=1?outMaxDim:Math.max(1,Math.round(outMaxDim*aspect)),outH=aspect>=1?Math.max(1,Math.round(outMaxDim/aspect)):outMaxDim;
+const canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;const ctx=canvas.getContext('2d'),img=ctx.createImageData(outW,outH);
+let min=Infinity,max=-Infinity,valid=0;
+for(let oy=0;oy<outH;oy++){
+  const lat=fromMercY(mercN-(oy+0.5)/outH*(mercN-mercS));
+  for(let ox=0;ox<outW;ox++){
+    const lon=lonW+(ox+0.5)/outW*(lonE-lonW),di=(oy*outW+ox)*4;
+    const xy=proj4('EPSG:4326',geo.source,[lon,lat]);
+    if(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax)continue;
+    const colFrac=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin),rowFrac=(ext.ymax-xy[1])/(ext.ymax-ext.ymin);
+    const gx=Math.min(gridW-1,Math.max(0,Math.floor(colFrac*gridW))),gy=Math.min(gridH-1,Math.max(0,Math.floor(rowFrac*gridH)));
+    const rv=rawAt(gx,gy),bad=!Number.isFinite(rv)||(Number.isFinite(nodata)&&rv===nodata)||(Number.isFinite(undetect)&&rv===undetect),v=bad?NaN:rv*gain+offset;
+    if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);valid++}
+    const c=rainColor(v);img.data[di]=c[0];img.data[di+1]=c[1];img.data[di+2]=c[2];img.data[di+3]=c[3];
+  }
+}
+ctx.putImageData(img,0,0);
+return{url:canvas.toDataURL('image/png'),bounds:[[latS,lonW],[latN,lonE]],w:gridW,h:gridH,min,max,valid,path:ds.path,orientation:`${labels[mode]||mode}; Raster ${normalAspect.toFixed(3)}, Map ${Number.isFinite(mapAspect)?mapAspect.toFixed(3):'n/a'}`}}
 async function getFrameData(frame){const key=frame.href||frame.name;if(frameCache.has(key))return frameCache.get(key);let buffer;if(frame.file)buffer=await frame.file.arrayBuffer();else{const r=await fetch(frame.href,{cache:'no-store'});if(!r.ok)throw new Error(`HDF5 HTTP ${r.status}`);buffer=await r.arrayBuffer()}const decoded=await decodeFrame(buffer,frame.name,frame.product);cacheFrame(key,decoded);return decoded}
 async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=`${frameTime(frame)} UTC`;ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);if(overlay)map.removeLayer(overlay);overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map);if(fit||currentIndex===0)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(frame.product);ui.title.textContent=`${frame.product} · ${frame.date} · ${frameTime(frame)} UTC`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTime(frame)} UTC</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${frame.product} map displayed: ${frameTime(frame)} UTC · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
 async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});ui.progress.style.width='100%';setTimeout(()=>ui.progress.style.width='0%',600)}
