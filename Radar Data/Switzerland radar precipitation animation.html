@@ -69,7 +69,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div id="status" class="status">Initializing…</div><div class="progress"><div id="progressBar"></div></div>
 <div id="fileMeta" class="meta"></div>
 <div class="field" style="margin-top:18px"><label for="localFiles">Open local CPC/RZC HDF5 files</label><input id="localFiles" type="file" multiple accept=".h5,.hdf5,application/x-hdf5"><div class="small">Multiple time steps can be selected together and are sorted by time using only the file name.</div></div>
-<div class="hint"><b>File filters:</b><br><code>CPCyyjjjHHMMQ_00060.XYZ.h5</code> for CPC and <code>RZCyyjjjHHMMKK.XYZ.h5</code> for RZC. Date and UTC time are taken exclusively from the file name. In 5-minute mode, <code>MM = 00, 05, …, 55</code>; in hourly mode, only <code>MM = 00</code> are used.<br><br>CPC shows the precipitation total for the preceding 60 minutes in mm. RZC shows the instantaneous radar-based precipitation rate in mm/h. If several CPC versions exist for the same time, the highest quality code is preferred; if tied, the most recently updated file is used.</div>
+<div class="hint"><b>Click the map</b> to read the exact pixel value (CPC or RZC) at that location.<br><br><b>File filters:</b><br><code>CPCyyjjjHHMMQ_00060.XYZ.h5</code> for CPC and <code>RZCyyjjjHHMMKK.XYZ.h5</code> for RZC. Date and UTC time are taken exclusively from the file name. In 5-minute mode, <code>MM = 00, 05, …, 55</code>; in hourly mode, only <code>MM = 00</code> are used.<br><br>CPC shows the precipitation total for the preceding 60 minutes in mm. RZC shows the instantaneous radar-based precipitation rate in mm/h. If several CPC versions exist for the same time, the highest quality code is preferred; if tied, the most recently updated file is used.</div>
 </section>
 <section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div id="map"></div><div id="legend" class="legend"><div id="legendTitle" class="legend-title">CPC precipitation total for the last 60 minutes</div><div class="bar" style="background:linear-gradient(90deg,#c7e9ff 0% 8.33%,#94cef7 8.33% 16.67%,#5db5eb 16.67% 25%,#2ba4dc 25% 33.33%,#22b5ab 33.33% 41.67%,#37b55a 41.67% 50%,#8cc53a 50% 58.33%,#edd632 58.33% 66.67%,#f79e28 66.67% 75%,#ed6523 75% 83.33%,#d62d28 83.33% 91.67%,#7e0f5c 91.67% 100%)"></div><div id="legendTicks" class="ticks"><span>0.1</span><span>1</span><span>10</span><span>50</span><span>≥100 mm</span></div></div><div id="loader" class="loader">Processing data…</div></section>
 </div></main>
@@ -167,8 +167,36 @@ ui.placeResults.addEventListener('change',()=>{
   const selected=results[Number(ui.placeResults.value)];
   if(selected)selectPlace(selected);
 });
-let overlay=null,catalog=new Map(),frames=[],currentIndex=0,timer=null,loading=false,catalogAbort=null,placeMarker=null,placeSearchController=null;
-const frameCache=new Map();const FRAME_CACHE_LIMIT=350;function cacheFrame(key,value){frameCache.set(key,value);while(frameCache.size>FRAME_CACHE_LIMIT)frameCache.delete(frameCache.keys().next().value)}
+let overlay=null,catalog=new Map(),frames=[],currentIndex=0,timer=null,loading=false,catalogAbort=null,placeMarker=null,placeSearchController=null,lastDecoded=null;
+function sampleRaw(raw,rowStride,mode,x,y){if(mode==='transpose')return Number(raw[x*rowStride+y]);return Number(raw[y*rowStride+x])}
+function pixelAt(latlng){
+  const d=lastDecoded;
+  if(!d||!d.sourceExtent)return null;
+  const xy=proj4('EPSG:4326',d.source,[latlng.lng,latlng.lat]);
+  const ext=d.sourceExtent;
+  if(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax)return null;
+  const colFrac=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin), rowFrac=(ext.ymax-xy[1])/(ext.ymax-ext.ymin);
+  const gx=Math.min(d.gridW-1,Math.max(0,Math.floor(colFrac*d.gridW)));
+  const gy=Math.min(d.gridH-1,Math.max(0,Math.floor(rowFrac*d.gridH)));
+  return {gx,gy};
+}
+function pixelPopupContent(latlng,pixel){
+  const d=lastDecoded;
+  if(!d)return 'No frame loaded yet.';
+  if(!pixel)return 'Outside the loaded raster extent.';
+  const {gx,gy}=pixel;
+  const raw=sampleRaw(d.raw,d.rowStride,d.mode,gx,gy);
+  const bad=!Number.isFinite(raw)||(Number.isFinite(d.nodata)&&raw===d.nodata)||(Number.isFinite(d.undetect)&&raw===d.undetect);
+  const v=bad?NaN:raw*d.gain+d.offset;
+  const info=productInfo(d.product);
+  const valueText=bad?'no data (gap or below detection threshold)':`${v.toFixed(2)} ${info.unit}`;
+  return `<b>${info.name}</b><br>${valueText}<br><span style="color:#667085;font-size:12px">Pixel column ${gx}, row ${gy} · raw value ${Number.isFinite(raw)?raw:'–'}<br>${latlng.lat.toFixed(5)}°N, ${latlng.lng.toFixed(5)}°E</span>`;
+}
+map.on('click',e=>{
+  const pixel=pixelAt(e.latlng);
+  L.popup({closeButton:true}).setLatLng(e.latlng).setContent(pixelPopupContent(e.latlng,pixel)).openOn(map);
+});
+const frameCache=new Map();const FRAME_CACHE_LIMIT=150;function cacheFrame(key,value){frameCache.set(key,value);while(frameCache.size>FRAME_CACHE_LIMIT)frameCache.delete(frameCache.keys().next().value)}
 function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
 function setBusy(on,text='Processing data…'){loading=on;ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on;ui.refresh.disabled=on}
 function utcKey(d){return d.toISOString().slice(0,10)}
@@ -289,9 +317,9 @@ for(let oy=0;oy<outH;oy++){
   }
 }
 ctx.putImageData(img,0,0);
-return{url:canvas.toDataURL('image/png'),bounds:[[latS,lonW],[latN,lonE]],w:gridW,h:gridH,min,max,valid,path:ds.path,orientation:`${labels[mode]||mode}; Raster ${normalAspect.toFixed(3)}, Map ${Number.isFinite(mapAspect)?mapAspect.toFixed(3):'n/a'}`}}
+return{url:canvas.toDataURL('image/png'),bounds:[[latS,lonW],[latN,lonE]],w:gridW,h:gridH,min,max,valid,path:ds.path,orientation:`${labels[mode]||mode}; Raster ${normalAspect.toFixed(3)}, Map ${Number.isFinite(mapAspect)?mapAspect.toFixed(3):'n/a'}`,raw,rowStride:dim1,mode,gridW,gridH,gain,offset,nodata,undetect,source:geo.source,sourceExtent:ext,product}}
 async function getFrameData(frame){const key=frame.href||frame.name;if(frameCache.has(key))return frameCache.get(key);let buffer;if(frame.file)buffer=await frame.file.arrayBuffer();else{const r=await fetch(frame.href,{cache:'no-store'});if(!r.ok)throw new Error(`HDF5 HTTP ${r.status}`);buffer=await r.arrayBuffer()}const decoded=await decodeFrame(buffer,frame.name,frame.product);cacheFrame(key,decoded);return decoded}
-async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=`${frameTime(frame)} UTC`;ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);if(overlay)map.removeLayer(overlay);overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map);if(fit)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(frame.product);ui.title.textContent=`${frame.product} · ${frame.date} · ${frameTime(frame)} UTC`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTime(frame)} UTC</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${frame.product} map displayed: ${frameTime(frame)} UTC · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
+async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=`${frameTime(frame)} UTC`;ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);lastDecoded=d;if(overlay)map.removeLayer(overlay);overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map);if(fit)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(frame.product);ui.title.textContent=`${frame.product} · ${frame.date} · ${frameTime(frame)} UTC`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTime(frame)} UTC</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${frame.product} map displayed: ${frameTime(frame)} UTC · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
 async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});ui.progress.style.width='100%';setTimeout(()=>ui.progress.style.width='0%',600)}
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
