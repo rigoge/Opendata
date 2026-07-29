@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<!--
+MIT License
+
+Copyright (c) 2026 Surface Data Downloader contributors
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Data attribution for downloaded MeteoSwiss data: Source: MeteoSwiss
+-->
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <title>Switzerland Surface Data Downloader</title>
+</head>
+<body>
+
+  <section id="license-and-source" style="margin: 1rem 0; padding: 0.75rem; border: 1px solid #ccc; border-radius: 6px; max-width: 900px;">
+    <p><strong>License:</strong> This downloader HTML file is released under the MIT License.</p>
+    <p><strong>Data attribution:</strong> For all downloaded data, use the required source statement: <strong>Source: MeteoSwiss</strong>.</p>
+  </section>
+  <h1>Switzerland Surface Data Downloader automatic precipitation stations recent daily values </h1>
+
+  <p>Select Station type:</p>
+  <select id="datatype">
+    <option value="ch.meteoschweiz.ogd-smn-precip">ogd-smn-precip (Precipitation)</option>
+  </select>
+
+  <p>Station shortnames (divided by a colon ","):</p>
+  <input type="text" id="stations" value="ABE,AIE,AIR,ALS,AMW,AFI,VSANZ,APP,VSARO,AGATT,VSBAS,BAW,VSGDX,BEY,BLZ,BEP,DOB,BEC,BEX,BOS,VSBSP,BRW,VSBRI,BRI,BRT,VSBRU,BRP,UBB,BUE,VSCHY,VSCHA,VSCHO,VSCLU,COL,COS,COU,VSDER,DIT,VSDUR,EGR,OED,VSEMO,ENT,VSERG,ESZ,FAI,FIT,VSFIN,FIO,FLW,GAD,GSG,GTT,GOA,HIW,HUT,INN,VSISE,VSJEI,JON,KAI,KAS,KIE,KIS,KLA,KUE,AUB,VSFLY,VST,LAB,LGA,LAP,LSN,LTB,AVA,VSCOL,LEU,LOH,LON,MGL,MAL,MAB,MAT,VSMAT,MEV,VSMOI,MMO,MSG,MUR,VSNEN,NEB,OBI,OPF,ORS,REM,WHF,ROM,ROG,ROT,VSSAB,SAP,SAI,VSSFE,VSSAL,SAX,SVG,SUA,SNG,SIE,VSSIE,SIH,SOG,VSSOR,SAN,VSSTA,STB,AGSTE,STP,SUS,THS,CTO,VSTRI,TRU,VSTSN,TST,VSTUR,UNK,URN,UST,VSVER,VSVIS,VRI,VAE,WAG,WAR,WEE,WIN,WIT,ZEV,ZWE,ZWK">
+
+  <button onclick="downloadFiles()">Download CSV files </button>
+
+<h4> This script will download you all the stations of the respective station type in individual CSV-files with one click. Please allow multi file download in the browser if asked for. </h4>
+
+
+  <script>
+    async function downloadFiles() {
+      const dataType = document.getElementById('datatype').value;
+      const input = document.getElementById('stations').value;
+      const stations = input.split(',').map(s => s.trim().toLowerCase()).filter(Boolean);
+
+      for (const station of stations) {
+        // URL automatisch zusammensetzen
+        // Beispiel:
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/bas/ogd-smn_bas_d_recent.csv
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn-precip/app/ogd-smn-precip_app_d_recent.csv
+        // https://data.geo.admin.ch/ch.meteoschweiz.ogd-nime/alt/ogd-nime_alt_d_recent.csv
+        const baseName = dataType.split('.').pop(); // z.B. ogd-smn, ogd-smn-precip, ogd-nime
+        const url = `https://data.geo.admin.ch/${dataType}/${station}/` +
+                    `${baseName}_${station}_d_recent.csv`;
+
+        try {
+          const response = await fetch(url);
+          if (!response.ok) throw new Error(`Fehler beim Laden: ${station}`);
+
+          const blob = await response.blob();
+          const a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = `${baseName}_${station}.csv`;
+          document.body.appendChild(a);
+          a.click();
+          document.body.removeChild(a);
+
+          console.log(`Download abgeschlossen: ${station}`);
+        } catch (err) {
+          console.error(err);
+          alert(`Download fehlgeschlagen für Station ${station} (Typ: ${baseName})`);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+	
