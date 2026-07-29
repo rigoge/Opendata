@@ -1,1 +1,8 @@
 
+These files are for download or visualisation/animation of the latest radar data.
+Data is available for the last 14 days only!
+ 
+It is not automated. 
+The reanalysis CPC files are only available 8 days later an only as the values at full hours. The respective script takes this into account. 
+In rare cases, if the reanalysis file has other quality flag in the filname, you will have more than 24h files per day. 
+There please always use the newer file with the higher quality flag in the filename.
