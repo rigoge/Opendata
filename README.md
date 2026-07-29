@@ -1,4 +1,5 @@
-This repository contains HTML- Files for easier access/download/visualisation of Swiss Meteorological and Climatological Open Data 
+This repository contains HTML- Files for easier access/download/visualisation of Swiss Meteorological and Climatological Open Data.
+
 Each file accesses the respective STAC API collection.
 
 All scripts have been created with the help of AI (Claude.com & CHATGPT.com) 
