@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<!--
+MIT License
+
+Copyright (c) 2026
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Switzerland Hail Radar Downloader</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@300;400;500&family=Cabinet+Grotesk:wght@400;500;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:#f0f2f5; --surface:#ffffff; --surface2:#f7f8fa; --border:#e2e6ed; --border2:#c8d0dc;
+  --text:#1a2030; --muted:#7a8699; --accent:#0055cc; --accent2:#003d99; --sky:#e8f1ff;
+  --success:#16a34a; --warn:#d97706; --danger:#dc2626; --hail:#4f46e5;
+  --mono:'DM Mono', monospace; --sans:'Cabinet Grotesk', sans-serif; --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;min-height:100vh}
+body::after{content:'';position:fixed;inset:0;pointer-events:none;z-index:9999;opacity:.025;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");background-size:128px 128px}
+header{background:linear-gradient(135deg,#1a2030 0%,#2C4870 100%);color:white;padding:14px 24px;display:flex;align-items:center;justify-content:space-between;gap:16px;box-shadow:0 2px 12px rgba(0,0,0,.18)}
+.header-left{display:flex;align-items:center;gap:12px}.logo-mark{width:42px;height:42px;display:flex;align-items:center;justify-content:center;flex-shrink:0}.header-title{font-size:16px;font-weight:800;letter-spacing:-.02em}.header-sub{font-size:11px;opacity:.55;font-family:var(--mono);margin-top:1px}.api-badge{font-family:var(--mono);font-size:10px;padding:4px 10px;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.15);border-radius:20px;color:rgba(255,255,255,.68);white-space:nowrap}
+.info-bar{background:#fff7e6;border-bottom:1px solid #f3d19c;color:#7a4b00;padding:8px 24px;font-size:12px;font-family:var(--mono);display:flex;gap:20px;flex-wrap:wrap}.info-bar strong{font-weight:700}.layout{display:flex;min-height:calc(100vh - 102px)}
+.sidebar{width:286px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow-y:auto}.sidebar-section{padding:16px;border-bottom:1px solid var(--border)}.section-label{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px}
+.product-list{display:flex;flex-direction:column;gap:6px}.product-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;cursor:pointer;border:1.5px solid var(--border);background:var(--surface2);transition:all .15s}.product-item:hover,.product-item.selected{border-color:var(--accent);background:var(--sky)}.product-item input{display:none}.product-code{font-family:var(--mono);font-size:10px;font-weight:600;background:var(--hail);color:white;padding:3px 6px;border-radius:4px;min-width:72px;text-align:center}.product-desc{font-size:12px;color:var(--muted);line-height:1.35}.product-desc strong{color:var(--text)}
+.date-input{width:100%;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:12px;background:var(--surface2);color:var(--text);outline:none}.date-input:focus{border-color:var(--accent);background:var(--sky)}.date-hint{margin-top:8px;color:var(--muted);font-size:11px;line-height:1.45}.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;padding:8px 14px;border-radius:8px;font-family:var(--sans);font-size:13px;font-weight:600;cursor:pointer;border:none;transition:all .15s;white-space:nowrap}.btn-primary{background:var(--accent);color:white;width:100%;padding:11px}.btn-primary:hover:not(:disabled){background:var(--accent2)}.btn-primary:disabled{opacity:.5;cursor:not-allowed}.btn-ghost{background:var(--surface2);color:var(--text);border:1px solid var(--border);font-size:12px;padding:6px 10px}.btn-ghost:hover{background:var(--sky);border-color:var(--accent);color:var(--accent)}.btn-success{background:var(--success);color:white;font-size:12px;padding:5px 10px}.btn-success:hover{background:#15803d}
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}.stats-bar{padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:20px;flex-wrap:wrap}.stat{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted)}.stat strong{color:var(--text);font-weight:700;font-family:var(--mono)}.filter-bar{padding:10px 20px;background:var(--surface2);border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}.filter-input{flex:1;padding:7px 12px;border:1.5px solid var(--border);border-radius:8px;font-family:var(--mono);font-size:12px;background:var(--surface);color:var(--text);outline:none;max-width:360px}.filter-input:focus{border-color:var(--accent)}.filter-select{padding:7px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:12px;background:var(--surface);color:var(--text);outline:none;cursor:pointer}.filter-select:focus{border-color:var(--accent)}
+.table-wrap{flex:1;overflow:auto;padding:16px 20px}table{width:100%;border-collapse:collapse;font-size:13px}th{text-align:left;padding:8px 12px;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);background:var(--surface2);border-bottom:2px solid var(--border);position:sticky;top:0}td{padding:8px 12px;border-bottom:1px solid var(--border);vertical-align:middle}tr:hover td{background:var(--sky)}.filename-cell{font-family:var(--mono);font-size:11px;color:var(--muted);max-width:330px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.prod-badge{font-family:var(--mono);font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;color:white;background:var(--hail)}.time-badge{font-family:var(--mono);font-size:12px}.period-cell{font-size:12px;color:var(--muted)}
+.table-state{display:flex;align-items:center;justify-content:center;min-height:300px}.empty-state{text-align:center;padding:40px}.empty-icon{font-size:40px;opacity:.35;margin-bottom:12px}.empty-title{font-size:15px;font-weight:700;margin-bottom:6px}.empty-sub{font-size:12px;color:var(--muted);max-width:460px;margin:0 auto;line-height:1.6}.loading-state{display:flex;align-items:center;gap:12px;color:var(--muted)}.spinner{width:20px;height:20px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.queue-panel{background:var(--surface);border-top:1px solid var(--border);max-height:220px;overflow-y:auto}.queue-header{padding:10px 20px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface);z-index:1}.queue-title{font-size:12px;font-weight:700}.queue-item{padding:8px 20px;display:flex;align-items:center;gap:12px;font-size:12px;border-bottom:1px solid var(--border)}.queue-item:last-child{border-bottom:none}.qi-name{font-family:var(--mono);font-size:11px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.qi-status{font-size:11px;min-width:90px;text-align:right}.qi-ok{color:var(--success)}.qi-fail{color:var(--danger)}.qi-wait{color:var(--muted)}.qi-dl{color:var(--accent)}.toast{position:fixed;bottom:24px;right:24px;z-index:10000;background:#1a2030;color:white;padding:10px 16px;border-radius:10px;font-size:13px;opacity:0;pointer-events:none;transition:opacity .2s;max-width:340px}.toast.show{opacity:1}.toast.success{background:var(--success)}.toast.error{background:var(--danger)}.btn-queue{font-size:11px;padding:4px 9px;border-radius:6px}
+</style>
+</head>
+<body>
+<header>
+  <div class="header-left">
+    <div class="logo-mark">
+      <svg width="42" height="42" viewBox="0 0 42 42" aria-label="Hail radar logo" role="img" style="display:block">
+        <defs>
+          <linearGradient id="hailBg" x1="0" y1="0" x2="1" y2="1"><stop offset="0%" stop-color="#14213d"/><stop offset="100%" stop-color="#4f46e5"/></linearGradient>
+          <radialGradient id="hailSweep" cx="50%" cy="50%" r="60%"><stop offset="0%" stop-color="#dbeafe" stop-opacity=".95"/><stop offset="100%" stop-color="#dbeafe" stop-opacity="0"/></radialGradient>
+        </defs>
+        <rect x="1" y="1" width="40" height="40" rx="10" fill="url(#hailBg)"/>
+        <circle cx="21" cy="21" r="13" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="1.7"/>
+        <circle cx="21" cy="21" r="8.5" fill="none" stroke="rgba(255,255,255,.62)" stroke-width="1.3"/>
+        <circle cx="21" cy="21" r="4" fill="none" stroke="rgba(255,255,255,.46)" stroke-width="1.1"/>
+        <path d="M21 21 L33 13 A14 14 0 0 1 31 30 Z" fill="url(#hailSweep)"/>
+        <line x1="21" y1="21" x2="33" y2="13" stroke="#bfdbfe" stroke-width="2.1" stroke-linecap="round"/>
+        <circle cx="21" cy="21" r="2.35" fill="#ffffff"/>
+        <g fill="#e0f2fe" stroke="#ffffff" stroke-width=".4">
+          <circle cx="12" cy="30" r="2.1"/><circle cx="18" cy="32" r="1.6"/><circle cx="25" cy="30.5" r="2.2"/><circle cx="31" cy="32" r="1.5"/>
+        </g>
+        <circle cx="13" cy="13" r="1.5" fill="#67e8f9"/><circle cx="16" cy="11" r="1.2" fill="#fef08a"/><circle cx="18.5" cy="14" r="1.2" fill="#fb7185"/>
+      </svg>
+    </div>
+    <div>
+      <div class="header-title">Switzerland Hail Radar Downloader</div>
+      <div class="header-sub">Hail Radar · Daily 24-hour products · STAC API</div>
+    </div>
+  </div>
+  <div class="api-badge">data.geo.admin.ch/api/stac/v1</div>
+</header>
+<div class="info-bar">
+  <span>Data attribution: <strong>Source: MeteoSwiss</strong></span>
+  <span>Software license: <strong>MIT License</strong></span>
+  <span>Hail radar data is available for a maximum of the last <strong>14 days</strong>.</span>
+</div>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="section-label">🧊 Hail products</div>
+      <div class="product-list" id="productList">
+        <label class="product-item selected" id="lbl-BZC2400"><input type="checkbox" value="BZC2400" checked onchange="toggleProduct('BZC2400', this.checked)"><span class="product-code">BZC 24:00</span><span class="product-desc"><strong>BZC</strong><br>24-hour sum, 00:00–24:00 UTC</span></label>
+        <label class="product-item selected" id="lbl-BZC3000"><input type="checkbox" value="BZC3000" checked onchange="toggleProduct('BZC3000', this.checked)"><span class="product-code">BZC 30:00</span><span class="product-desc"><strong>BZC</strong><br>24-hour sum, 06:00–06:00 UTC</span></label>
+        <label class="product-item selected" id="lbl-MZC2400"><input type="checkbox" value="MZC2400" checked onchange="toggleProduct('MZC2400', this.checked)"><span class="product-code">MZC 24:00</span><span class="product-desc"><strong>MZC</strong><br>24-hour sum, 00:00–24:00 UTC</span></label>
+        <label class="product-item selected" id="lbl-MZC3000"><input type="checkbox" value="MZC3000" checked onchange="toggleProduct('MZC3000', this.checked)"><span class="product-code">MZC 30:00</span><span class="product-desc"><strong>MZC</strong><br>24-hour sum, 06:00–06:00 UTC</span></label>
+      </div>
+    </div>
+    <div class="sidebar-section">
+      <div class="section-label">📅 Day</div>
+      <input type="date" class="date-input" id="datePicker">
+      <div class="date-hint" id="dateHint">Only available days within the last 14 days are offered.</div>
+    </div>
+    <div class="sidebar-section">
+      <button class="btn btn-primary" id="fetchBtn" onclick="fetchFiles()">🔍 Load hail files</button>
+    </div>
+  </aside>
+  <div class="main">
+    <div class="stats-bar" id="statsBar">
+      <div class="stat">Found: <strong id="statTotal">–</strong></div>
+      <div class="stat">BZC: <strong id="statBZC">–</strong></div>
+      <div class="stat">MZC: <strong id="statMZC">–</strong></div>
+      <div class="stat" style="margin-left:auto">Queue: <strong id="statQueue">0</strong></div>
+    </div>
+    <div class="filter-bar">
+      <input class="filter-input" id="filterInput" placeholder="🔎 Filter by filename..." oninput="applyFilter()">
+      <select class="filter-select" id="filterProd" onchange="applyFilter()">
+        <option value="">All products</option><option value="BZC2400">BZC 24:00</option><option value="BZC3000">BZC 30:00</option><option value="MZC2400">MZC 24:00</option><option value="MZC3000">MZC 30:00</option>
+      </select>
+      <button class="btn btn-ghost" onclick="addAllToQueue()">+ Add all to queue</button>
+      <button class="btn btn-ghost" onclick="downloadQueue()" id="dlBtn" disabled>⬇ Download queue</button>
+    </div>
+    <div class="table-wrap" id="tableWrap">
+      <div id="tableState" class="table-state"><div class="empty-state"><div class="empty-icon">🧊</div><div class="empty-title">Ready</div><div class="empty-sub">Select the hail products and a day, then click “Load hail files”. Only the four configured daily products are shown.</div></div></div>
+      <table id="fileTable" style="display:none"><thead><tr><th style="width:28px"><input type="checkbox" id="selectAll" onchange="toggleSelectAll(this.checked)"></th><th>Product</th><th>Day / period</th><th>Filename</th><th>Size</th><th></th></tr></thead><tbody id="tableBody"></tbody></table>
+    </div>
+    <div class="queue-panel" id="queuePanel" style="display:none"><div class="queue-header"><span class="queue-title">⬇ Download queue (<span id="queueCount">0</span>)</span><div style="display:flex;gap:8px"><button class="btn btn-ghost" style="font-size:11px;padding:4px 8px" onclick="clearQueue()">Clear</button><button class="btn btn-success" id="startDlBtn" onclick="downloadQueue()">▶ Start</button></div></div><div id="queueList"></div></div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+// ─── Configuration ─────────────────────────────────────────────────────────
+const BASE_API   = 'https://data.geo.admin.ch/api/stac/v1';
+const COLLECTION = 'ch.meteoschweiz.ogd-radar-hail';
+const BASE_URL   = `${BASE_API}/collections/${COLLECTION}`;
+
+const PRODUCTS_INFO = {
+  BZC2400: { prefix: 'bzc', hhmm: '2400', suffix: 'vl.845.h5', label: 'BZC 24:00', period: '24-hour sum, 00:00–24:00 UTC' },
+  BZC3000: { prefix: 'bzc', hhmm: '3000', suffix: 'vl.845.h5', label: 'BZC 30:00', period: '24-hour sum, 06:00–06:00 UTC' },
+  MZC2400: { prefix: 'mzc', hhmm: '2400', suffix: 'vl.850.h5', label: 'MZC 24:00', period: '24-hour sum, 00:00–24:00 UTC' },
+  MZC3000: { prefix: 'mzc', hhmm: '3000', suffix: 'vl.850.h5', label: 'MZC 30:00', period: '24-hour sum, 06:00–06:00 UTC' },
+};
+
+// ─── State ─────────────────────────────────────────────────────────────────
+let selectedProducts = new Set(Object.keys(PRODUCTS_INFO));
+let allFiles = [];
+let filteredFiles = [];
+let queue = [];
+let dlRunning = false;
+
+// ─── Initialization ────────────────────────────────────────────────────────
+(function init() {
+  const today = new Date();
+  const minDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 14));
+  const maxDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+  const datePicker = document.getElementById('datePicker');
+  datePicker.min = minDate.toISOString().slice(0, 10);
+  datePicker.max = maxDate.toISOString().slice(0, 10);
+  datePicker.value = maxDate.toISOString().slice(0, 10);
+  document.getElementById('dateHint').textContent = `Available date range: ${datePicker.min} to ${datePicker.max}. Hail radar data is available for the last 14 days.`;
+})();
+
+// ─── UI helpers ────────────────────────────────────────────────────────────
+function toggleProduct(prod, checked) {
+  checked ? selectedProducts.add(prod) : selectedProducts.delete(prod);
+  document.getElementById(`lbl-${prod}`).classList.toggle('selected', checked);
+  applyFilter();
+}
+function showToast(msg, type = '') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast show ${type}`;
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ─── Date / filename helpers ───────────────────────────────────────────────
+function doyFromDate(dateStr) {
+  const d = new Date(dateStr + 'T00:00:00Z');
+  const y0 = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  return String(Math.floor((d - y0) / 86400000) + 1).padStart(3, '0');
+}
+function yyFromDate(dateStr) {
+  return dateStr.slice(2, 4);
+}
+function expectedFilename(productKey, dateStr) {
+  const p = PRODUCTS_INFO[productKey];
+  return `${p.prefix.toUpperCase()}${yyFromDate(dateStr)}${doyFromDate(dateStr)}${p.hhmm}${p.suffix}`;
+}
+function parseHailFilename(filename) {
+  const name = filename.toLowerCase();
+  const m = name.match(/^(bzc|mzc)(\d{2})(\d{3})(2400|3000)vl\.(845|850)\.h5$/i);
+  if (!m) return null;
+  const prefix = m[1].toUpperCase();
+  const yy = m[2];
+  const doy = m[3];
+  const hhmm = m[4];
+  const suffix = m[5];
+  const product = `${prefix}${hhmm}`;
+  if (!PRODUCTS_INFO[product]) return null;
+  if ((prefix === 'BZC' && suffix !== '845') || (prefix === 'MZC' && suffix !== '850')) return null;
+  const year = 2000 + parseInt(yy, 10);
+  const jan1 = new Date(Date.UTC(year, 0, 1));
+  const dt = new Date(jan1.getTime() + (parseInt(doy, 10) - 1) * 86400000);
+  const dateStr = dt.toISOString().slice(0, 10);
+  return { product, prefix, year, doy: parseInt(doy, 10), hhmm, dateStr, period: PRODUCTS_INFO[product].period };
+}
+function formatBytes(bytes) {
+  if (!bytes) return '–';
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
+// ─── API ───────────────────────────────────────────────────────────────────
+async function fetchItem(itemId) {
+  const url = `${BASE_URL}/items/${itemId}`;
+  const r = await fetch(url, { headers: { Accept: 'application/json' } });
+  if (!r.ok) throw new Error(`HTTP ${r.status} for ${itemId}`);
+  return r.json();
+}
+async function fetchAllItemIds(targetPrefix) {
+  const found = [];
+  let url = `${BASE_URL}/items?limit=200`;
+  let pages = 0;
+  while (url && pages < 20) {
+    const r = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!r.ok) break;
+    const data = await r.json();
+    for (const f of (data.features || [])) {
+      if (!targetPrefix || f.id.startsWith(targetPrefix)) found.push(f.id);
+    }
+    const next = (data.links || []).find(l => l.rel === 'next');
+    url = next ? next.href : null;
+    pages++;
+  }
+  return found;
+}
+
+// ─── Load files ────────────────────────────────────────────────────────────
+async function fetchFiles() {
+  if (selectedProducts.size === 0) { showToast('Please select at least one hail product.', 'error'); return; }
+  const dateVal = document.getElementById('datePicker').value;
+  if (!dateVal) { showToast('Please select a day.', 'error'); return; }
+
+  const btn = document.getElementById('fetchBtn');
+  btn.disabled = true;
+  btn.textContent = '⏳ Loading...';
+  document.getElementById('fileTable').style.display = 'none';
+  document.getElementById('tableState').style.display = 'flex';
+  document.getElementById('tableState').innerHTML = `<div class="loading-state"><div class="spinner"></div><span id="loadMsg">Connecting to the STAC API...</span></div>`;
+  allFiles = [];
+  queue = [];
+  renderQueue();
+  updateStats();
+
+  try {
+    const targetPrefix = dateVal.replace(/-/g, '');
+    const dailyId = `${targetPrefix}-ch`;
+    let allAssets = [];
+    document.getElementById('loadMsg').textContent = `Loading item ${dailyId}...`;
+    try {
+      const item = await fetchItem(dailyId);
+      allAssets = Object.entries(item.assets || {});
+    } catch(e) {
+      document.getElementById('loadMsg').textContent = 'Daily item not found, searching item list...';
+      const ids = await fetchAllItemIds(targetPrefix);
+      if (ids.length === 0) throw new Error('No STAC items found for this day.');
+      for (const id of ids) {
+        try {
+          const item = await fetchItem(id);
+          allAssets.push(...Object.entries(item.assets || {}));
+        } catch(e2) { /* skip item */ }
+      }
+    }
+
+    const expected = new Map();
+    for (const product of selectedProducts) {
+      expected.set(expectedFilename(product, dateVal).toLowerCase(), product);
+    }
+
+    const parsed = [];
+    for (const [key, asset] of allAssets) {
+      const href = asset.href || '';
+      const fname = href.split('/').pop() || key.split('/').pop();
+      if (!expected.has(fname.toLowerCase())) continue;
+      const info = parseHailFilename(fname);
+      if (!info || !selectedProducts.has(info.product)) continue;
+      parsed.push({ filename: fname, url: href, info, size: asset['file:size'] || null });
+    }
+
+    const order = Object.keys(PRODUCTS_INFO);
+    parsed.sort((a, b) => order.indexOf(a.info.product) - order.indexOf(b.info.product));
+    allFiles = parsed;
+    applyFilter();
+    updateStats();
+
+    if (allFiles.length === 0) {
+      const expectedList = Array.from(expected.keys()).map(s => s.toUpperCase()).join('<br>');
+      document.getElementById('tableState').innerHTML = `<div class="empty-state"><div class="empty-icon">📭</div><div class="empty-title">No configured hail files found</div><div class="empty-sub">The selected STAC item did not contain any of the expected files:<br><br><span style="font-family:var(--mono)">${expectedList}</span></div></div>`;
+    } else {
+      showToast(`${allFiles.length} hail file(s) found`, 'success');
+    }
+  } catch(err) {
+    document.getElementById('tableState').innerHTML = `<div class="empty-state"><div class="empty-icon">⚠️</div><div class="empty-title">Error</div><div class="empty-sub">${err.message}</div></div>`;
+    showToast('Error while loading hail files', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = '🔍 Load hail files';
+  }
+}
+
+// ─── Filter & render ───────────────────────────────────────────────────────
+function applyFilter() {
+  const search = document.getElementById('filterInput').value.toLowerCase();
+  const fprod = document.getElementById('filterProd').value;
+  filteredFiles = allFiles.filter(f => {
+    if (fprod && f.info.product !== fprod) return false;
+    if (search && !f.filename.toLowerCase().includes(search)) return false;
+    return true;
+  });
+  renderTable();
+}
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  const table = document.getElementById('fileTable');
+  const state = document.getElementById('tableState');
+  if (filteredFiles.length === 0 && allFiles.length > 0) {
+    tbody.innerHTML = '';
+    state.style.display = 'flex';
+    state.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No matches</div><div class="empty-sub">Adjust the filter.</div></div>`;
+    table.style.display = 'none';
+    return;
+  }
+  if (filteredFiles.length === 0) return;
+  state.style.display = 'none';
+  table.style.display = 'table';
+  tbody.innerHTML = filteredFiles.map((f, i) => {
+    const inQueue = queue.some(q => q.url === f.url);
+    return `<tr>
+      <td><input type="checkbox" class="row-check" data-i="${i}" ${inQueue ? 'checked' : ''}></td>
+      <td><span class="prod-badge">${PRODUCTS_INFO[f.info.product].label}</span></td>
+      <td class="period-cell"><span class="time-badge">${f.info.dateStr}</span><br>${f.info.period}</td>
+      <td class="filename-cell" title="${f.filename}">${f.filename}</td>
+      <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${formatBytes(f.size)}</td>
+      <td><button class="btn btn-ghost btn-queue" onclick="addOne(${i})" ${inQueue ? 'disabled' : ''}>${inQueue ? '✓' : '+ Queue'}</button></td>
+    </tr>`;
+  }).join('');
+  document.querySelectorAll('.row-check').forEach(cb => {
+    cb.addEventListener('change', e => {
+      const i = parseInt(e.target.dataset.i, 10);
+      e.target.checked ? addOne(i) : removeOne(i);
+    });
+  });
+}
+function updateStats() {
+  const counts = { BZC: 0, MZC: 0 };
+  allFiles.forEach(f => counts[f.info.prefix]++);
+  document.getElementById('statTotal').textContent = allFiles.length;
+  document.getElementById('statBZC').textContent = counts.BZC;
+  document.getElementById('statMZC').textContent = counts.MZC;
+  document.getElementById('statQueue').textContent = queue.length;
+}
+
+// ─── Queue ─────────────────────────────────────────────────────────────────
+function addOne(i) {
+  const f = filteredFiles[i];
+  if (!f || queue.some(q => q.url === f.url)) return;
+  queue.push({ ...f, id: Date.now() + Math.random(), status: 'wait' });
+  renderQueue(); renderTable(); updateStats(); document.getElementById('dlBtn').disabled = false;
+}
+function removeOne(i) {
+  const f = filteredFiles[i];
+  if (!f) return;
+  queue = queue.filter(q => q.url !== f.url);
+  renderQueue(); renderTable(); updateStats();
+}
+function addAllToQueue() {
+  let added = 0;
+  filteredFiles.forEach(f => {
+    if (!queue.some(q => q.url === f.url)) { queue.push({ ...f, id: Date.now() + Math.random(), status: 'wait' }); added++; }
+  });
+  renderQueue(); renderTable(); updateStats();
+  if (added > 0) { showToast(`${added} file(s) added to the queue`); document.getElementById('dlBtn').disabled = false; }
+}
+function clearQueue() { queue = []; renderQueue(); renderTable(); updateStats(); document.getElementById('dlBtn').disabled = true; }
+function renderQueue() {
+  const panel = document.getElementById('queuePanel');
+  const list = document.getElementById('queueList');
+  document.getElementById('queueCount').textContent = queue.length;
+  if (queue.length === 0) { panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  list.innerHTML = queue.map(q => {
+    const statusClass = q.status === 'ok' ? 'qi-ok' : q.status === 'fail' ? 'qi-fail' : q.status === 'dl' ? 'qi-dl' : 'qi-wait';
+    const statusIcon = q.status === 'ok' ? '✓ Done' : q.status === 'fail' ? '✗ Failed' : q.status === 'dl' ? '⬇ downloading...' : '○ waiting';
+    return `<div class="queue-item" id="qi-${q.id}"><span class="prod-badge" style="font-size:9px;padding:1px 5px">${PRODUCTS_INFO[q.info.product].label}</span><span class="qi-name">${q.filename}</span><span class="qi-status ${statusClass}">${statusIcon}</span></div>`;
+  }).join('');
+}
+
+// ─── Download ─────────────────────────────────────────────────────────────
+async function downloadQueue() {
+  if (dlRunning || queue.length === 0) return;
+  dlRunning = true;
+  document.getElementById('startDlBtn').disabled = true;
+  document.getElementById('dlBtn').disabled = true;
+  let ok = 0, fail = 0;
+  for (const item of queue) {
+    if (item.status === 'ok') { ok++; continue; }
+    item.status = 'dl'; renderQueue();
+    try {
+      const r = await fetch(item.url);
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const blob = await r.blob();
+      const a = document.createElement('a');
+      a.href = URL.createObjectURL(blob);
+      a.download = item.filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+      item.status = 'ok'; ok++;
+    } catch(e) { item.status = 'fail'; fail++; }
+    renderQueue();
+    await new Promise(r => setTimeout(r, 300));
+  }
+  dlRunning = false;
+  document.getElementById('startDlBtn').disabled = false;
+  showToast(`✅ ${ok} downloaded${fail > 0 ? `, ${fail} failed` : ''}`, ok > 0 ? 'success' : 'error');
+}
+function toggleSelectAll(checked) { filteredFiles.forEach((f, i) => { checked ? addOne(i) : removeOne(i); }); }
+</script>
+</body>
+</html>
