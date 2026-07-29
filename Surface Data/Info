@@ -1,1 +1,3 @@
-
+These files support download of surface open data for multiple stations in one run. The stations can be selected. 
+The files differ in data granularity (daily, monthly and yearly) and data period (historical, recent, all), therfore select the respective file
+according to your requirements. 
