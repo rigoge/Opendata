@@ -42,7 +42,7 @@ main{padding:20px clamp(12px,3vw,34px) 32px;max-width:1550px;margin:auto}.layout
 .field{margin:0 0 14px}.field label{display:block;font-weight:650;margin-bottom:6px}select,input,button{width:100%;font:inherit;border-radius:9px;border:1px solid #ddc9a3;background:#fff;padding:10px 11px;color:var(--ink)}
 button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}button:hover{background:var(--accent2)}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#fdf1de;color:#8a4b0f;border:1px solid #eed8b3}.secondary:hover{background:#fbe6c8}
 .row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.status{margin-top:14px;padding:10px 11px;border-radius:9px;background:#fdf1de;color:#4a3c26;min-height:43px;white-space:pre-wrap}.status.ok{background:#ecfdf3;color:var(--ok)}.status.warn{background:#fffaeb;color:var(--warn)}.status.err{background:#fef3f2;color:var(--err)}
-.meta{font-size:13px;color:var(--muted);margin-top:12px;overflow-wrap:anywhere}.hint{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:16px;padding-top:13px}.small{font-size:12px;color:var(--muted)}
+.meta{font-size:13px;color:var(--muted);margin-top:12px;overflow-wrap:anywhere}.hint{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:16px;padding-top:13px}.small{font-size:12px;color:var(--muted)}.search-results{margin-top:8px}.search-results[hidden]{display:none}.place-marker{filter:drop-shadow(0 1px 2px rgba(0,0,0,.45))}
 .timeline{margin-top:15px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#fffaf0}.timehead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}.timehead strong{font-size:18px}.timehead span{font-size:12px;color:var(--muted)}input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
 .mapcard{overflow:hidden;position:relative}.maptop{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line)}.maptop strong{font-size:16px}.maptop span{font-size:13px;color:var(--muted);text-align:right}#map{height:min(75vh,800px);min-height:540px;background:#fdf3df}
 .legend{position:absolute;z-index:500;right:15px;bottom:24px;background:rgba(255,255,255,.96);padding:10px 11px;border-radius:9px;box-shadow:0 2px 12px rgba(0,0,0,.2);font-size:12px;min-width:220px}.legend-title{font-weight:700;margin-bottom:6px}.bar{height:12px;border-radius:4px;margin-bottom:4px;background:linear-gradient(90deg,#0b1a3a,#2a4d8f,#3f8f8f,#f2c94c,#f2994a,#eb5757,#fff)}.ticks{display:flex;justify-content:space-between;color:#475467}
@@ -66,6 +66,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div class="field"><label for="yearSelect">Year</label><select id="yearSelect" disabled></select></div>
 <div class="field" id="monthField" style="display:none"><label for="monthSelect">Month</label><select id="monthSelect"></select></div>
 </div>
+<div class="field"><label for="placeSearch">Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <button id="loadBtn" disabled>Load</button>
 <button class="secondary" id="refreshBtn" style="margin-top:9px">↻ Refresh catalogue</button>
 <div class="status" id="status">Fetching the list of available parameters and years…</div>
@@ -98,7 +99,10 @@ The colour scale auto-adjusts to the min/max of whichever parameter and period y
 <section class="card" id="chartCard" style="display:none;margin-top:16px;padding:16px">
 <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
 <strong id="chartTitle">Time series</strong>
+<div style="display:flex;gap:8px">
+<button class="secondary" id="chartExportBtn" style="width:auto;padding:6px 14px">⬇ Export CSV</button>
 <button class="secondary" id="chartCloseBtn" style="width:auto;padding:6px 14px">✕ Close</button>
+</div>
 </div>
 <div class="small" id="chartSubtitle" style="margin-bottom:8px"></div>
 <canvas id="chartCanvas" style="width:100%;height:260px;display:block"></canvas>
@@ -128,11 +132,87 @@ const MIN_YEAR=2004;
 const MONTH_NAMES=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
 
 const $=id=>document.getElementById(id);
-const ui={param:$('paramSelect'),year:$('yearSelect'),monthField:$('monthField'),month:$('monthSelect'),load:$('loadBtn'),refresh:$('refreshBtn'),status:$('status'),progress:$('progressBar'),timelineBox:$('timelineBox'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn')};
+const ui={param:$('paramSelect'),year:$('yearSelect'),monthField:$('monthField'),month:$('monthSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),load:$('loadBtn'),refresh:$('refreshBtn'),status:$('status'),progress:$('progressBar'),timelineBox:$('timelineBox'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
 
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
 L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);
 L.control.scale({imperial:false}).addTo(map);
+
+let placeMarker=null,placeSearchController=null;
+function plainText(value){
+  const box=document.createElement('div');
+  box.innerHTML=String(value??'');
+  return (box.textContent||box.innerText||'').replace(/\s+/g,' ').trim();
+}
+function selectPlace(result){
+  const a=result?.attrs||{};
+  const lat=Number(a.lat),lon=Number(a.lon);
+  if(!Number.isFinite(lat)||!Number.isFinite(lon)){
+    setStatus('The selected search result has no usable coordinates.','err');
+    return;
+  }
+  const label=plainText(a.label||a.detail||'Selected location');
+  const zoomRaw=Number(a.zoomlevel);
+  const zoom=Number.isFinite(zoomRaw)&&zoomRaw>=8&&zoomRaw<=18?zoomRaw:13;
+  if(placeMarker)map.removeLayer(placeMarker);
+  placeMarker=L.circleMarker([lat,lon],{
+    radius:8,weight:3,color:'#ffffff',fillColor:'#e08a1e',fillOpacity:1,className:'place-marker'
+  }).addTo(map).bindPopup(`<strong>${label}</strong>`);
+  map.setView([lat,lon],zoom,{animate:true});
+  placeMarker.openPopup();
+}
+async function searchPlaces(){
+  const query=ui.placeSearch.value.trim();
+  if(query.length<2){
+    setStatus('Enter at least two characters or a Swiss postcode.','warn');
+    ui.placeResults.hidden=true;
+    return;
+  }
+  if(placeSearchController)placeSearchController.abort();
+  placeSearchController=new AbortController();
+  ui.placeSearchBtn.disabled=true;
+  ui.placeResults.hidden=true;
+  try{
+    const url=new URL('https://api3.geo.admin.ch/rest/services/ech/SearchServer');
+    url.searchParams.set('searchText',query);
+    url.searchParams.set('type','locations');
+    url.searchParams.set('sr','2056');
+    url.searchParams.set('lang','en');
+    url.searchParams.set('limit','12');
+    const response=await fetch(url,{signal:placeSearchController.signal,headers:{Accept:'application/json'}});
+    if(!response.ok)throw new Error(`Location service returned HTTP ${response.status}.`);
+    const data=await response.json();
+    const results=(data.results||[]).filter(r=>Number.isFinite(Number(r?.attrs?.lat))&&Number.isFinite(Number(r?.attrs?.lon)));
+    if(!results.length){
+      setStatus(`No Swiss place or postcode found for "${query}".`,'warn');
+      return;
+    }
+    ui.placeResults.innerHTML='';
+    results.forEach((r,i)=>{
+      const a=r.attrs||{};
+      const label=plainText(a.label||a.detail||`Result ${i+1}`);
+      const detail=plainText(a.detail||'');
+      const text=detail&&detail.toLowerCase()!==label.toLowerCase()?`${label} — ${detail}`:label;
+      const option=new Option(text,String(i));
+      ui.placeResults.add(option);
+    });
+    ui.placeResults._geoResults=results;
+    ui.placeResults.hidden=false;
+    ui.placeResults.selectedIndex=0;
+    selectPlace(results[0]);
+  }catch(error){
+    if(error?.name!=='AbortError')setStatus(`Place search failed: ${error?.message||error}`,'err');
+  }finally{
+    ui.placeSearchBtn.disabled=false;
+  }
+}
+ui.placeSearchBtn.addEventListener('click',searchPlaces);
+ui.placeSearch.addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();searchPlaces()}});
+ui.placeResults.addEventListener('change',()=>{
+  const results=ui.placeResults._geoResults||[];
+  const selected=results[Number(ui.placeResults.value)];
+  if(selected)selectPlace(selected);
+});
 
 function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
 function setBusy(on,text='Processing data…'){ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on||!findSelectedEntry();ui.refresh.disabled=on}
@@ -399,7 +479,7 @@ window.showSeriesAt=function(lat,lng){
   if(!values){setStatus('That point is outside the loaded grid extent.','warn');return}
   const isHourly=file.times.length>1&&file.times[0]&&file.times[1]&&(file.times[1]-file.times[0])<20*3600*1000;
   const labels=file.times.map((t,i)=>t?new Intl.DateTimeFormat('en-GB',isHourly?{day:'2-digit',month:'short',hour:'2-digit',minute:'2-digit'}:{day:'2-digit',month:'short'}).format(t):`#${i+1}`);
-  lastSeries={labels,values};
+  lastSeries={labels,values,times:file.times,code:file.code,unit:file.unit,lat,lng};
   ui.chartTitle.textContent=`${file.code} · time series at ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
   ui.chartSubtitle.textContent=`${file.nTime} time steps this file (single-pixel value, no interpolation), ${file.unit}`;
   ui.chartCard.style.display='';
@@ -408,6 +488,30 @@ window.showSeriesAt=function(lat,lng){
   map.closePopup();
 };
 ui.chartCloseBtn.addEventListener('click',()=>{ui.chartCard.style.display='none';lastSeries=null});
+function formatTimestampDMY(d){
+  if(!d)return '';
+  const p=n=>String(n).padStart(2,'0');
+  return `${p(d.getUTCDate())}.${p(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+function exportSeriesCsv(){
+  if(!lastSeries)return;
+  const{values,times,code,unit,lat,lng}=lastSeries;
+  const rows=[['index','date_utc',`value_${(unit||'value').replace(/[^a-z0-9]+/gi,'_')}`]];
+  for(let i=0;i<values.length;i++){
+    const ts=formatTimestampDMY(times[i]);
+    const v=Number.isFinite(values[i])?values[i]:'';
+    rows.push([i+1,ts,v]);
+  }
+  const csv=[`# parameter;${code}`,`# unit;${unit||''}`,`# latitude;${lat.toFixed(5)}`,`# longitude;${lng.toFixed(5)}`,
+    ...rows.map(r=>r.map(c=>{const s=String(c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';'))].join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${code}_${lat.toFixed(3)}N_${lng.toFixed(3)}E_timeseries.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+ui.chartExportBtn.addEventListener('click',exportSeriesCsv);
 window.addEventListener('resize',()=>{if(lastSeries&&ui.chartCard.style.display!=='none')drawLineChart(ui.chartCanvas,lastSeries.labels,lastSeries.values)});
 
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
