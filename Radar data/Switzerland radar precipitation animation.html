@@ -1,7 +1,7 @@
 <!--
 MIT License
 
-Copyright (c) 2026 CPC/RZC Precipitation Viewer contributors
+Copyright (c) 2026 G. Rigo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,10 +76,10 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div id="map"></div><div id="legend" class="legend"><div id="legendTitle" class="legend-title">CPC precipitation total for the last 60 minutes</div><div class="bar" style="background:linear-gradient(90deg,#c7e9ff 0% 8.33%,#94cef7 8.33% 16.67%,#5db5eb 16.67% 25%,#2ba4dc 25% 33.33%,#22b5ab 33.33% 41.67%,#37b55a 41.67% 50%,#8cc53a 50% 58.33%,#edd632 58.33% 66.67%,#f79e28 66.67% 75%,#ed6523 75% 83.33%,#d62d28 83.33% 91.67%,#7e0f5c 91.67% 100%)"></div><div id="legendTicks" class="ticks"><span>0.1</span><span>1</span><span>10</span><span>50</span><span>≥100 mm</span></div></div><div id="loader" class="loader">Processing data…</div></section>
 </div></main>
 <footer><div class="license-box"><strong>License and source information</strong><br>
-Software code of this viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. Data source: MeteoSchweiz / data.geo.admin.ch; required attribution when reproducing or redistributing: <q>Source: MeteoSwiss</q>. Base map and map data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>. Standard tiles used in accordance with the <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener">OpenStreetMap Tile Usage Policy</a>. External libraries retain their licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), pako (MIT). <a href="https://github.com/usnistgov/jsfive" target="_blank" rel="noopener">jsfive</a> (NIST) is distributed under its own <a href="https://github.com/usnistgov/jsfive/blob/master/LICENSE.txt" target="_blank" rel="noopener">LICENSE.txt</a>, not a plain MIT license &ndash; see that file for the exact terms.
+Software code of this viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. Data source: MeteoSchweiz / data.geo.admin.ch; required attribution when reproducing or redistributing: <q>Source: MeteoSwiss</q>. Base map: © <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>. External libraries retain their licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), pako (MIT). <a href="https://github.com/usnistgov/jsfive" target="_blank" rel="noopener">jsfive</a> (NIST) is distributed under its own <a href="https://github.com/usnistgov/jsfive/blob/master/LICENSE.txt" target="_blank" rel="noopener">LICENSE.txt</a>, not a plain MIT license &ndash; see that file for the exact terms.
 <details><summary>Full MIT License text</summary><pre>MIT License
 
-Copyright (c) 2026 CPC/RZC Precipitation Viewer contributors
+Copyright (c) 2026 G. Rigo
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
 
@@ -93,7 +93,7 @@ const STAC='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.og
 const $=id=>document.getElementById(id);
 const ui={product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),local:$('localFiles'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),cacheText:$('cacheStatusText'),cacheBar:$('cacheStatusBar')};
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);
+L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
 L.control.scale({imperial:false}).addTo(map);
 function plainText(value){
   const box=document.createElement('div');

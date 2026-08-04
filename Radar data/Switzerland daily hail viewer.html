@@ -84,8 +84,7 @@ footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
     <strong>License and source information</strong><br>
     Software code of this hail map viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>.
     MeteoSwiss hail data: <a href="https://opendatadocs.meteoswiss.ch/general/terms-of-use" target="_blank" rel="noopener">CC BY 4.0</a>; required attribution: <q>Source: MeteoSwiss</q>.
-    Location search: official <a href="https://docs.geo.admin.ch/access-data/search.html" target="_blank" rel="noopener">geo.admin.ch Search service</a>. Base map and map data: © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>.
-    The standard tiles are used in accordance with the <a href="https://operations.osmfoundation.org/policies/tiles/" target="_blank" rel="noopener">OpenStreetMap Tile Usage Policy</a>.
+    Location search: official <a href="https://docs.geo.admin.ch/access-data/search.html" target="_blank" rel="noopener">geo.admin.ch Search service</a>. Base map: © <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>.
     External libraries retain their own licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), pako (MIT). <a href="https://github.com/usnistgov/jsfive" target="_blank" rel="noopener">jsfive</a> (NIST) is distributed under its own <a href="https://github.com/usnistgov/jsfive/blob/master/LICENSE.txt" target="_blank" rel="noopener">LICENSE.txt</a>, not a plain MIT license &ndash; see that file for the exact terms.
     <details><summary>Full MIT License text</summary><pre>MIT License
 
@@ -118,7 +117,7 @@ const $=id=>document.getElementById(id);
 const ui={date:$('dateSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),status:$('status'),meta:$('fileMeta'),show:$('showBtn'),download:$('downloadBtn'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legend:$('legend')};
 let product='BZC', catalog=new Map(), currentAsset=null, overlay=null, lastRender=null, lastDecoded=null, placeMarker=null, placeSearchController=null;
 const map=L.map('map',{zoomControl:true}).setView([46.82,8.23],7);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap contributors</a>'}).addTo(map);
+L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'© <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>'}).addTo(map);
 function pixelAt(latlng){
   const d=lastDecoded;
   if(!d||!d.sourceExtent)return null;
