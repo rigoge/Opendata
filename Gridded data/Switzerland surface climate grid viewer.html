@@ -109,7 +109,7 @@ The colour scale auto-adjusts to the min/max of whichever parameter and year you
 <div class="license-box">
 <b>Data:</b> © MeteoSwiss – Open Government Data, licence <a href="https://opendatadocs.meteoswiss.ch/general/terms-of-use" target="_blank" rel="noopener">CC BY 4.0</a>. When redistributing or reproducing the data, the attribution <q>Source: MeteoSwiss</q> is required.
 Fetched live from the <a href="https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-surface-derived-grid" target="_blank" rel="noopener">FSDI STAC API</a>, collection <code>ch.meteoschweiz.ogd-surface-derived-grid</code>.
-<br><b>Map:</b> © <a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noopener">OpenStreetMap</a> contributors.
+<br><b>Map:</b> © <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>.
 <details><summary>Open-source components of this page (MIT unless noted)</summary>
 <pre>Leaflet 1.9.4 — BSD-2-Clause — https://leafletjs.com
 Proj4js 2.11.0 — MIT — https://github.com/proj4js/proj4js
@@ -138,7 +138,7 @@ const $=id=>document.getElementById(id);
 const ui={param:$('paramSelect'),year:$('yearSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),load:$('loadBtn'),refresh:$('refreshBtn'),status:$('status'),progress:$('progressBar'),timelineBox:$('timelineBox'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),legendBar:$('legendBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
 
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
-L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>'}).addTo(map);
+L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
 L.control.scale({imperial:false}).addTo(map);
 
 let placeMarker=null,placeSearchController=null;
