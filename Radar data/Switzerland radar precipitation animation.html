@@ -438,7 +438,7 @@ function candidateBetter(a,b){
   return Number(a.updatedMs||0)>Number(b.updatedMs||0);
 }
 function collectAssets(json){for(const f of json.features||[]){for(const [key,a] of Object.entries(f.assets||{})){const href=a.href||'',name=fileNameFromHref(href,key),p=parseProductName(name);if(!p||p.hour>23||p.minute>59||p.minute%5!==0)continue;const updated=a.updated||f.properties?.updated||'';const item={...p,name,href,size:a['file:size'],updated,updatedMs:Date.parse(updated)||0};const ck=`${p.product}|${p.durationMin||0}|${p.date}|${String(p.hour).padStart(2,'0')}${String(p.minute).padStart(2,'0')}`;if(candidateBetter(item,catalog.get(ck)))catalog.set(ck,item)}}}
-async function loadCatalog(){stopAnimation();if(catalogAbort)catalogAbort.abort();const ac=new AbortController();catalogAbort=ac;setBusy(true,'Loading STAC catalogue…');catalog.clear();frameCache.clear();setStatus('Loading STAC catalogue…');try{let url=STAC+'?limit=100';let pages=0;while(url&&pages<20){const r=await fetch(url,{cache:'no-store',signal:ac.signal});if(!r.ok)throw new Error(`STAC HTTP ${r.status}`);const j=await r.json();collectAssets(j);url=(j.links||[]).find(x=>x.rel==='next')?.href||null;pages++;ui.progress.style.width=Math.min(90,pages*8)+'%'}if(ac.signal.aborted)return;ui.progress.style.width='100%';prepareDay();const cpc=[...catalog.values()].filter(x=>x.product==='CPC').length,rzc=[...catalog.values()].filter(x=>x.product==='RZC').length;setStatus(`${cpc} CPC and ${rzc} RZC files found.`,'ok')}catch(e){if(e?.name==='AbortError')return;setStatus('STAC request failed: '+e.message,'err');prepareDay()}finally{if(catalogAbort===ac){setBusy(false);catalogAbort=null}setTimeout(()=>ui.progress.style.width='0%',700)}}
+async function loadCatalog(){stopAnimation();if(catalogAbort)catalogAbort.abort();const ac=new AbortController();catalogAbort=ac;setBusy(true,'Loading STAC catalogue…');catalog.clear();frameCache.clear();setStatus('Loading STAC catalogue…');try{let url=STAC+'?limit=100';let pages=0;while(url&&pages<20){const r=await fetch(url,{cache:'no-store',signal:ac.signal});if(!r.ok)throw new Error(`STAC HTTP ${r.status}`);const j=await r.json();collectAssets(j);url=(j.links||[]).find(x=>x.rel==='next')?.href||null;pages++;ui.progress.style.width=Math.min(90,pages*8)+'%'}if(ac.signal.aborted)return;ui.progress.style.width='100%';prepareDay();if(ui.view.value==='last7')refreshLast7DateConstraints();const cpc=[...catalog.values()].filter(x=>x.product==='CPC').length,rzc=[...catalog.values()].filter(x=>x.product==='RZC').length;setStatus(`${cpc} CPC and ${rzc} RZC files found.`,'ok')}catch(e){if(e?.name==='AbortError')return;setStatus('STAC request failed: '+e.message,'err');prepareDay()}finally{if(catalogAbort===ac){setBusy(false);catalogAbort=null}setTimeout(()=>ui.progress.style.width='0%',700)}}
 function frameTime(f){return `${String(f.hour).padStart(2,'0')}:${String(f.minute).padStart(2,'0')}`}
 function productSelectorFor(item){return item.product==='RZC'?'RZC':'CPC'}
 function productInfo(selector=ui.product.value){
@@ -619,17 +619,43 @@ async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;u
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
 function autoModeForProduct(selector){return selector==='CPC'?'hourly':'5min'}
+function computeValidLast7EndDates(){
+  const available=new Set([...catalog.values()].filter(it=>it.product==='CPC'&&it.minute===0).map(it=>it.date));
+  const sorted=[...available].sort();
+  const valid=[];
+  for(const d of sorted){
+    const end=new Date(d+'T00:00:00Z');
+    let ok=true;
+    for(let i=0;i<7;i++){
+      const day=new Date(end.getTime()-i*86400000).toISOString().slice(0,10);
+      if(!available.has(day)){ok=false;break}
+    }
+    if(ok)valid.push(d);
+  }
+  return valid;
+}
+function refreshLast7DateConstraints(){
+  const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+  const valid=computeValidLast7EndDates().filter(d=>d<=yesterday); // today is never selectable — that day's data is usually still incomplete
+  ui.last7Date._validDates=valid;
+  if(!valid.length){
+    ui.last7Date.disabled=true;
+    ui.last7Field.querySelector('.small').textContent='No 7-day window with complete data is currently available in the Open Data catalogue.';
+    return;
+  }
+  ui.last7Date.disabled=false;
+  ui.last7Date.min=valid[0];
+  ui.last7Date.max=valid[valid.length-1];
+  if(!ui.last7Date.value||!valid.includes(ui.last7Date.value))ui.last7Date.value=valid[valid.length-1];
+  ui.last7Field.querySelector('.small').textContent=`Loads the 7 calendar days ending on this date (inclusive). Only end dates with a complete, gap-free 7-day window in the Open Data catalogue can be picked (currently ${valid[0]} to ${valid[valid.length-1]}); today is never selectable.`;
+}
 function applyViewMode(){
   const is7=ui.view.value==='last7';
   ui.product.disabled=is7;if(is7)ui.product.value='CPC';
   ui.mode.disabled=is7;if(is7)ui.mode.value='hourly';
   ui.date.disabled=is7;
   ui.last7Field.style.display=is7?'':'none';
-  if(is7){
-    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
-    ui.last7Date.max=yesterday; // today is never selectable — that day's data is usually still incomplete
-    if(!ui.last7Date.value||ui.last7Date.value>yesterday)ui.last7Date.value=yesterday;
-  }
+  if(is7)refreshLast7DateConstraints();
   ui.load.textContent=is7?'Load last 7 days':'Load day';
   stopAnimation();frames=[];ui.hours.innerHTML='';
   ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;
@@ -639,7 +665,17 @@ function applyViewMode(){
   setStatus(is7?'7-day retroactive view: pick an end date, then choose "Load last 7 days" to fetch hourly CPC totals for that 7-day window.':'Single-day view: choose a day and click "Load day".');
 }
 ui.view.addEventListener('change',applyViewMode);
-ui.last7Date.addEventListener('change',()=>{stopAnimation();frames=[];ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';setStatus('End date changed — choose "Load last 7 days" to fetch this window.')});
+ui.last7Date.addEventListener('change',()=>{
+  const valid=ui.last7Date._validDates||[];
+  if(valid.length&&!valid.includes(ui.last7Date.value)){
+    // snap to the nearest valid end date instead of silently accepting a gappy window
+    let nearest=valid[0];
+    for(const d of valid)if(Math.abs(new Date(d)-new Date(ui.last7Date.value))<Math.abs(new Date(nearest)-new Date(ui.last7Date.value)))nearest=d;
+    ui.last7Date.value=nearest;
+    setStatus(`The chosen end date doesn't have a complete 7-day window available — snapped to the nearest valid date, ${nearest}.`,'warn');
+  }
+  stopAnimation();frames=[];ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';setStatus('End date changed — choose "Load last 7 days" to fetch this window.')
+});
 ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',()=>{ui.view.value==='last7'?loadLast7Days():loadDay()});ui.product.addEventListener('change',()=>{ui.mode.value=autoModeForProduct(ui.product.value);prepareDay()});ui.date.addEventListener('change',prepareDay);ui.mode.addEventListener('change',prepareDay);ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
 ui.mode.value=autoModeForProduct(ui.product.value);makeDates();renderHourBoxes();loadCatalog();
 Promise.all([loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'),loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js')]).catch(()=>{/* decodeFrame will retry and surface a real error if this keeps failing */});
