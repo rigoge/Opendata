@@ -61,16 +61,17 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <main><div class="layout">
 <section class="card controls">
 <h2>Select data</h2>
-<div class="field"><label for="paramSelect">Parameter</label><select id="paramSelect" disabled><option>Loading catalogue…</option></select></div>
+<div class="field"><label for="paramSelect">1. Parameter</label><select id="paramSelect" disabled><option>Loading catalogue…</option></select></div>
 <div class="row">
-<div class="field"><label for="yearSelect">Year</label><select id="yearSelect" disabled></select></div>
+<div class="field"><label for="yearSelect">2. Year</label><select id="yearSelect" disabled></select></div>
 <div class="field" id="monthField" style="display:none"><label for="monthSelect">Month</label><select id="monthSelect"></select></div>
 </div>
-<div class="field"><label for="placeSearch">Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">3. Load</div>
 <button id="loadBtn" disabled>Load</button>
 <button class="secondary" id="refreshBtn" style="margin-top:9px">↻ Refresh catalogue</button>
 <div class="status" id="status">Fetching the list of available parameters and years…</div>
 <div class="progress"><div id="progressBar"></div></div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px" id="playbackHeading">4. Playback</div>
 <div class="timeline" id="timelineBox" style="display:none">
 <div class="timehead"><strong id="timeLabel">–</strong><span id="frameLabel">–</span></div>
 <input type="range" id="timeSlider" min="0" max="0" value="0" disabled>
@@ -84,6 +85,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 </div>
 </div>
 <div class="meta" id="fileMeta"></div>
+<div class="field" style="margin-top:18px"><label for="placeSearch">5. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <div class="hint">
 Click anywhere on the map to read the exact grid value under the cursor.<br><br>
 The colour scale auto-adjusts to the min/max of whichever parameter and period you load, using the variable's own units and fill-value/scale/offset metadata from the file.
