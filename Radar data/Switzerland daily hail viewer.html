@@ -66,14 +66,17 @@ footer{max-width:1500px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <main><div class="layout">
 <section class="card controls">
 <h2>Data from the last 14 days</h2>
+<div class="small" style="font-weight:700;color:var(--ink)">1. Product</div>
 <div class="tabs"><button id="tabBZC" class="tab active" type="button">BZC · POH</button><button id="tabMZC" class="tab" type="button">MZC · MESHS</button></div>
-<div class="field"><label for="dateSelect">Date (UTC)</label><select id="dateSelect"></select></div>
-<div class="field"><label for="placeSearch">Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
+<div class="field"><label for="dateSelect">2. Date (UTC)</label><select id="dateSelect"></select></div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">3. Load</div>
 <div class="row"><button id="refreshBtn" class="secondary" type="button">Refresh files</button><button id="showBtn" type="button">Show on map</button></div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">4. Download / clear</div>
 <div class="row" style="margin-top:9px"><button id="downloadBtn" class="download" type="button" disabled>Download HDF5</button><button id="clearBtn" class="secondary" type="button">Clear map</button></div>
 <div id="status" class="status">Initializing…</div>
 <div id="fileMeta" class="meta"></div>
-<div class="field" style="margin-top:18px"><label for="localFile">Open local HDF5 file</label><input id="localFile" type="file" accept=".h5,.hdf5,application/x-hdf5"><div class="small">Fallback if direct access is blocked by the browser or CORS.</div></div>
+<div class="field" style="margin-top:18px"><label for="placeSearch">5. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
+<div class="field" style="margin-top:18px"><label for="localFile">6. Open local HDF5 file</label><input id="localFile" type="file" accept=".h5,.hdf5,application/x-hdf5"><div class="small">Fallback if direct access is blocked by the browser or CORS.</div></div>
 <div class="hint"><b>Exact filter:</b><br><code>BZCyyjjj2400vl.845.h5</code><br><code>MZCyyjjj2400vl.850.h5</code><br><br><b>Click the map</b> to read the exact pixel value (POH or MESHS) at that location.<br><br><b>Data source:</b> MeteoSchweiz / data.geo.admin.ch, <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>. When redistributing or reproducing the data, the attribution <q>Source: MeteoSwiss</q> is required. The daily products cover 00:00–24:00 UTC; the code <code>YYDDD</code> directly identifies that calendar day.</div>
 <div class="hint" style="margin-top:10px">for detailed information about the POH und MESHS Products see <a href="https://opendatadocs.meteoswiss.ch/d-radar-data/d3-hail-radar-products" target="_blank" rel="noopener">https://opendatadocs.meteoswiss.ch/d-radar-data/d3-hail-radar-products</a></div>
 </section>
