@@ -52,11 +52,13 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 </style>
 </head>
 <body>
-<div class="disclaimer">Important: Please note, that radar data (Precip and also Combiprecip) give the precipitation rate in mm/h. If you plot the data, it is conversed to mm (or also known as l/m2).</div>
+<div class="disclaimer">Important: Please note, that radar data (Precip and also Combiprecip) give the precipitation rate in mm/h. If you plot the data, it is conversed to mm (or also known as l/m2) in aspect to the respective time resolution.</div>
 <header><h1>Swiss radar precipitation</h1><p>CPC 60-minute totals and RZC rates for one day in 5-minute or hourly steps</p></header>
 <main><div class="layout">
 <section class="card controls">
 <h2>Precipitation time series</h2>
+<div class="field"><label for="viewSelect">View</label><select id="viewSelect"><option value="day" selected>Single day</option><option value="last7">Last 7 days overview (CPC hourly only)</option></select></div>
+<div class="field" id="last7DateField" style="display:none"><label for="last7Date">End date (7 days back from here, UTC)</label><input type="date" id="last7Date"><div class="small">Loads the 7 calendar days ending on this date (inclusive). Today is not selectable, since that day's data is usually still incomplete.</div></div>
 <div class="field"><label for="productSelect">1. Product</label><select id="productSelect"><option value="CPC" selected>CPC · CombiPrecip, 60-minute total (rolling)</option><option value="RZC">RZC · PRECIP, instantaneous precipitation rate</option></select></div>
 <div class="field"><label for="dateSelect">2. Day (UTC)</label><select id="dateSelect"></select></div>
 <div class="field"><label for="modeSelect">3. Time steps</label><select id="modeSelect"><option value="5min">Every 5 minutes</option><option value="hourly" selected>Full hours only</option></select></div>
@@ -107,7 +109,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 <script type="module">
 const STAC='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items';
 const $=id=>document.getElementById(id);
-const ui={product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),cacheText:$('cacheStatusText'),cacheBar:$('cacheStatusBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
+const ui={view:$('viewSelect'),last7Field:$('last7DateField'),last7Date:$('last7Date'),product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),cacheText:$('cacheStatusText'),cacheBar:$('cacheStatusBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
 L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
 L.control.scale({imperial:false}).addTo(map);
@@ -198,22 +200,60 @@ function pixelAt(latlng){
   const gy=Math.min(d.gridH-1,Math.max(0,Math.floor(rowFrac*d.gridH)));
   return {gx,gy};
 }
+// Continuous (sub-pixel) grid position for a latlng, in the same {u=col,
+// w=row} space as pixelAt's gx/gy — used for bilinear interpolation instead
+// of snapping to the nearest cell.
+function pixelAtContinuous(latlng,d=lastDecoded){
+  if(!d||!d.sourceExtent)return null;
+  const xy=proj4('EPSG:4326',d.source,[latlng.lng,latlng.lat]);
+  const ext=d.sourceExtent;
+  if(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax)return null;
+  const u=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin)*d.gridW;
+  const w=(ext.ymax-xy[1])/(ext.ymax-ext.ymin)*d.gridH;
+  return {u,w};
+}
+// Bilinear interpolation between the 4 grid cells surrounding continuous
+// position (u,w) in a decoded frame d. No-data corners are dropped and the
+// remaining weights renormalised.
+function bilinearValueAt(d,u,w){
+  const fx=u-0.5,fy=w-0.5;
+  const x0f=Math.floor(fx),y0f=Math.floor(fy);
+  const tx=fx-x0f,ty=fy-y0f;
+  const x0=Math.min(d.gridW-1,Math.max(0,x0f)),x1=Math.min(d.gridW-1,Math.max(0,x0f+1));
+  const y0=Math.min(d.gridH-1,Math.max(0,y0f)),y1=Math.min(d.gridH-1,Math.max(0,y0f+1));
+  function cell(gx,gy){
+    const r=sampleRaw(d.raw,d.rowStride,d.mode,gx,gy);
+    if(!Number.isFinite(r)||(Number.isFinite(d.nodata)&&r===d.nodata)||(Number.isFinite(d.undetect)&&r===d.undetect))return NaN;
+    return r*d.gain+d.offset;
+  }
+  const corners=[[cell(x0,y0),(1-tx)*(1-ty)],[cell(x1,y0),tx*(1-ty)],[cell(x0,y1),(1-tx)*ty],[cell(x1,y1),tx*ty]];
+  let sum=0,wsum=0;
+  for(const[val,wt]of corners){if(Number.isFinite(val)&&wt>0){sum+=val*wt;wsum+=wt}}
+  return wsum>0?sum/wsum:NaN;
+}
 function unitFor(d,info){
   if(d.quantity==='RATE')return'mm/h';
   if(d.quantity==='ACRR')return'mm';
   return info.unit;
 }
-function pixelPopupContent(latlng,pixel){
+function pixelPopupContent(latlng,pos){
   const d=lastDecoded;
   if(!d)return 'No frame loaded yet.';
-  if(!pixel)return 'Outside the loaded raster extent.';
-  const {gx,gy}=pixel;
-  const raw=sampleRaw(d.raw,d.rowStride,d.mode,gx,gy);
-  const bad=!Number.isFinite(raw)||(Number.isFinite(d.nodata)&&raw===d.nodata)||(Number.isFinite(d.undetect)&&raw===d.undetect);
-  const v=bad?NaN:raw*d.gain+d.offset;
+  if(!pos)return 'Outside the loaded raster extent.';
+  const {u,w}=pos;
+  const bv=bilinearValueAt(d,u,w);
   const info=productInfo(productSelectorFor(d));
   const unit=unitFor(d,info);
-  const valueText=bad?'no data (gap or below detection threshold)':`${v.toFixed(2)} ${unit}`;
+  const valueText=Number.isFinite(bv)?`${bv.toFixed(2)} ${unit}`:'no data (gap or below detection threshold)';
+  // Original, non-interpolated value at the single nearest pixel — shown
+  // alongside the bilinear value for reference only.
+  const nearest=pixelAt(latlng);
+  let origText='no data';
+  if(nearest){
+    const raw=sampleRaw(d.raw,d.rowStride,d.mode,nearest.gx,nearest.gy);
+    const bad=!Number.isFinite(raw)||(Number.isFinite(d.nodata)&&raw===d.nodata)||(Number.isFinite(d.undetect)&&raw===d.undetect);
+    origText=bad?'no data':`${(raw*d.gain+d.offset).toFixed(2)} ${unit}`;
+  }
   // CPC at 5-minute cadence is a rolling 60-min value: a per-point time
   // series/CSV of those raw values is misleading (looks like independent
   // 5-min readings but overlaps ~12x), so the plot/download option is only
@@ -223,11 +263,11 @@ function pixelPopupContent(latlng,pixel){
   const plotBlock=plotAllowed
     ?`<button onclick="window.showSeriesAt(${latlng.lat},${latlng.lng})" style="margin-top:9px;width:100%;padding:8px;border:0;border-radius:8px;background:#1769aa;color:#fff;font-weight:700;cursor:pointer">${d.product==='RZC'?'📈 Plot all frames (converted to mm per 5 min)':'📈 Plot all frames (hourly, non-overlapping mm)'}</button>`
     :`<div style="margin-top:9px;font-size:12px;color:#9a6700">Plot/CSV export is not offered for CPC in 5-minute mode: those are overlapping rolling 60-min values and would be misleading as a raw time series. Switch <b>Time steps</b> to "Full hours only" to plot/export CPC.</div>`;
-  return `<b>${info.name}</b><br>${valueText}<br><span style="color:#667085;font-size:12px">Pixel column ${gx}, row ${gy} · raw value ${Number.isFinite(raw)?raw:'–'}${d.quantity?' · quantity: '+d.quantity:''}<br>${latlng.lat.toFixed(5)}°N, ${latlng.lng.toFixed(5)}°E</span>${plotBlock}`;
+  return `<b>${info.name}</b><br>Bilinear interpolation: ${valueText} (original value: ${origText} — not interpolated, value is not recommended for use)<br><span style="color:#667085;font-size:12px">Smoothed from the 4 grid cells surrounding the exact click position (not the single nearest pixel)${d.quantity?' · quantity: '+d.quantity:''}<br>${latlng.lat.toFixed(5)}°N, ${latlng.lng.toFixed(5)}°E</span>${plotBlock}`;
 }
 map.on('click',e=>{
-  const pixel=pixelAt(e.latlng);
-  L.popup({closeButton:true}).setLatLng(e.latlng).setContent(pixelPopupContent(e.latlng,pixel)).openOn(map);
+  const pos=pixelAtContinuous(e.latlng);
+  L.popup({closeButton:true}).setLatLng(e.latlng).setContent(pixelPopupContent(e.latlng,pos)).openOn(map);
 });
 function frameDateObj(f){return new Date(`${f.date}T${String(f.hour).padStart(2,'0')}:${String(f.minute).padStart(2,'0')}:00Z`)}
 async function computeSeriesAt(lat,lng){
@@ -248,15 +288,10 @@ async function computeSeriesAt(lat,lng){
     try{
       const d=await getFrameData(frame);
       if(!detectedQuantity&&d.quantity)detectedQuantity=d.quantity;
-      const xy=proj4('EPSG:4326',d.source,[lng,lat]);
-      const ext=d.sourceExtent;
-      if(!(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax)){
-        const colFrac=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin),rowFrac=(ext.ymax-xy[1])/(ext.ymax-ext.ymin);
-        const gx=Math.min(d.gridW-1,Math.max(0,Math.floor(colFrac*d.gridW)));
-        const gy=Math.min(d.gridH-1,Math.max(0,Math.floor(rowFrac*d.gridH)));
-        const raw=sampleRaw(d.raw,d.rowStride,d.mode,gx,gy);
-        const bad=!Number.isFinite(raw)||(Number.isFinite(d.nodata)&&raw===d.nodata)||(Number.isFinite(d.undetect)&&raw===d.undetect);
-        if(!bad)v=(raw*d.gain+d.offset)*(isRzc?rzcFactor:1);
+      const pos=pixelAtContinuous({lat,lng},d);
+      if(pos){
+        const bv=bilinearValueAt(d,pos.u,pos.w);
+        if(Number.isFinite(bv))v=bv*(isRzc?rzcFactor:1);
       }
     }catch(e){/* leave this frame as NaN (no-data) if it fails to load/decode */}
     // Values below 0.1 mm are set to 0: this matches the typical radar
@@ -275,7 +310,8 @@ async function computeSeriesAt(lat,lng){
     ? values.reduce((sum,v)=>sum+(Number.isFinite(v)?v:0),0)
     : frames.reduce((sum,f,i)=>sum+((f.minute===0&&Number.isFinite(values[i]))?values[i]:0),0);
   const cpcUnit=detectedQuantity==='ACRR'?'mm':'mm/h'; // trust the file's own ODIM quantity code when present
-  return{values,times,unit:isRzc?'mm / 5 min':cpcUnit,productName:info.name,durationMin:info.durationMin,dailyTotal,detectedQuantity};
+  const distinctDays=new Set(frames.map(f=>f.date)).size;
+  return{values,times,unit:isRzc?'mm / 5 min':cpcUnit,productName:info.name,durationMin:info.durationMin,dailyTotal,detectedQuantity,distinctDays};
 }
 function drawLineChart(canvas,labels,values){
   const dpr=window.devicePixelRatio||1;
@@ -344,16 +380,18 @@ window.showSeriesAt=async function(lat,lng){
   const series=await computeSeriesAt(lat,lng);
   if(!series)return;
   const labels=series.times.map(t=>formatTimestampDMY(t));
-  lastSeries={labels,values:series.values,times:series.times,code:series.productName,unit:series.unit,lat,lng,dailyTotal:series.dailyTotal};
+  lastSeries={labels,values:series.values,times:series.times,code:series.productName,unit:series.unit,lat,lng,dailyTotal:series.dailyTotal,distinctDays:series.distinctDays};
   const note=series.productName==='RZC'?' (converted from the native mm/h rate to mm actually fallen per 5-minute step)':' (rolling 60-minute average rate in mm/h — individual 5-minute rows overlap and must not be summed; daily total below uses only the hourly, non-overlapping readings)';
-  ui.chartSubtitle.textContent=`${series.values.length} time steps this day · ${series.unit}${note} · Daily total: ${series.dailyTotal.toFixed(1)} mm · Values below 0.1 mm are shown as 0 (radar detection noise floor).`;
+  const totalLabel=series.distinctDays>1?`${series.distinctDays}-day total`:'Daily total';
+  ui.chartSubtitle.textContent=`${series.values.length} time steps · ${series.unit}${note} · bilinear-interpolated at this point · ${totalLabel}: ${series.dailyTotal.toFixed(1)} mm · Values below 0.1 mm are shown as 0 (radar detection noise floor).`;
   drawLineChart(ui.chartCanvas,labels,series.values);
   setStatus(`Time series ready: ${series.values.length} time steps, daily total ${series.dailyTotal.toFixed(1)} mm.`,'ok');
 };
 ui.chartCloseBtn.addEventListener('click',()=>{ui.chartCard.style.display='none';lastSeries=null});
 function exportSeriesCsv(){
   if(!lastSeries)return;
-  const{values,times,code,unit,lat,lng,dailyTotal}=lastSeries;
+  const{values,times,code,unit,lat,lng,dailyTotal,distinctDays}=lastSeries;
+  const totalKey=distinctDays>1?`total_mm_${distinctDays}days`:'daily_total_mm';
   const rows=[['index','date_utc',`value_${(unit||'value').replace(/[^a-z0-9]+/gi,'_')}`]];
   for(let i=0;i<values.length;i++){
     const ts=formatTimestampDMY(times[i]);
@@ -361,9 +399,10 @@ function exportSeriesCsv(){
     rows.push([i+1,ts,v]);
   }
   const csv=[`# product;${code}`,`# unit;${unit||''}`,`# latitude;${lat.toFixed(5)}`,`# longitude;${lng.toFixed(5)}`,
+    `# note;values are bilinear-interpolated from the 4 surrounding grid cells at the exact clicked position, not the single nearest pixel`,
     `# note;values below 0.1 mm are set to 0 (radar detection noise floor)`,
     ...(code!=='RZC'?[`# note;CPC values are a rolling 60-minute average rate in mm/h — individual 5-minute rows overlap heavily and must not be summed; daily_total_mm below uses only the hourly (minute=00) rows, not every row in this file`]:[]),
-    `# daily_total_mm;${dailyTotal.toFixed(2)}`,
+    `# ${totalKey};${dailyTotal.toFixed(2)}`,
     ...rows.map(r=>r.map(c=>{const s=String(c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';'))].join('\r\n');
   const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
   const url=URL.createObjectURL(blob);
@@ -374,7 +413,7 @@ function exportSeriesCsv(){
 }
 ui.chartExportBtn.addEventListener('click',exportSeriesCsv);
 window.addEventListener('resize',()=>{if(lastSeries&&ui.chartCard.style.display!=='none')drawLineChart(ui.chartCanvas,lastSeries.labels,lastSeries.values)});
-const frameCache=new Map();const FRAME_CACHE_LIMIT=300;function cacheFrame(key,value){frameCache.set(key,value);while(frameCache.size>FRAME_CACHE_LIMIT)frameCache.delete(frameCache.keys().next().value)}
+const frameCache=new Map();const FRAME_CACHE_LIMIT=500;function cacheFrame(key,value){frameCache.set(key,value);while(frameCache.size>FRAME_CACHE_LIMIT)frameCache.delete(frameCache.keys().next().value)}
 function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
 function setBusy(on,text='Processing data…'){loading=on;ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on;ui.refresh.disabled=on}
 function utcKey(d){return d.toISOString().slice(0,10)}
@@ -408,6 +447,30 @@ function productInfo(selector=ui.product.value){
 }
 function updateProductUi(){const i=productInfo();ui.legendTitle.textContent=i.legend;ui.legendTicks.innerHTML=i.ticks;ui.title.textContent=`No ${i.name} map loaded`;}
 function prepareDay(){stopAnimation();if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}preloadToken++;frames=[];const hourly=ui.mode.value==='hourly',selector=ui.product.value;for(const item of catalog.values()){if(productSelectorFor(item)===selector&&item.date===ui.date.value&&(!hourly||item.minute===0))frames.push({...item,source:'remote'})}frames.sort((a,b)=>a.hour-b.hour||a.minute-b.minute);currentIndex=0;updateProductUi();renderHourBoxes();const ok=frames.length>0;ui.slider.disabled=!ok;ui.play.disabled=!ok;ui.prev.disabled=!ok;ui.next.disabled=!ok;ui.slider.min='0';ui.slider.max=String(Math.max(0,frames.length-1));ui.slider.value='0';const expected=hourly?24:288,info=productInfo(selector);ui.frame.textContent=ok?`${frames.length} time steps available`:'No time steps found';ui.time.textContent=ok?`${frameTime(frames[0])} UTC`:'–';ui.meta.innerHTML=ok?`Product: <b>${info.long}</b><br>Day from file name: <code>${ui.date.value}</code><br>Mode: <b>${hourly?'full hours':'5-minute steps'}</b><br>Available: <b>${frames.length}/${expected}</b>`:`Product: <b>${info.name}</b><br>Day: <code>${ui.date.value}</code><br>No matching files found.`;if(!ok)setStatus(`No matching ${info.name} files were found for this day.`,'warn');updateCacheStatus()}
+function prepareLast7(){
+  stopAnimation();if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}preloadToken++;frames=[];ui.hours.innerHTML='';
+  const endDate=ui.last7Date.value;
+  if(!endDate){setStatus('Choose an end date first.','warn');updateCacheStatus();return}
+  const end=new Date(endDate+'T00:00:00Z');
+  const wanted=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date(end.getTime()-i*86400000);
+    wanted.push(d.toISOString().slice(0,10));
+  }
+  for(const item of catalog.values()){if(item.product==='CPC'&&item.minute===0&&wanted.includes(item.date))frames.push({...item,source:'remote'})}
+  frames.sort((a,b)=>a.date.localeCompare(b.date)||a.hour-b.hour);
+  currentIndex=0;updateProductUi();
+  const ok=frames.length>0;
+  ui.slider.disabled=!ok;ui.play.disabled=!ok;ui.prev.disabled=!ok;ui.next.disabled=!ok;
+  ui.slider.min='0';ui.slider.max=String(Math.max(0,frames.length-1));ui.slider.value='0';
+  const info=productInfo('CPC'),expected=wanted.length*24;
+  ui.frame.textContent=ok?`${frames.length} hourly time steps · ${wanted[0]} to ${wanted[wanted.length-1]} (7-day retroactive window)`:'No time steps found';
+  ui.time.textContent=ok?`${frameTime(frames[0])} UTC, ${frames[0].date}`:'–';
+  ui.meta.innerHTML=ok?`Product: <b>${info.long}</b><br>7-day retroactive window ending <code>${wanted[wanted.length-1]}</code>: <code>${wanted[0]} to ${wanted[wanted.length-1]}</code><br>Mode: <b>hourly (7-day overview)</b><br>Available: <b>${frames.length}/${expected}</b>`:`Product: <b>${info.name}</b><br>No matching hourly CPC files were found for ${wanted[0]} to ${wanted[wanted.length-1]}.`;
+  if(!ok)setStatus(`No hourly CPC files were found for ${wanted[0]} to ${wanted[wanted.length-1]}.`,'warn');
+  updateCacheStatus();
+}
+async function loadLast7Days(){stopAnimation();prepareLast7();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});const token=preloadToken;preloadDay(frames.slice(),token);}
 function updateCacheStatus(){
   if(!frames.length){ui.cacheText.textContent='No day loaded yet';ui.cacheBar.style.width='0%';return}
   const cached=frames.filter(f=>frameCache.has(f.href||f.name)).length;
@@ -556,7 +619,28 @@ async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;u
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
 function autoModeForProduct(selector){return selector==='CPC'?'hourly':'5min'}
-ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',loadDay);ui.product.addEventListener('change',()=>{ui.mode.value=autoModeForProduct(ui.product.value);prepareDay()});ui.date.addEventListener('change',prepareDay);ui.mode.addEventListener('change',prepareDay);ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
+function applyViewMode(){
+  const is7=ui.view.value==='last7';
+  ui.product.disabled=is7;if(is7)ui.product.value='CPC';
+  ui.mode.disabled=is7;if(is7)ui.mode.value='hourly';
+  ui.date.disabled=is7;
+  ui.last7Field.style.display=is7?'':'none';
+  if(is7){
+    const yesterday=new Date(Date.now()-86400000).toISOString().slice(0,10);
+    ui.last7Date.max=yesterday; // today is never selectable — that day's data is usually still incomplete
+    if(!ui.last7Date.value||ui.last7Date.value>yesterday)ui.last7Date.value=yesterday;
+  }
+  ui.load.textContent=is7?'Load last 7 days':'Load day';
+  stopAnimation();frames=[];ui.hours.innerHTML='';
+  ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;
+  if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}
+  ui.frame.textContent='No data loaded yet';ui.time.textContent='–';
+  ui.meta.innerHTML='';
+  setStatus(is7?'7-day retroactive view: pick an end date, then choose "Load last 7 days" to fetch hourly CPC totals for that 7-day window.':'Single-day view: choose a day and click "Load day".');
+}
+ui.view.addEventListener('change',applyViewMode);
+ui.last7Date.addEventListener('change',()=>{stopAnimation();frames=[];ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';setStatus('End date changed — choose "Load last 7 days" to fetch this window.')});
+ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',()=>{ui.view.value==='last7'?loadLast7Days():loadDay()});ui.product.addEventListener('change',()=>{ui.mode.value=autoModeForProduct(ui.product.value);prepareDay()});ui.date.addEventListener('change',prepareDay);ui.mode.addEventListener('change',prepareDay);ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
 ui.mode.value=autoModeForProduct(ui.product.value);makeDates();renderHourBoxes();loadCatalog();
 Promise.all([loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'),loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js')]).catch(()=>{/* decodeFrame will retry and surface a real error if this keeps failing */});
 </script>
