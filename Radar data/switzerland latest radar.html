@@ -200,7 +200,7 @@ th {
 }
 td { padding: 8px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 tr:hover td { background: var(--sky); }
-.filename-cell { font-family: var(--mono); font-size: 11px; color: var(--muted); max-width: 280px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.filename-cell { font-family: var(--mono); font-size: 11px; color: var(--muted); max-width: 360px; overflow: hidden; text-overflow: ellipsis; white-space: normal; word-break: break-word; }
 .prod-badge {
   font-family: var(--mono); font-size: 10px; font-weight: 600;
   padding: 2px 7px; border-radius: 4px; color: white;
@@ -689,12 +689,12 @@ async function fetchFiles() {
 
       if (selectedProducts.has(info.product)) {
         if (!since_dt || info.datetime >= since_dt) {
-          parsed.push({ filename: fname, url: href, info: { ...info }, size: asset['file:size'] || null });
+          parsed.push({ filename: fname, url: href, info: { ...info }, size: asset['file:size'] || null, updated: asset.updated || null });
         }
       }
 
       if (info.product === 'CPC' && selectedProducts.has('CPCH') && info.minute === 0) {
-        parsed.push({ filename: fname, url: href, info: { ...info, product: 'CPCH' }, size: asset['file:size'] || null });
+        parsed.push({ filename: fname, url: href, info: { ...info, product: 'CPCH' }, size: asset['file:size'] || null, updated: asset.updated || null });
       }
     }
 
@@ -782,11 +782,12 @@ function renderTable() {
     const ts = formatDT(f.info.datetime);
     const inQueue = queue.some(q => q.url === f.url);
     const sizeStr = f.size ? `${(f.size/1024).toFixed(0)} KB` : '–';
+    const updatedStr = (f.info.product === 'CPCH' && f.updated) ? ` <span style="color:var(--muted);font-size:10px">(updated: ${formatDT(new Date(f.updated))})</span>` : '';
     return `<tr>
       <td><input type="checkbox" class="row-check" data-i="${i}" ${inQueue ? 'checked' : ''}></td>
       <td><span class="prod-badge prod-${f.info.product}">${f.info.product}</span></td>
       <td><span class="time-badge">${ts}</span></td>
-      <td class="filename-cell" title="${f.filename}">${f.filename}</td>
+      <td class="filename-cell" title="${f.filename}">${f.filename}${updatedStr}</td>
       <td style="font-family:var(--mono);font-size:11px;color:var(--muted)">${sizeStr}</td>
       <td>
         <button class="btn btn-ghost btn-queue" onclick="addOne(${i})" ${inQueue ? 'disabled' : ''}>
