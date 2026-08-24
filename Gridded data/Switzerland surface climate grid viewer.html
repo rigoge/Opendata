@@ -84,7 +84,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div class="meta" id="fileMeta"></div>
 <div class="field" style="margin-top:18px"><label for="placeSearch">5. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <div class="hint">
-Click anywhere on the map to read the exact grid value under the cursor.<br><br>
+Click anywhere on the map to read the exact grid value under the cursor. For precipitation, this is bilinear-interpolated from the 4 surrounding grid cells at the exact click position; for temperature, sunshine duration, and all other parameters, it's the real value of the single nearest grid cell (no interpolation).<br><br>
 The colour scale auto-adjusts to the min/max of whichever parameter and year you load. For temperature, precipitation, and sunshine duration it re-adjusts to each individual frame's own min/max as you step through the animation; other parameters use one fixed range across the whole file. Negative values are treated as no-data (shown transparent); for precipitation and sunshine duration a value of exactly 0 is also shown fully transparent. Each yearly file is animated frame by frame (daily, monthly, or yearly time steps, depending on the parameter).
 </div>
 </section>
@@ -95,17 +95,6 @@ The colour scale auto-adjusts to the min/max of whichever parameter and year you
 <div class="loader" id="loader"></div>
 </section>
 </div>
-<section class="card" id="chartCard" style="display:none;margin-top:16px;padding:16px">
-<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
-<strong id="chartTitle">Time series</strong>
-<div style="display:flex;gap:8px">
-<button class="secondary" id="chartExportBtn" style="width:auto;padding:6px 14px">⬇ Export CSV</button>
-<button class="secondary" id="chartCloseBtn" style="width:auto;padding:6px 14px">✕ Close</button>
-</div>
-</div>
-<div class="small" id="chartSubtitle" style="margin-bottom:8px"></div>
-<canvas id="chartCanvas" style="width:100%;height:260px;display:block"></canvas>
-</section>
 </main>
 <footer>
 <div class="license-box">
@@ -137,7 +126,7 @@ const RES_LABEL={h:'Daily',d:'Daily',m:'Monthly',y:'Yearly'};
 proj4.defs('EPSG:2056','+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs');
 
 const $=id=>document.getElementById(id);
-const ui={param:$('paramSelect'),year:$('yearSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),load:$('loadBtn'),refresh:$('refreshBtn'),status:$('status'),progress:$('progressBar'),timelineBox:$('timelineBox'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),legendBar:$('legendBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
+const ui={param:$('paramSelect'),year:$('yearSelect'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),load:$('loadBtn'),refresh:$('refreshBtn'),status:$('status'),progress:$('progressBar'),timelineBox:$('timelineBox'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),legendBar:$('legendBar')};
 
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
 L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
@@ -562,7 +551,7 @@ function showFrame(index,{fit=false}={}){
 }
 
 // Shared lat/lng -> grid-position resolver (bounds/projection aware), used
-// by both the click popup and the time-series plot so they stay consistent.
+// by the click popup.
 function latlngToContinuous(latlng){
   const [[latS,lonW],[latN,lonE]]=file.bounds;
   if(latlng.lat<latS||latlng.lat>latN||latlng.lng<lonW||latlng.lng>lonE)return null;
@@ -585,116 +574,21 @@ function pixelPopupContent(latlng){
   if(!pos)return 'Outside the loaded grid extent.';
   const{w,u,gy,gx}=pos;
   const slice=frameSlice(currentIndex);
+  const type=paramType(file.code);
+  if(type==='hires'){
+    // Precipitation: bilinear interpolation over the 4 grid cells
+    // surrounding the exact (sub-pixel) click position.
+    const bv=bilinearAt(slice,u,w);
+    const biText=Number.isFinite(bv)?`${bv.toFixed(1)} ${file.unit}`:'no data';
+    return `<b>${file.code}</b><br>Bilinear interpolation: ${biText}<br><span style="color:#6d7d63;font-size:12px">Grid row ${gy}, col ${gx} · ${frameTimeLabel(currentIndex)}<br>${latlng.lat.toFixed(4)}°N, ${latlng.lng.toFixed(4)}°E</span>`;
+  }
+  // Temperature, sunshine duration, and everything else: the real grid
+  // value at the nearest cell, no interpolation.
   const v=rawValueAt(slice,gy,gx);
   const valueText=Number.isFinite(v)?`${v.toFixed(1)} ${file.unit}`:'no data (fill value or negative reading)';
-  // Bilinear interpolation over the 4 grid cells surrounding the exact
-  // (sub-pixel) click position, rather than a flat average of a fixed 3x3
-  // block snapped to the nearest cell.
-  const bv=bilinearAt(slice,u,w);
-  const biText=Number.isFinite(bv)?`${bv.toFixed(1)} ${file.unit}`:'no data';
-  return `<b>${file.code}</b><br>Bilinear interpolation: ${biText}<br>(the use of a single cell value is not recommended but is as follows: ${valueText})<br><span style="color:#6d7d63;font-size:12px">Grid row ${gy}, col ${gx} · ${frameTimeLabel(currentIndex)}<br>${latlng.lat.toFixed(4)}°N, ${latlng.lng.toFixed(4)}°E</span><br><button onclick="window.showSeriesAt(${latlng.lat},${latlng.lng})" style="margin-top:9px;width:100%;padding:8px;border:0;border-radius:8px;background:#4d7c2b;color:#fff;font-weight:700;cursor:pointer">📈 Plot all frames at this point</button>`;
+  return `<b>${file.code}</b><br>${valueText}<br><span style="color:#6d7d63;font-size:12px">Grid row ${gy}, col ${gx} · ${frameTimeLabel(currentIndex)}<br>${latlng.lat.toFixed(4)}°N, ${latlng.lng.toFixed(4)}°E</span>`;
 }
 map.on('click',e=>{L.popup({closeButton:true}).setLatLng(e.latlng).setContent(pixelPopupContent(e.latlng)).openOn(map)});
-
-// ─── time-series plot at a clicked point, across every frame in the loaded file ──
-function computeSeriesAt(lat,lng){
-  const pos=latlngToContinuous({lat,lng});
-  if(!pos)return null;
-  const{w,u}=pos;
-  const values=new Array(file.nTime);
-  for(let i=0;i<file.nTime;i++)values[i]=bilinearAt(frameSlice(i),u,w);
-  return values;
-}
-function drawLineChart(canvas,labels,values){
-  const dpr=window.devicePixelRatio||1;
-  const rect=canvas.getBoundingClientRect();
-  const W=Math.max(200,rect.width),H=Math.max(140,rect.height);
-  canvas.width=W*dpr;canvas.height=H*dpr;
-  const ctx=canvas.getContext('2d');
-  ctx.setTransform(dpr,0,0,dpr,0,0);
-  ctx.clearRect(0,0,W,H);
-  const padL=50,padR=12,padT=12,padB=26,plotW=W-padL-padR,plotH=H-padT-padB;
-  const finite=values.filter(Number.isFinite);
-  if(!finite.length){
-    ctx.fillStyle='#6d7d63';ctx.font='13px system-ui';ctx.textAlign='center';
-    ctx.fillText('No data at this point.',W/2,H/2);
-    return;
-  }
-  let vMin=Math.min(...finite),vMax=Math.max(...finite);
-  if(vMin===vMax){vMin-=1;vMax+=1}
-  const n=values.length,xAt=i=>padL+plotW*(n>1?i/(n-1):0.5),yAt=v=>padT+plotH-plotH*(v-vMin)/(vMax-vMin);
-  // axes + horizontal gridlines/ticks
-  ctx.strokeStyle='#c9dab8';ctx.lineWidth=1;
-  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,padT+plotH);ctx.lineTo(padL+plotW,padT+plotH);ctx.stroke();
-  ctx.fillStyle='#6d7d63';ctx.font='11px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
-  for(let i=0;i<=4;i++){
-    const val=vMin+(vMax-vMin)*i/4,y=padT+plotH-plotH*i/4;
-    ctx.fillText(val.toFixed(1),padL-6,y);
-    ctx.strokeStyle='#eef3ea';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+plotW,y);ctx.stroke();
-  }
-  ctx.textAlign='center';ctx.textBaseline='top';
-  const ticks=Math.min(6,n);
-  for(let i=0;i<ticks;i++){
-    const idx=Math.round(i*(n-1)/Math.max(1,ticks-1));
-    ctx.fillText(labels[idx]||'',xAt(idx),padT+plotH+6);
-  }
-  // line + points (breaks the line across no-data gaps)
-  ctx.strokeStyle='#4d7c2b';ctx.lineWidth=2;ctx.beginPath();
-  let started=false;
-  for(let i=0;i<n;i++){
-    const v=values[i];
-    if(!Number.isFinite(v)){started=false;continue}
-    const x=xAt(i),y=yAt(v);
-    if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y);
-  }
-  ctx.stroke();
-  ctx.fillStyle='#365c1c';
-  for(let i=0;i<n;i++){
-    const v=values[i];
-    if(!Number.isFinite(v))continue;
-    ctx.beginPath();ctx.arc(xAt(i),yAt(v),2.2,0,Math.PI*2);ctx.fill();
-  }
-}
-let lastSeries=null;
-window.showSeriesAt=function(lat,lng){
-  if(!file)return;
-  const values=computeSeriesAt(lat,lng);
-  if(!values){setStatus('That point is outside the loaded grid extent.','warn');return}
-  const labels=file.times.map((t,i)=>t?new Intl.DateTimeFormat('en-GB',{day:'2-digit',month:'short'}).format(t):`#${i+1}`);
-  lastSeries={labels,values,times:file.times,code:file.code,unit:file.unit,lat,lng};
-  ui.chartTitle.textContent=`${file.code} · time series at ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
-  ui.chartSubtitle.textContent=`${file.nTime} time steps this file (bilinear-interpolated value at this point), ${file.unit}`;
-  ui.chartCard.style.display='';
-  drawLineChart(ui.chartCanvas,labels,values);
-  ui.chartCard.scrollIntoView({behavior:'smooth',block:'nearest'});
-  map.closePopup();
-};
-ui.chartCloseBtn.addEventListener('click',()=>{ui.chartCard.style.display='none';lastSeries=null});
-function formatTimestampDMY(d){
-  if(!d)return '';
-  const p=n=>String(n).padStart(2,'0');
-  return `${p(d.getUTCDate())}.${p(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
-}
-function exportSeriesCsv(){
-  if(!lastSeries)return;
-  const{values,times,code,unit,lat,lng}=lastSeries;
-  const rows=[['index','date_utc',`value_${(unit||'value').replace(/[^a-z0-9]+/gi,'_')}`]];
-  for(let i=0;i<values.length;i++){
-    const ts=formatTimestampDMY(times[i]);
-    const v=Number.isFinite(values[i])?values[i]:'';
-    rows.push([i+1,ts,v]);
-  }
-  const csv=[`# parameter;${code}`,`# unit;${unit||''}`,`# latitude;${lat.toFixed(5)}`,`# longitude;${lng.toFixed(5)}`,
-    ...rows.map(r=>r.map(c=>{const s=String(c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';'))].join('\r\n');
-  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
-  const url=URL.createObjectURL(blob);
-  const a=document.createElement('a');
-  a.href=url;a.download=`${code}_${lat.toFixed(3)}N_${lng.toFixed(3)}E_timeseries.csv`;
-  document.body.appendChild(a);a.click();document.body.removeChild(a);
-  URL.revokeObjectURL(url);
-}
-ui.chartExportBtn.addEventListener('click',exportSeriesCsv);
-window.addEventListener('resize',()=>{if(lastSeries&&ui.chartCard.style.display!=='none')drawLineChart(ui.chartCanvas,lastSeries.labels,lastSeries.values)});
 
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){
@@ -780,7 +674,6 @@ async function loadSelected(){
   const entry=findSelectedEntry();
   if(!entry){setStatus('No file is available for this parameter/year combination.','warn');return}
   stopAnimation();
-  if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}
   setBusy(true,'Downloading file…');
   setStatus(`Downloading ${entry.key} (this can be several MB)…`);
   ui.progress.style.width='15%';
