@@ -77,6 +77,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div id="status" class="status">Initializing…</div><div class="progress"><div id="progressBar"></div></div>
 <div id="fileMeta" class="meta"></div>
 <div class="field" style="margin-top:18px"><label for="placeSearch">6. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
+<div class="field" style="margin-top:18px"><label for="localFolder">7. Open a folder of archived files</label><input id="localFolder" type="file" webkitdirectory multiple><div class="small">For archived CPC/RZC datasets select a folder. They can be animated and viewed if all the files from a day are saved in the same folder.<br><b>Important: BEFORE selecting the folder select 3. Time steps – 5min or hourly data.</b></div></div>
 <div class="hint"><b>Click the map</b> to read the exact pixel value (CPC or RZC) at that location.<br><br><b>File filters:</b><br><code>CPCyyjjjHHMMQ_00060.XYZ.h5</code> for CPC and <code>RZCyyjjjHHMMKK.XYZ.h5</code> for RZC. Date and UTC time are taken exclusively from the file name. In 5-minute mode, <code>MM = 00, 05, …, 55</code>; in hourly mode, only <code>MM = 00</code> are used.<br><br>CPC shows the precipitation total for the preceding 60 minutes in mm — when published every 5 minutes this is a <b>rolling</b> window, so consecutive CPC readings overlap almost entirely (only the hourly, non-overlapping readings should be summed for a daily total; the time-series plot does this automatically). RZC shows the instantaneous radar-based precipitation rate in mm/h. If several CPC versions exist for the same time, the highest quality code is preferred; if tied, the most recently updated file is used.<br><br>Radar is not "all seeing" — check out <a href="https://www.meteoschweiz.admin.ch/wetter/messsysteme/atmosphaere/das-schweizer-wetterradarnetz/faq-radar.html" target="_blank" rel="noopener">https://www.meteoschweiz.admin.ch/wetter/messsysteme/atmosphaere/das-schweizer-wetterradarnetz/faq-radar.html</a> (available in German, French and Italian only).</div>
 </section>
 <section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div id="map"></div><div id="legend" class="legend"><div id="legendTitle" class="legend-title">CPC precipitation total for the last 60 minutes</div><div class="bar" style="background:linear-gradient(90deg,#c7e9ff 0% 8.33%,#94cef7 8.33% 16.67%,#5db5eb 16.67% 25%,#2ba4dc 25% 33.33%,#22b5ab 33.33% 41.67%,#37b55a 41.67% 50%,#8cc53a 50% 58.33%,#edd632 58.33% 66.67%,#f79e28 66.67% 75%,#ed6523 75% 83.33%,#d62d28 83.33% 91.67%,#7e0f5c 91.67% 100%)"></div><div id="legendTicks" class="ticks"><span>0.1</span><span>1</span><span>10</span><span>50</span><span>≥100 mm</span></div></div><div id="loader" class="loader">Processing data…</div></section>
@@ -582,6 +583,52 @@ return{url:canvas.toDataURL('image/png'),bounds:[[latS,lonW],[latN,lonE]],w:grid
 async function getFrameData(frame){const key=frame.href||frame.name;if(frameCache.has(key))return frameCache.get(key);let buffer;if(frame.file)buffer=await frame.file.arrayBuffer();else{const r=await fetch(frame.href,{cache:'no-store'});if(!r.ok)throw new Error(`HDF5 HTTP ${r.status}`);buffer=await r.arrayBuffer()}const decoded=await decodeFrame(buffer,frame.name,frame.product,frame.durationMin);cacheFrame(key,decoded);return decoded}
 async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=`${frameTime(frame)} UTC`;ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);lastDecoded=d;updateCacheStatus();if(overlay){overlay.setUrl(d.url);overlay.setBounds(d.bounds)}else{overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map)}if(fit)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(productSelectorFor(frame));ui.title.textContent=`${info.name} · ${frame.date} · ${frameTime(frame)} UTC`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTime(frame)} UTC</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${info.name} map displayed: ${frameTime(frame)} UTC · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
 async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});const token=preloadToken;preloadDay(frames.slice(),token);}
+$('localFolder').addEventListener('change',async e=>{
+  const files=Array.from(e.target.files||[]);
+  if(!files.length)return;
+  stopAnimation();preloadToken++;
+  const parsed=[];
+  for(const file of files){
+    const p=parseProductName(file.name);
+    if(!p||p.hour>23||p.minute>59||p.minute%5!==0)continue;
+    parsed.push({...p,name:file.name,file});
+  }
+  if(!parsed.length){setStatus('No recognisable CPC/RZC files were found in that folder.','warn');return}
+  const selectorsFound=[...new Set(parsed.map(x=>productSelectorFor(x)))];
+  const chosenSelector=selectorsFound.includes(ui.product.value)?ui.product.value:selectorsFound[0];
+  if(ui.view.value==='last7'){ui.view.value='day';applyViewMode()}
+  ui.product.value=chosenSelector;
+  updateProductUi();
+  const matching=parsed.filter(x=>productSelectorFor(x)===chosenSelector);
+  // De-duplicate same time-slot files (e.g. re-processed CPC versions), preferring the highest quality code.
+  const unique=new Map();
+  for(const it of matching){
+    const k=`${it.product}|${it.durationMin||0}|${it.date}|${String(it.hour).padStart(2,'0')}${String(it.minute).padStart(2,'0')}`;
+    const prev=unique.get(k);
+    if(!prev||(it.quality??-1)>(prev.quality??-1))unique.set(k,it);
+  }
+  const dateCounts=new Map();
+  for(const it of unique.values())dateCounts.set(it.date,(dateCounts.get(it.date)||0)+1);
+  const bestDate=[...dateCounts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
+  let dayFrames=[...unique.values()].filter(x=>x.date===bestDate);
+  if(ui.mode.value==='hourly')dayFrames=dayFrames.filter(x=>x.minute===0);
+  dayFrames.sort((a,b)=>a.hour-b.hour||a.minute-b.minute);
+  if(!dayFrames.length){setStatus('No matching local files remained for this day after filtering by the current time-step mode.','warn');return}
+  frames=dayFrames;
+  if([...ui.date.options].some(o=>o.value===bestDate))ui.date.value=bestDate;
+  currentIndex=0;
+  ui.slider.disabled=false;ui.play.disabled=frames.length<2;ui.prev.disabled=false;ui.next.disabled=false;
+  renderHourBoxes();
+  ui.slider.min='0';ui.slider.max=String(frames.length-1);ui.slider.value='0';
+  const info=productInfo(chosenSelector);
+  ui.frame.textContent=`${frames.length} local time step(s) loaded from folder`;
+  ui.meta.innerHTML=`<b>${frames.length} local ${info.name} file(s) loaded</b><br>Data day: <code>${bestDate}</code>${matching.length>frames.length?`<br>(${matching.length-frames.length} file(s) from other days/time-steps in the same folder were not used)`:''}`;
+  setStatus(`${frames.length} local files loaded for ${bestDate}.`,'ok');
+  if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}
+  await showFrame(0,{fit:true});
+  const token=preloadToken;
+  preloadDay(frames.slice(),token);
+});
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
 function autoModeForProduct(selector){return selector==='CPC'?'hourly':'5min'}
