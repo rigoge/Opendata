@@ -1,0 +1,554 @@
+<!--
+MIT License
+
+Copyright (c) 2026 G. Rigo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Data content is not covered by this software licence — see the note in the
+page footer.
+-->
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swiss precipitation archive viewer – local multi-day CPC netCDF files</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Cpath d='M14 34 Q14 18 30 20 Q34 8 46 14 Q58 16 56 30 Q60 40 48 40 L20 40 Q10 40 14 34 Z' fill='%230b4f82'/%3E%3Cline x1='22' y1='44' x2='18' y2='56' stroke='%231769aa' stroke-width='4' stroke-linecap='round'/%3E%3Cline x1='34' y1='44' x2='30' y2='58' stroke='%231769aa' stroke-width='4' stroke-linecap='round'/%3E%3Cline x1='46' y1='44' x2='42' y2='56' stroke='%231769aa' stroke-width='4' stroke-linecap='round'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+<style>
+:root{--bg:#f4f7fb;--card:#fff;--ink:#172033;--muted:#667085;--line:#dce3ec;--accent:#1769aa;--accent2:#0b4f82;--ok:#147a4b;--warn:#9a6700;--err:#b42318}
+*{box-sizing:border-box}body{margin:0;font:15px/1.45 system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+.disclaimer{background:#fff3cd;border-bottom:3px solid #f0ad4e;color:#7a5b00;padding:12px clamp(16px,4vw,44px);font-size:14px;font-weight:600;text-align:center;line-height:1.5}
+header{padding:22px clamp(16px,4vw,44px);background:linear-gradient(120deg,#0b4f82,#1769aa);color:#fff;display:flex;align-items:center;gap:16px}
+header .logo{width:46px;height:46px;flex:none}header h1{margin:0 0 5px;font-size:clamp(22px,3vw,34px)}header p{margin:0;opacity:.92}
+main{padding:20px clamp(12px,3vw,34px) 32px;max-width:1550px;margin:auto}.layout{display:grid;grid-template-columns:minmax(320px,410px) 1fr;gap:18px}@media(max-width:950px){.layout{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;box-shadow:0 5px 20px rgba(16,24,40,.06)}.controls{padding:18px}.controls h2{font-size:17px;margin:0 0 14px}
+.field{margin:0 0 14px}.field label{display:block;font-weight:650;margin-bottom:6px}select,input,button{width:100%;font:inherit;border-radius:9px;border:1px solid #cfdcea;background:#fff;padding:10px 11px;color:var(--ink)}
+button{border:0;background:var(--accent);color:#fff;font-weight:700;cursor:pointer}button:hover{background:var(--accent2)}button:disabled{opacity:.5;cursor:not-allowed}.secondary{background:#eaf2f9;color:#164c73;border:1px solid #bfd5e6}.secondary:hover{background:#dceaf5}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:9px}.row3{display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:9px}
+.status{margin-top:14px;padding:10px 11px;border-radius:9px;background:#eaf2f9;color:#344054;min-height:43px;white-space:pre-wrap}.status.ok{background:#ecfdf3;color:var(--ok)}.status.warn{background:#fffaeb;color:var(--warn)}.status.err{background:#fef3f2;color:var(--err)}
+.meta{font-size:13px;color:var(--muted);margin-top:12px;overflow-wrap:anywhere}.hint{font-size:13px;color:var(--muted);border-top:1px solid var(--line);margin-top:16px;padding-top:13px}.small{font-size:12px;color:var(--muted)}
+.timeline{margin-top:15px;padding:12px;border:1px solid var(--line);border-radius:11px;background:#f7fafd}.timehead{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:5px}.timehead strong{font-size:18px}.timehead span{font-size:12px;color:var(--muted)}input[type=range]{padding:0;border:0;background:transparent;accent-color:var(--accent)}
+.mapcard{overflow:hidden;position:relative}.maptop{display:flex;gap:12px;align-items:center;justify-content:space-between;padding:12px 15px;border-bottom:1px solid var(--line)}.maptop strong{font-size:16px}.maptop span{font-size:13px;color:var(--muted);text-align:right}#map{height:min(75vh,800px);min-height:540px;background:#eef3f8}
+.legend{position:relative;background:#fbfdff;border-bottom:1px solid var(--line);padding:12px 16px 14px;font-size:12.5px}.legend-title{font-weight:700;margin-bottom:8px}.bar{height:14px;border-radius:4px;margin-bottom:6px}.ticks{position:relative;height:15px;color:#475467}.ticks span{position:absolute;top:0;white-space:nowrap}
+.loader{display:none;position:absolute;z-index:1000;inset:0;background:rgba(255,255,255,.72);align-items:center;justify-content:center;text-align:center;padding:30px;font-size:16px;font-weight:700}.loader.on{display:flex}
+.progress{height:7px;border-radius:999px;background:#dbe4ee;overflow:hidden;margin-top:9px}.progress>div{height:100%;width:0;background:var(--accent);transition:width .15s}
+footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-size:13px;color:var(--muted)}footer .license-box{background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px 16px}footer a{color:var(--accent2)}footer details{margin-top:10px}footer summary{cursor:pointer;font-weight:700;color:#0b4f82}footer pre{white-space:pre-wrap;font:12px/1.4 ui-monospace,SFMono-Regular,Consolas,monospace;background:#f3f8fc;border:1px solid var(--line);border-radius:8px;padding:12px;max-height:300px;overflow:auto}
+.banner{max-width:1550px;margin:14px auto 0;padding:0 clamp(12px,3vw,34px)}.banner .box{background:#eaf2f9;border:1px solid #bfd5e6;border-radius:10px;padding:10px 14px;font-size:13px;color:#164c73}
+</style>
+</head>
+<body>
+<div class="disclaimer">Important: Please note, that radar precipitation data give the precipitation rate in mm/h. If you plot the data, it is conversed to mm (or also known as l/m²) in aspect to the respective time resolution. The official values are the ones measured at the MeteoSwiss stations. Precipitation estimation from radar is prone to error and should be treated as such.</div>
+<header>
+<svg class="logo" viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg"><path d="M14 34 Q14 18 30 20 Q34 8 46 14 Q58 16 56 30 Q60 40 48 40 L20 40 Q10 40 14 34 Z" fill="#fff" opacity=".95"/><line x1="22" y1="44" x2="18" y2="56" stroke="#cfe6fb" stroke-width="4" stroke-linecap="round"/><line x1="34" y1="44" x2="30" y2="58" stroke="#cfe6fb" stroke-width="4" stroke-linecap="round"/><line x1="46" y1="44" x2="42" y2="56" stroke="#cfe6fb" stroke-width="4" stroke-linecap="round"/></svg>
+<div><h1>Swiss precipitation archive viewer</h1><p>Local multi-day CPC netCDF exports · select a day · animate · point query</p></div>
+</header>
+<div class="banner"><div class="box">This tool works entirely from a <b>locally provided netCDF file</b> (a multi-day CombiPrecip/CPC archive export) — there is no live Open Data fetch here, and only CPC is supported. Load a file below, then pick one of the days found inside it to animate and query.</div></div>
+<main><div class="layout">
+<section class="card controls">
+<h2>Precipitation archive</h2>
+<div class="field"><label for="localFile">1. File or folder</label><input id="localFile" type="file" accept=".nc" multiple><div class="small">Select one or more local netCDF (.nc) files. Each file can itself span several days (e.g. a 7-day CPC-hourly export).</div></div>
+<input id="localFolder" type="file" webkitdirectory multiple style="margin-top:8px"><div class="small">Or select a whole folder — every .nc file inside it will be read.</div>
+<div class="field" style="margin-top:14px"><label for="daySelect">2. Day (UTC)</label><select id="daySelect" disabled><option>Load a file first…</option></select></div>
+<button id="loadDayBtn" type="button" disabled style="margin-top:4px">Show this day</button>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">3. Playback</div>
+<div class="timeline">
+  <div class="timehead"><strong id="timeLabel">–</strong><span id="frameLabel">No data loaded yet</span></div>
+  <input id="timeSlider" type="range" min="0" max="0" step="1" value="0" disabled aria-label="Time step">
+  <div class="row3" style="margin-top:9px"><button id="playBtn" type="button" disabled>▶ Play</button><button id="prevBtn" class="secondary" type="button" disabled>◀ Previous</button><button id="nextBtn" class="secondary" type="button" disabled>Next ▶</button></div>
+  <div class="field" style="margin:10px 0 0"><label for="speedSelect">Animation speed</label><select id="speedSelect"><option value="1500">Slow · 1.5 s</option><option value="800" selected>Normal · 0.8 s</option><option value="350">Fast · 0.35 s</option></select></div>
+</div>
+<div id="status" class="status">Load a netCDF file to begin.</div><div class="progress"><div id="progressBar"></div></div>
+<div id="fileMeta" class="meta"></div>
+<div class="hint"><b>Click the map</b> to read the exact grid value under the cursor (nearest cell, no interpolation), and offers a time-series plot + CSV export across the whole selected day at that point.<br><br>Values are shown in <b>mm/h</b>. For a full day of hourly data, the precipitation actually fallen in each hour numerically equals the hourly rate, so no extra conversion is applied; the time-series plot/CSV note this explicitly.<br><br>Only the netCDF's own <code>x</code>/<code>y</code> (LV95/EPSG:2056) coordinates and its own fill-value/scale/offset metadata are used to interpret the data — nothing is assumed beyond what the file itself declares. Values below 0.1 mm (including exactly 0) and implausibly huge fill-sentinel values are both treated as no-data — shown fully transparent on the map, excluded from the colour scale, and shown as "no data" in the click popup, plot, and CSV. The colour scale itself uses the same fixed classification (0.1/0.3/0.5/1/2/3/5/10/20/30/50/100 mm/h) as the live precipitation viewer.</div>
+</section>
+<section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div class="legend"><div class="legend-title" id="legendTitle">mm/h</div><div class="bar" style="background:linear-gradient(90deg,#c7e9ff 0% 8.33%,#94cef7 8.33% 16.67%,#5db5eb 16.67% 25%,#2ba4dc 25% 33.33%,#22b5ab 33.33% 41.67%,#37b55a 41.67% 50%,#8cc53a 50% 58.33%,#edd632 58.33% 66.67%,#f79e28 66.67% 75%,#ed6523 75% 83.33%,#d62d28 83.33% 91.67%,#7e0f5c 91.67% 100%)"></div><div class="ticks" id="legendTicks"><span style="left:0%">0.1</span><span style="left:25%;transform:translateX(-50%)">1</span><span style="left:58.33%;transform:translateX(-50%)">10</span><span style="left:83.33%;transform:translateX(-50%)">50</span><span style="right:0%">≥100 mm/h</span></div></div><div id="map"></div><div id="loader" class="loader">Processing data…</div></section>
+</div>
+<section class="card" id="chartCard" style="display:none;margin-top:16px;padding:18px">
+<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+<strong id="chartTitle">Time series</strong>
+<div style="display:flex;gap:8px">
+<button class="secondary" id="chartExportBtn" style="width:auto;padding:6px 14px">⬇ Export CSV</button>
+<button class="secondary" id="chartCloseBtn" style="width:auto;padding:6px 14px">✕ Close</button>
+</div>
+</div>
+<div class="small" id="chartSubtitle" style="margin-bottom:8px;color:var(--muted);font-size:12px"></div>
+<canvas id="chartCanvas" style="width:100%;height:260px;display:block"></canvas>
+</section>
+</main>
+<footer><div class="license-box"><strong>License and source information</strong><br>
+Software code of this viewer: <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. No data is fetched by this page — everything comes from the netCDF file(s) you load locally. If that data originates from MeteoSwiss, the required attribution when reproducing or redistributing it is <q>Source: MeteoSwiss</q>. Base map: © <a href="https://www.swisstopo.admin.ch/" target="_blank" rel="noopener">swisstopo</a>.
+External libraries retain their own licenses: Leaflet (BSD-2-Clause), Proj4js (MIT), pako (MIT). <a href="https://github.com/usnistgov/jsfive" target="_blank" rel="noopener">jsfive</a> (NIST) is distributed under its own <a href="https://github.com/usnistgov/jsfive/blob/master/LICENSE.txt" target="_blank" rel="noopener">LICENSE.txt</a>, not a plain MIT license &ndash; see that file for the exact terms.
+<details><summary>Full MIT License text</summary><pre>MIT License
+
+Copyright (c) 2026 G. Rigo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the "Software"), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</pre></details></div></footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+<script src="https://cdn.jsdelivr.net/npm/proj4@2.11.0/dist/proj4.js"></script>
+<script type="module">
+proj4.defs('EPSG:2056','+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs');
+
+const $=id=>document.getElementById(id);
+const ui={localFile:$('localFile'),localFolder:$('localFolder'),day:$('daySelect'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
+
+const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
+L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+
+function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
+function setBusy(on,text='Processing data…'){ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on||!dataset}
+function loadScript(src){return new Promise((resolve,reject)=>{const old=document.querySelector(`script[data-src="${src}"]`);if(old){if(old.dataset.loaded==='1')return resolve();old.addEventListener('load',resolve,{once:true});old.addEventListener('error',reject,{once:true});return}const el=document.createElement('script');el.src=src;el.async=true;el.dataset.src=src;el.onload=()=>{el.dataset.loaded='1';resolve()};el.onerror=()=>reject(new Error('Library could not be loaded: '+src));document.head.appendChild(el)})}
+
+// ─── generic jsfive/HDF5 (NetCDF4) traversal helpers ────────────────────────
+function attrsObj(node){const o={};for(const [k,v] of Object.entries(node?.attrs||{})){let x=v?.value??v;if(ArrayBuffer.isView(x))x=x.length===1?x[0]:Array.from(x);if(Array.isArray(x)&&x.length===1)x=x[0];if(typeof x==='string')x=x.replace(/\0/g,'').trim();o[k]=x}return o}
+function children(node){try{const keys=typeof node?.keys==='function'?Array.from(node.keys()):Array.isArray(node?.keys)?node.keys:Array.from(node?.keys||[]);return keys.map(k=>[k,node.get(k)])}catch{return[]}}
+function shapeOf(node){try{const s=typeof node?.shape==='function'?node.shape():node?.shape;if(Array.isArray(s))return s.map(Number);if(ArrayBuffer.isView(s))return Array.from(s,Number)}catch{}return null}
+function findDatasets(root){const out=[],seen=new Set();function walk(n,path,depth=0){if(!n||depth>12||seen.has(n))return;seen.add(n);for(const [k,c] of children(n)){const p=(path+'/'+k).replace(/\/+/g,'/'),s=shapeOf(c),type=String(c?.type||c?.constructor?.name||'').toLowerCase();if(s?.length||type.includes('dataset'))out.push({node:c,path:p,shape:s});else walk(c,p,depth+1)}}walk(root,'');return out}
+async function valueOf(node){let raw=node.value;if(raw?.then)raw=await raw;if(raw&&typeof raw==='object'&&'value'in raw&&raw.value!==raw)raw=raw.value;if(Array.isArray(raw)&&Array.isArray(raw[0]))raw=raw.flat();return raw}
+function baseName(p){return p.split('/').pop().toLowerCase()}
+function parseCfTime(unitsStr,values){
+  const m=/^(seconds|second|minutes|minute|hours|hour|days|day)\s+since\s+(.+)$/i.exec(String(unitsStr||'').trim());
+  if(!m)return null;
+  const scaleMs={second:1000,seconds:1000,minute:60000,minutes:60000,hour:3600000,hours:3600000,day:86400000,days:86400000}[m[1].toLowerCase()];
+  const epoch=Date.parse(m[2].trim().replace(' ','T').replace(/Z?$/,'Z'));
+  if(!Number.isFinite(epoch))return null;
+  return Array.from(values,v=>new Date(epoch+Number(v)*scaleMs));
+}
+
+async function decodeNetcdf(buffer,name){
+  await loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');
+  await loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js');
+  const H5=window.hdf5;
+  if(!H5?.File)throw new Error('jsfive could not be initialized.');
+  const f=new H5.File(buffer,String(name||'archive.nc'));
+  const all=findDatasets(f);
+  if(!all.length)throw new Error('No datasets were found in this netCDF file.');
+
+  const isCoordName=n=>/^(time|reference_ts|lat|latitude|lon|longitude|x|y|chx|chy|e|n|easting|northing|rotated_pole|crs|record)$/i.test(n)||/bnds?$|bounds?$/i.test(n);
+  const timeVar=all.find(d=>/^(time|reference_ts)$/i.test(baseName(d.path))&&d.shape?.length===1);
+  const yVar=all.find(d=>/^(lat|latitude|y|chy|n|northing)$/i.test(baseName(d.path))&&d.shape?.length===1);
+  const xVar=all.find(d=>/^(lon|longitude|x|chx|e|easting)$/i.test(baseName(d.path))&&d.shape?.length===1);
+
+  const dataCandidates=all.filter(d=>!isCoordName(baseName(d.path))&&d.shape?.length>=2)
+    .sort((a,b)=>b.shape.reduce((p,c)=>p*c,1)-a.shape.reduce((p,c)=>p*c,1));
+  if(!dataCandidates.length)throw new Error('No suitable data variable (2D/3D, non-coordinate) was found in the file.');
+  const dataDs=dataCandidates[0];
+  const shape=dataDs.shape;
+
+  let raw=await valueOf(dataDs.node);
+  const totalExpected=shape.reduce((p,c)=>p*c,1);
+  if(!raw||raw.length<totalExpected)throw new Error(`Variable ${dataDs.path} is incomplete (expected ${totalExpected} values, got ${raw?.length??0}).`);
+
+  const yVals=yVar?await valueOf(yVar.node):null;
+  const xVals=xVar?await valueOf(xVar.node):null;
+  const timeValsRaw=timeVar?await valueOf(timeVar.node):null;
+  const timeAttrs=timeVar?attrsObj(timeVar.node):{};
+  const times=(timeValsRaw&&timeAttrs.units)?parseCfTime(timeAttrs.units,timeValsRaw):null;
+
+  if(!yVals||!xVals)throw new Error('X/Y coordinate variables could not be identified in the file.');
+  if(!times)throw new Error('The time coordinate could not be parsed (missing or unrecognised "units" attribute).');
+  const nY=yVals.length,nX=xVals.length,nTime=totalExpected/(nY*nX);
+  if(!Number.isInteger(nTime))throw new Error(`Data variable shape [${shape.join(',')}] does not divide evenly into ${nY} × ${nX} grid steps.`);
+
+  const attrs=attrsObj(dataDs.node);
+  const scale=Number.isFinite(Number(attrs.scale_factor))?Number(attrs.scale_factor):1;
+  const offset=Number.isFinite(Number(attrs.add_offset))?Number(attrs.add_offset):0;
+  const fillRaw=attrs._FillValue??attrs.missing_value;
+  const fill=fillRaw!==undefined?Number(fillRaw):NaN;
+  const unit=attrs.units||'mm/h';
+
+  // Detect axis-order swap the same way as the other viewers: match the
+  // data variable's two innermost dimensions against the actual coordinate
+  // array lengths rather than assuming row-major (Y,X).
+  const dimA=shape[shape.length-2],dimB=shape[shape.length-1];
+  const swap=(dimA===nX&&dimB===nY&&nX!==nY);
+
+  const isLV95=Math.abs(xVals[0])>1000||Math.abs(yVals[0])>1000;
+  let bounds,sourceExtent,projection;
+  if(isLV95){
+    const xmin=Math.min(xVals[0],xVals[xVals.length-1]),xmax=Math.max(xVals[0],xVals[xVals.length-1]);
+    const ymin=Math.min(yVals[0],yVals[yVals.length-1]),ymax=Math.max(yVals[0],yVals[yVals.length-1]);
+    const corners=[[xmin,ymin],[xmin,ymax],[xmax,ymin],[xmax,ymax]].map(xy=>proj4('EPSG:2056','EPSG:4326',xy));
+    const lons=corners.map(c=>c[0]),lats=corners.map(c=>c[1]);
+    bounds=[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]];
+    sourceExtent={xmin,xmax,ymin,ymax};
+    projection='EPSG:2056';
+  }else{
+    const lonMin=Math.min(xVals[0],xVals[xVals.length-1]),lonMax=Math.max(xVals[0],xVals[xVals.length-1]);
+    const latMin=Math.min(yVals[0],yVals[yVals.length-1]),latMax=Math.max(yVals[0],yVals[yVals.length-1]);
+    bounds=[[latMin,lonMin],[latMax,lonMax]];
+    sourceExtent={xmin:lonMin,xmax:lonMax,ymin:latMin,ymax:latMax};
+    projection='EPSG:4326';
+  }
+  const xAscending=xVals[0]<xVals[xVals.length-1];
+  const yAscending=yVals[0]<yVals[yVals.length-1];
+
+  return{raw,nTime,nY,nX,swap,xAscending,yAscending,bounds,sourceExtent,projection,scale,offset,fill,unit,
+    times,dataPath:dataDs.path,shape,name,label:deriveLabel(name,dataDs.path)};
+}
+function deriveLabel(fileName,varPath){
+  const base=String(fileName||'').replace(/\.nc$/i,'');
+  const m=/^([A-Za-z0-9]+)_(\d{5})_/.exec(base);
+  if(m)return `${m[1]} (${Number(m[2])}-minute)`;
+  return varPath.split('/').pop();
+}
+
+// ─── merge multiple loaded netCDF files into one combined "dataset" ────────
+// Each loaded file contributes its own time steps; we don't physically
+// concatenate the raw arrays (they can be very large), we just keep a list
+// of {source, localIndex} entries per merged time step and slice into
+// whichever source file that step actually belongs to.
+let dataset=null; // {sources:[decoded,...], steps:[{srcIdx,localIndex,date}], label, unit, ...geometry from first source}
+function buildDataset(decodedList){
+  const steps=[];
+  decodedList.forEach((d,srcIdx)=>{
+    for(let i=0;i<d.nTime;i++)steps.push({srcIdx,localIndex:i,date:utcDateKey(d.times[i]),time:d.times[i]});
+  });
+  steps.sort((a,b)=>a.time-b.time);
+  const first=decodedList[0];
+  return{sources:decodedList,steps,label:first.label,unit:first.unit,bounds:first.bounds,sourceExtent:first.sourceExtent,projection:first.projection,nX:first.nX,nY:first.nY,swap:first.swap,xAscending:first.xAscending,yAscending:first.yAscending,fill:first.fill,scale:first.scale,offset:first.offset};
+}
+function utcDateKey(d){return d.toISOString().slice(0,10)}
+
+let dayIndices=[]; // indices into dataset.steps for the currently selected day
+let currentIndex=0,timer=null,loading=false,overlay=null;
+
+function populateDaySelect(){
+  const dates=[...new Set(dataset.steps.map(s=>s.date))].sort();
+  ui.day.innerHTML='';
+  for(const d of dates)ui.day.add(new Option(d,d));
+  ui.day.disabled=false;
+  ui.load.disabled=false;
+  ui.day.value=dates[0];
+}
+function prepareDayFrames(){
+  const date=ui.day.value;
+  dayIndices=dataset.steps.map((s,i)=>({...s,stepIndex:i})).filter(s=>s.date===date).map(s=>s.stepIndex);
+  currentIndex=0;
+  const ok=dayIndices.length>0;
+  ui.slider.disabled=!ok;ui.play.disabled=!ok||dayIndices.length<2;ui.prev.disabled=!ok;ui.next.disabled=!ok;
+  ui.slider.min='0';ui.slider.max=String(Math.max(0,dayIndices.length-1));ui.slider.value='0';
+  ui.frame.textContent=ok?`${dayIndices.length} time step(s) this day`:'No time steps for this day';
+  if(ui.chartCard){ui.chartCard.style.display='none'}
+}
+
+// ─── rendering (pixel-accurate Web-Mercator resampling for LV95 data) ──────
+const LEVELS=[0,0.1,0.3,0.5,1,2,3,5,10,20,30,50,100];
+const COLORS=[[235,245,255],[199,233,255],[148,206,247],[93,181,235],[43,164,220],[34,181,171],[55,181,90],[140,197,58],[237,214,50],[247,158,40],[237,101,35],[214,45,40],[126,15,92]];
+function colorFor(v){
+  if(!Number.isFinite(v)||v<=0)return[0,0,0,0];
+  let i=1;while(i<LEVELS.length&&v>LEVELS[i])i++;
+  if(i>=LEVELS.length)return[...COLORS.at(-1),225];
+  const lo=LEVELS[i-1],hi=LEVELS[i],t=(v-lo)/(hi-lo||1),a=COLORS[i-1],b=COLORS[i];
+  return[a[0]+(b[0]-a[0])*t,a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t,215].map(Math.round);
+}
+function stepSlice(stepIndex){
+  const s=dataset.steps[stepIndex],src=dataset.sources[s.srcIdx];
+  const start=s.localIndex*dataset.nY*dataset.nX;
+  return src.raw.subarray?src.raw.subarray(start,start+dataset.nY*dataset.nX):src.raw.slice(start,start+dataset.nY*dataset.nX);
+}
+function rawValueAt(slice,gy,gx){
+  const {nX,nY,swap,fill,scale,offset}=dataset;
+  const idx=swap?(gx*nY+gy):(gy*nX+gx);
+  const rv=Number(slice[idx]);
+  // The exact-equality fill check can miss the sentinel due to float32/float64
+  // rounding when the library reads the attribute, so also reject any
+  // implausibly huge raw value defensively (the fill value here is the
+  // float32 maximum, ~3.4e38 — no real precipitation reading is anywhere
+  // near that).
+  if(!Number.isFinite(rv)||rv>1e10||(Number.isFinite(fill)&&rv===fill))return NaN;
+  const v=rv*scale+offset;
+  // Values below 0.1 mm are treated as no-data/0 — matches the radar
+  // viewer's detection floor and keeps tiny noise from showing as "rain".
+  if(v<0.1)return NaN;
+  return v;
+}
+function fracToIndex(colFrac,rowFrac){
+  const {nX,nY,xAscending,yAscending}=dataset;
+  let gx=Math.min(nX-1,Math.max(0,Math.floor(colFrac*nX)));
+  let gy=Math.min(nY-1,Math.max(0,Math.floor(rowFrac*nY)));
+  if(!xAscending)gx=nX-1-gx;
+  if(yAscending)gy=nY-1-gy;
+  return[gy,gx];
+}
+function renderFrame(stepIndex){
+  const slice=stepSlice(stepIndex);
+  const {bounds,sourceExtent:ext,projection}=dataset;
+  const latS=bounds[0][0],lonW=bounds[0][1],latN=bounds[1][0],lonE=bounds[1][1];
+  let min=Infinity,max=-Infinity,valid=0,canvas,ctx,img,outW,outH;
+  if(projection==='EPSG:2056'){
+    const toMercY=lat=>Math.log(Math.tan(Math.PI/4+lat*Math.PI/360)),fromMercY=y=>(2*Math.atan(Math.exp(y))-Math.PI/2)*180/Math.PI;
+    const mercN=toMercY(latN),mercS=toMercY(latS);
+    const outMaxDim=800,aspect=((lonE-lonW)*Math.PI/180)/(mercN-mercS);
+    outW=aspect>=1?outMaxDim:Math.max(1,Math.round(outMaxDim*aspect));
+    outH=aspect>=1?Math.max(1,Math.round(outMaxDim/aspect)):outMaxDim;
+    canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
+    ctx=canvas.getContext('2d');img=ctx.createImageData(outW,outH);
+    for(let oy=0;oy<outH;oy++){
+      const lat=fromMercY(mercN-(oy+0.5)/outH*(mercN-mercS));
+      for(let ox=0;ox<outW;ox++){
+        const lon=lonW+(ox+0.5)/outW*(lonE-lonW),di=(oy*outW+ox)*4;
+        const xy=proj4('EPSG:4326','EPSG:2056',[lon,lat]);
+        if(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax){img.data[di+3]=0;continue}
+        const colFrac=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin),rowFrac=(ext.ymax-xy[1])/(ext.ymax-ext.ymin);
+        const [gy,gx]=fracToIndex(colFrac,rowFrac);
+        const v=rawValueAt(slice,gy,gx);
+        if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);valid++}
+        const c=colorFor(v);img.data[di]=c[0];img.data[di+1]=c[1];img.data[di+2]=c[2];img.data[di+3]=c[3];
+      }
+    }
+  }else{
+    outW=dataset.nX;outH=dataset.nY;
+    canvas=document.createElement('canvas');canvas.width=outW;canvas.height=outH;
+    ctx=canvas.getContext('2d');img=ctx.createImageData(outW,outH);
+    for(let outRow=0;outRow<outH;outRow++){
+      const rowFracCenter=(outRow+0.5)/outH;
+      for(let col=0;col<outW;col++){
+        const colFrac=(col+0.5)/outW,di=(outRow*outW+col)*4;
+        const [gy,gx]=fracToIndex(colFrac,rowFracCenter);
+        const v=rawValueAt(slice,gy,gx);
+        if(Number.isFinite(v)){min=Math.min(min,v);max=Math.max(max,v);valid++}
+        const c=colorFor(v);img.data[di]=c[0];img.data[di+1]=c[1];img.data[di+2]=c[2];img.data[di+3]=c[3];
+      }
+    }
+  }
+  ctx.putImageData(img,0,0);
+  return{url:canvas.toDataURL('image/png'),bounds,min,max,valid};
+}
+function frameTimeLabel(stepIndex){
+  const t=dataset.steps[stepIndex].time;
+  return new Intl.DateTimeFormat('en-GB',{dateStyle:'medium',timeStyle:'short',timeZone:'UTC'}).format(t)+' UTC';
+}
+async function showFrame(dayPos,{fit=false}={}){
+  if(!dayIndices.length||loading)return;
+  currentIndex=(dayPos+dayIndices.length)%dayIndices.length;
+  ui.slider.value=String(currentIndex);
+  const stepIndex=dayIndices[currentIndex];
+  setBusy(true,'Rendering frame…');
+  try{
+    const d=renderFrame(stepIndex);
+    if(overlay){overlay.setUrl(d.url);overlay.setBounds(d.bounds)}
+    else overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map);
+    if(fit)map.fitBounds(d.bounds,{padding:[15,15]});
+    ui.time.textContent=frameTimeLabel(stepIndex);
+    ui.frame.textContent=`Frame ${currentIndex+1} of ${dayIndices.length}`;
+    ui.title.textContent=`${dataset.label} · ${frameTimeLabel(stepIndex)}`;
+    ui.subtitle.textContent=`${dataset.nX} × ${dataset.nY} grid · ${dataset.projection}`;
+    setStatus(`Frame ${currentIndex+1}/${dayIndices.length} displayed: ${frameTimeLabel(stepIndex)}.`,'ok');
+  }catch(e){
+    console.error(e);
+    setStatus(`Frame could not be rendered: ${e?.message||String(e)}`,'err');
+    if(timer)stopAnimation();
+  }finally{
+    setBusy(false);
+  }
+}
+function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
+function toggleAnimation(){
+  if(timer){stopAnimation();return}
+  if(dayIndices.length<2)return;
+  ui.play.textContent='⏸ Pause';
+  const advance=()=>{if(loading)return;showFrame((currentIndex+1)%dayIndices.length)};
+  timer=setInterval(advance,Number(ui.speed.value));
+}
+
+// ─── point query, plot, CSV export (nearest-pixel, no interpolation) ───────
+function latlngToStep(latlng){
+  const [[latS,lonW],[latN,lonE]]=dataset.bounds;
+  if(latlng.lat<latS||latlng.lat>latN||latlng.lng<lonW||latlng.lng>lonE)return null;
+  let colFrac,rowFrac;
+  if(dataset.projection==='EPSG:2056'){
+    const xy=proj4('EPSG:4326','EPSG:2056',[latlng.lng,latlng.lat]),ext=dataset.sourceExtent;
+    if(xy[0]<ext.xmin||xy[0]>ext.xmax||xy[1]<ext.ymin||xy[1]>ext.ymax)return null;
+    colFrac=(xy[0]-ext.xmin)/(ext.xmax-ext.xmin);rowFrac=(ext.ymax-xy[1])/(ext.ymax-ext.ymin);
+  }else{
+    colFrac=(latlng.lng-lonW)/(lonE-lonW);rowFrac=(latN-latlng.lat)/(latN-latS);
+  }
+  const [gy,gx]=fracToIndex(colFrac,rowFrac);
+  return{gy,gx};
+}
+function pixelPopupContent(latlng){
+  if(!dataset||!dayIndices.length)return 'No frame loaded yet.';
+  const pos=latlngToStep(latlng);
+  if(!pos)return 'Outside the loaded grid extent.';
+  const{gy,gx}=pos;
+  const stepIndex=dayIndices[currentIndex];
+  const v=rawValueAt(stepSlice(stepIndex),gy,gx);
+  const valueText=Number.isFinite(v)?`${v.toFixed(2)} ${dataset.unit}`:'no data (fill value, negative, or below the 0.1 mm detection floor)';
+  return `<b>${dataset.label}</b><br>${valueText}<br><span style="color:#667085;font-size:12px">Grid row ${gy}, col ${gx} · ${frameTimeLabel(stepIndex)}<br>${latlng.lat.toFixed(4)}°N, ${latlng.lng.toFixed(4)}°E</span><br><button onclick="window.showSeriesAt(${latlng.lat},${latlng.lng})" style="margin-top:9px;width:100%;padding:8px;border:0;border-radius:8px;background:#1769aa;color:#fff;font-weight:700;cursor:pointer">📈 Plot this day</button>`;
+}
+map.on('click',e=>{L.popup({closeButton:true}).setLatLng(e.latlng).setContent(pixelPopupContent(e.latlng)).openOn(map)});
+
+function computeSeriesAt(lat,lng){
+  const pos=latlngToStep({lat,lng});
+  if(!pos)return null;
+  const{gy,gx}=pos;
+  const values=new Array(dayIndices.length),times=new Array(dayIndices.length);
+  for(let i=0;i<dayIndices.length;i++){
+    const stepIndex=dayIndices[i];
+    times[i]=dataset.steps[stepIndex].time;
+    values[i]=rawValueAt(stepSlice(stepIndex),gy,gx);
+  }
+  return{values,times};
+}
+function drawLineChart(canvas,labels,values){
+  const dpr=window.devicePixelRatio||1;
+  const rect=canvas.getBoundingClientRect();
+  const W=Math.max(200,rect.width),H=Math.max(140,rect.height);
+  canvas.width=W*dpr;canvas.height=H*dpr;
+  const ctx=canvas.getContext('2d');
+  ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,W,H);
+  const padL=50,padR=12,padT=12,padB=26,plotW=W-padL-padR,plotH=H-padT-padB;
+  const finite=values.filter(Number.isFinite);
+  if(!finite.length){
+    ctx.fillStyle='#667085';ctx.font='13px system-ui';ctx.textAlign='center';
+    ctx.fillText('No data at this point.',W/2,H/2);
+    return;
+  }
+  let vMin=Math.min(0,...finite),vMax=Math.max(...finite);
+  if(vMin===vMax){vMin-=1;vMax+=1}
+  const n=values.length,xAt=i=>padL+plotW*(n>1?i/(n-1):0.5),yAt=v=>padT+plotH-plotH*(v-vMin)/(vMax-vMin);
+  ctx.strokeStyle='#d8e2ec';ctx.lineWidth=1;
+  ctx.beginPath();ctx.moveTo(padL,padT);ctx.lineTo(padL,padT+plotH);ctx.lineTo(padL+plotW,padT+plotH);ctx.stroke();
+  ctx.fillStyle='#667085';ctx.font='11px system-ui';ctx.textAlign='right';ctx.textBaseline='middle';
+  for(let i=0;i<=4;i++){
+    const val=vMin+(vMax-vMin)*i/4,y=padT+plotH-plotH*i/4;
+    ctx.fillText(val.toFixed(1),padL-6,y);
+    ctx.strokeStyle='#eef2f6';ctx.beginPath();ctx.moveTo(padL,y);ctx.lineTo(padL+plotW,y);ctx.stroke();
+  }
+  ctx.textAlign='center';ctx.textBaseline='top';
+  const ticks=Math.min(6,n);
+  for(let i=0;i<ticks;i++){
+    const idx=Math.round(i*(n-1)/Math.max(1,ticks-1));
+    ctx.fillText(labels[idx]||'',xAt(idx),padT+plotH+6);
+  }
+  ctx.strokeStyle='#1769aa';ctx.lineWidth=2;ctx.beginPath();
+  let started=false;
+  for(let i=0;i<n;i++){
+    const v=values[i];
+    if(!Number.isFinite(v)){started=false;continue}
+    const x=xAt(i),y=yAt(v);
+    if(!started){ctx.moveTo(x,y);started=true}else ctx.lineTo(x,y);
+  }
+  ctx.stroke();
+  ctx.fillStyle='#0b4f82';
+  for(let i=0;i<n;i++){
+    const v=values[i];
+    if(!Number.isFinite(v))continue;
+    ctx.beginPath();ctx.arc(xAt(i),yAt(v),2.2,0,Math.PI*2);ctx.fill();
+  }
+}
+function formatTimestampDMY(d){
+  const p=x=>String(x).padStart(2,'0');
+  return `${p(d.getUTCDate())}.${p(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${p(d.getUTCHours())}:${p(d.getUTCMinutes())}`;
+}
+let lastSeries=null;
+window.showSeriesAt=function(lat,lng){
+  if(!dayIndices.length)return;
+  map.closePopup();
+  const series=computeSeriesAt(lat,lng);
+  if(!series){setStatus('That point is outside the loaded grid extent.','warn');return}
+  const labels=series.times.map(t=>formatTimestampDMY(t));
+  lastSeries={labels,values:series.values,times:series.times,lat,lng};
+  ui.chartCard.style.display='';
+  ui.chartTitle.textContent=`${dataset.label} · time series at ${lat.toFixed(4)}°N, ${lng.toFixed(4)}°E`;
+  const dailySum=series.values.reduce((s,v)=>s+(Number.isFinite(v)?v:0),0);
+  lastSeries.dailySum=dailySum;
+  ui.chartSubtitle.textContent=`${series.values.length} time steps this day · ${dataset.unit} (hourly rate; numerically equal to mm fallen that hour) · Daily sum: ${dailySum.toFixed(1)} mm`;
+  drawLineChart(ui.chartCanvas,labels,series.values);
+  ui.chartCard.scrollIntoView({behavior:'smooth',block:'nearest'});
+  setStatus(`Time series ready: ${series.values.length} time steps.`,'ok');
+};
+ui.chartCloseBtn.addEventListener('click',()=>{ui.chartCard.style.display='none';lastSeries=null});
+function exportSeriesCsv(){
+  if(!lastSeries)return;
+  const{values,times,lat,lng,dailySum}=lastSeries;
+  const rows=[['index','date_utc',`value_${dataset.unit.replace(/[^a-z0-9]+/gi,'_')}`]];
+  for(let i=0;i<values.length;i++){
+    const ts=formatTimestampDMY(times[i]);
+    const v=Number.isFinite(values[i])?values[i]:'';
+    rows.push([i+1,ts,v]);
+  }
+  const csv=[`# parameter;${dataset.label}`,`# unit;${dataset.unit}`,`# latitude;${lat.toFixed(5)}`,`# longitude;${lng.toFixed(5)}`,
+    `# daily_sum_mm;${Number.isFinite(dailySum)?dailySum.toFixed(2):''}`,
+    ...rows.map(r=>r.map(c=>{const s=String(c);return /[";\n]/.test(s)?'"'+s.replace(/"/g,'""')+'"':s}).join(';'))].join('\r\n');
+  const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});
+  const url=URL.createObjectURL(blob);
+  const a=document.createElement('a');
+  a.href=url;a.download=`${dataset.label.replace(/[^a-z0-9]+/gi,'_')}_${lat.toFixed(3)}N_${lng.toFixed(3)}E_${ui.day.value}.csv`;
+  document.body.appendChild(a);a.click();document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+ui.chartExportBtn.addEventListener('click',exportSeriesCsv);
+window.addEventListener('resize',()=>{if(lastSeries&&ui.chartCard.style.display!=='none')drawLineChart(ui.chartCanvas,lastSeries.labels,lastSeries.values)});
+
+// ─── file loading ────────────────────────────────────────────────────────
+async function loadFiles(fileList){
+  const files=Array.from(fileList||[]).filter(f=>/\.nc$/i.test(f.name));
+  if(!files.length){setStatus('No .nc files were found in that selection.','warn');return}
+  stopAnimation();setBusy(true,'Reading netCDF file(s)…');
+  ui.chartCard.style.display='none';lastSeries=null;
+  const decoded=[];
+  try{
+    for(let i=0;i<files.length;i++){
+      setStatus(`Decoding ${files[i].name} (${i+1}/${files.length})…`);
+      ui.progress.style.width=Math.round((i/files.length)*90)+'%';
+      const buffer=await files[i].arrayBuffer();
+      const d=await decodeNetcdf(buffer,files[i].name);
+      decoded.push(d);
+    }
+    ui.progress.style.width='100%';
+    dataset=buildDataset(decoded);
+    populateDaySelect();
+    ui.meta.innerHTML=`<b>${files.length} file(s) loaded</b><br>Parameter: <b>${dataset.label}</b><br>Grid: ${dataset.nX} × ${dataset.nY} (${dataset.projection})<br>Days found: <b>${[...new Set(dataset.steps.map(s=>s.date))].length}</b>, total time steps: <b>${dataset.steps.length}</b>`;
+    setStatus(`Loaded ${dataset.steps.length} time steps across ${[...new Set(dataset.steps.map(s=>s.date))].length} day(s). Pick a day and click "Show this day".`,'ok');
+  }catch(e){
+    console.error(e);
+    setStatus(`Could not read the file(s): ${e?.message||String(e)}`,'err');
+  }finally{
+    setBusy(false);
+    setTimeout(()=>ui.progress.style.width='0%',700);
+  }
+}
+async function showSelectedDay(){
+  if(!dataset)return;
+  prepareDayFrames();
+  if(!dayIndices.length){setStatus('No time steps for this day.','warn');return}
+  await showFrame(0,{fit:true});
+}
+ui.localFile.addEventListener('change',e=>loadFiles(e.target.files));
+ui.localFolder.addEventListener('change',e=>loadFiles(e.target.files));
+ui.day.addEventListener('change',()=>{if(dataset)prepareDayFrames()});
+ui.load.addEventListener('click',showSelectedDay);
+ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});
+ui.play.addEventListener('click',toggleAnimation);
+ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});
+ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});
+ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
+Promise.all([loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'),loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js')]).catch(()=>{/* decodeNetcdf will retry and surface a real error if this keeps failing */});
+</script>
+</body>
+</html>
