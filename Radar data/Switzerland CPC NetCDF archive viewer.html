@@ -64,13 +64,14 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <main><div class="layout">
 <section class="card controls">
 <h2>Precipitation archive</h2>
-<div class="field"><label for="localFile">1. File or folder</label><input id="localFile" type="file" accept=".nc" multiple><div class="small">Select one or more local netCDF (.nc) files. Each file can itself span several days (e.g. a 7-day CPC-hourly export).</div></div>
+<div class="field"><label for="localFile">1. File or folder</label><input id="localFile" type="file" accept=".nc" multiple><div class="small">Select one or more local netCDF (.nc) files — both NetCDF4/HDF5 and classic NetCDF-3 are supported. Each file can itself span several days (e.g. a monthly CPC-hourly export). Classic NetCDF-3 files are read lazily (one frame at a time), so even multi-GB files should be fine there. NetCDF4/HDF5 files above roughly 1 GB can still run into the browser's available memory — if loading one fails, try a 64-bit desktop browser with other tabs closed, load one file at a time, or ask for a shorter (e.g. daily) export.</div></div>
 <input id="localFolder" type="file" webkitdirectory multiple style="margin-top:8px"><div class="small">Or select a whole folder — every .nc file inside it will be read.</div>
 <div class="field" style="margin-top:14px"><label for="daySelect">2. Day (UTC)</label><select id="daySelect" disabled><option>Load a file first…</option></select></div>
 <button id="loadDayBtn" type="button" disabled style="margin-top:4px">Show this day</button>
 <div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">3. Playback</div>
 <div class="timeline">
   <div class="timehead"><strong id="timeLabel">–</strong><span id="frameLabel">No data loaded yet</span></div>
+  <div class="field" style="margin-bottom:9px"><label for="timeSelect">Jump to time</label><select id="timeSelect" disabled><option>No data loaded yet</option></select></div>
   <input id="timeSlider" type="range" min="0" max="0" step="1" value="0" disabled aria-label="Time step">
   <div class="row3" style="margin-top:9px"><button id="playBtn" type="button" disabled>▶ Play</button><button id="prevBtn" class="secondary" type="button" disabled>◀ Previous</button><button id="nextBtn" class="secondary" type="button" disabled>Next ▶</button></div>
   <div class="field" style="margin:10px 0 0"><label for="speedSelect">Animation speed</label><select id="speedSelect"><option value="1500">Slow · 1.5 s</option><option value="800" selected>Normal · 0.8 s</option><option value="350">Fast · 0.35 s</option></select></div>
@@ -111,7 +112,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 proj4.defs('EPSG:2056','+proj=somerc +lat_0=46.95240555555556 +lon_0=7.439583333333333 +k_0=1 +x_0=2600000 +y_0=1200000 +ellps=bessel +towgs84=674.374,15.056,405.346,0,0,0,0 +units=m +no_defs');
 
 const $=id=>document.getElementById(id);
-const ui={localFile:$('localFile'),localFolder:$('localFolder'),day:$('daySelect'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
+const ui={localFile:$('localFile'),localFolder:$('localFolder'),day:$('daySelect'),load:$('loadDayBtn'),timeSelect:$('timeSelect'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),time:$('timeLabel'),frame:$('frameLabel'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
 
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
 L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
@@ -126,7 +127,24 @@ function attrsObj(node){const o={};for(const [k,v] of Object.entries(node?.attrs
 function children(node){try{const keys=typeof node?.keys==='function'?Array.from(node.keys()):Array.isArray(node?.keys)?node.keys:Array.from(node?.keys||[]);return keys.map(k=>[k,node.get(k)])}catch{return[]}}
 function shapeOf(node){try{const s=typeof node?.shape==='function'?node.shape():node?.shape;if(Array.isArray(s))return s.map(Number);if(ArrayBuffer.isView(s))return Array.from(s,Number)}catch{}return null}
 function findDatasets(root){const out=[],seen=new Set();function walk(n,path,depth=0){if(!n||depth>12||seen.has(n))return;seen.add(n);for(const [k,c] of children(n)){const p=(path+'/'+k).replace(/\/+/g,'/'),s=shapeOf(c),type=String(c?.type||c?.constructor?.name||'').toLowerCase();if(s?.length||type.includes('dataset'))out.push({node:c,path:p,shape:s});else walk(c,p,depth+1)}}walk(root,'');return out}
-async function valueOf(node){let raw=node.value;if(raw?.then)raw=await raw;if(raw&&typeof raw==='object'&&'value'in raw&&raw.value!==raw)raw=raw.value;if(Array.isArray(raw)&&Array.isArray(raw[0]))raw=raw.flat();return raw}
+function countElements(arr){let n=0;for(let i=0;i<arr.length;i++){const v=arr[i];n+=Array.isArray(v)?countElements(v):1}return n}
+function fillFlat(arr,out,pos){for(let i=0;i<arr.length;i++){const v=arr[i];if(Array.isArray(v))pos=fillFlat(v,out,pos);else out[pos++]=v}return pos}
+async function valueOf(node,expectedTotal){
+  let raw=node.value;
+  if(raw?.then)raw=await raw;
+  if(raw&&typeof raw==='object'&&'value'in raw&&raw.value!==raw)raw=raw.value;
+  if(!Array.isArray(raw)||!Array.isArray(raw[0]))return raw; // already flat (typed array or plain 1D array)
+  // Nested arrays: flatten directly into a pre-allocated Float32Array instead
+  // of Array.prototype.flat(), which builds a full intermediate plain-array
+  // copy (boxed numbers, much larger than 4 bytes/value) on top of the
+  // already-nested structure. For large multi-day files that extra copy is
+  // what pushed peak memory over the top and caused failures above roughly
+  // 1 GB — this fills the final typed array in one pass instead.
+  const total=expectedTotal||countElements(raw);
+  const out=new Float32Array(total);
+  fillFlat(raw,out,0);
+  return out;
+}
 function baseName(p){return p.split('/').pop().toLowerCase()}
 function parseCfTime(unitsStr,values){
   const m=/^(seconds|second|minutes|minute|hours|hour|days|day)\s+since\s+(.+)$/i.exec(String(unitsStr||'').trim());
@@ -138,6 +156,13 @@ function parseCfTime(unitsStr,values){
 }
 
 async function decodeNetcdf(buffer,name){
+  const head=new Uint8Array(buffer.slice(0,4));
+  const isHdf5=head[0]===0x89&&head[1]===0x48&&head[2]===0x44&&head[3]===0x46; // \x89HDF
+  const isClassicNc=head[0]===0x43&&head[1]===0x44&&head[2]===0x46; // "CDF"
+  if(isClassicNc)return decodeClassicNetcdf(buffer,name);
+  if(!isHdf5){
+    throw new Error(`"${name}" does not look like a netCDF/HDF5 file (unexpected file signature). Please check the file.`);
+  }
   await loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js');
   await loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js');
   const H5=window.hdf5;
@@ -156,9 +181,9 @@ async function decodeNetcdf(buffer,name){
   if(!dataCandidates.length)throw new Error('No suitable data variable (2D/3D, non-coordinate) was found in the file.');
   const dataDs=dataCandidates[0];
   const shape=dataDs.shape;
-
-  let raw=await valueOf(dataDs.node);
   const totalExpected=shape.reduce((p,c)=>p*c,1);
+
+  let raw=await valueOf(dataDs.node,totalExpected);
   if(!raw||raw.length<totalExpected)throw new Error(`Variable ${dataDs.path} is incomplete (expected ${totalExpected} values, got ${raw?.length??0}).`);
 
   const yVals=yVar?await valueOf(yVar.node):null;
@@ -215,6 +240,152 @@ function deriveLabel(fileName,varPath){
   return varPath.split('/').pop();
 }
 
+// ─── classic NetCDF-3 (CDF-1/CDF-2) binary parser ───────────────────────────
+// jsfive can only read NetCDF4/HDF5. Older archive exports are frequently
+// classic NetCDF-3 instead (magic bytes "CDF", not "\x89HDF"), so this
+// parses the classic header format directly. Files this large (multi-day,
+// often >1 GB) are read lazily: only the header and the small 1D coordinate
+// variables are decoded up front, and each animation frame's 2D slice of the
+// main data variable is read on demand straight from the original
+// ArrayBuffer — never the whole 3D variable at once.
+const NC_TYPE_SIZE={1:1,2:1,3:2,4:4,5:4,6:8};
+function ncReadName(dv,pos){
+  const nelems=dv.getUint32(pos,false);pos+=4;
+  let name='';for(let i=0;i<nelems;i++)name+=String.fromCharCode(dv.getUint8(pos+i));
+  pos+=nelems;pos+=(4-(nelems%4))%4;
+  return{name,pos};
+}
+function ncReadAttrs(dv,pos){
+  pos+=4; // tag (NC_ATTRIBUTE or ABSENT, not needed once nelems is read)
+  const nelems=dv.getUint32(pos,false);pos+=4;
+  const attrs={};
+  for(let i=0;i<nelems;i++){
+    const r=ncReadName(dv,pos);pos=r.pos;
+    const nctype=dv.getUint32(pos,false);pos+=4;
+    const n=dv.getUint32(pos,false);pos+=4;
+    const size=(NC_TYPE_SIZE[nctype]||1)*n;
+    let val;
+    if(nctype===2){let s='';for(let k=0;k<n;k++)s+=String.fromCharCode(dv.getUint8(pos+k));val=s.replace(/\0+$/,'')}
+    else if(nctype===5){val=[];for(let k=0;k<n;k++)val.push(dv.getFloat32(pos+k*4,false));if(val.length===1)val=val[0]}
+    else if(nctype===6){val=[];for(let k=0;k<n;k++)val.push(dv.getFloat64(pos+k*8,false));if(val.length===1)val=val[0]}
+    else if(nctype===4){val=[];for(let k=0;k<n;k++)val.push(dv.getInt32(pos+k*4,false));if(val.length===1)val=val[0]}
+    else val=null;
+    attrs[r.name]=val;
+    pos+=size;pos+=(4-(size%4))%4;
+  }
+  return{attrs,pos};
+}
+function parseNetcdf3Header(buffer){
+  const dv=new DataView(buffer);
+  const magic=String.fromCharCode(dv.getUint8(0),dv.getUint8(1),dv.getUint8(2));
+  if(magic!=='CDF')throw new Error('Not a classic NetCDF-3 file.');
+  const version=dv.getUint8(3);
+  if(version!==1&&version!==2)throw new Error(`Unsupported classic NetCDF version byte ${version} (only CDF-1/CDF-2 are supported, not CDF-5).`);
+  let pos=8; // magic+version(4) + numrecs(4)
+  pos+=4; // dim tag
+  const ndims=dv.getUint32(pos,false);pos+=4;
+  const dims=[];
+  for(let i=0;i<ndims;i++){const r=ncReadName(dv,pos);pos=r.pos;const length=dv.getUint32(pos,false);pos+=4;dims.push({name:r.name,length})}
+  const ga=ncReadAttrs(dv,pos);pos=ga.pos;
+  pos+=4; // var tag
+  const nvars=dv.getUint32(pos,false);pos+=4;
+  const vars=[];
+  for(let i=0;i<nvars;i++){
+    const r=ncReadName(dv,pos);pos=r.pos;
+    const nd=dv.getUint32(pos,false);pos+=4;
+    const dimids=[];for(let k=0;k<nd;k++){dimids.push(dv.getUint32(pos,false));pos+=4}
+    const va=ncReadAttrs(dv,pos);pos=va.pos;
+    const nctype=dv.getUint32(pos,false);pos+=4;
+    const vsize=dv.getUint32(pos,false);pos+=4;
+    let begin;
+    if(version===1){begin=dv.getUint32(pos,false);pos+=4}
+    else{const hi=dv.getUint32(pos,false),lo=dv.getUint32(pos+4,false);begin=hi*4294967296+lo;pos+=8}
+    vars.push({name:r.name,dimids,attrs:va.attrs,nctype,vsize,begin});
+  }
+  return{dims,globalAttrs:ga.attrs,vars,version};
+}
+function ncReadWhole1D(buffer,v){
+  const dv=new DataView(buffer);
+  const size=NC_TYPE_SIZE[v.nctype];
+  const count=v.vsize/size;
+  const out=new Float64Array(count);
+  const getters={1:(o)=>dv.getInt8(o),3:(o)=>dv.getInt16(o,false),4:(o)=>dv.getInt32(o,false),5:(o)=>dv.getFloat32(o,false),6:(o)=>dv.getFloat64(o,false)};
+  const g=getters[v.nctype];
+  for(let i=0;i<count;i++)out[i]=g(v.begin+i*size);
+  return out;
+}
+// Drop-in replacement for a Float32Array's .subarray(start,end), but reads
+// straight from the (big-endian) file buffer on demand instead of holding a
+// pre-decoded copy of the whole 3D variable in memory.
+class LazyNcSliceReader{
+  constructor(buffer,begin,sliceElems){this.buffer=buffer;this.begin=begin;this.sliceElems=sliceElems}
+  subarray(start,end){
+    const t=Math.floor(start/this.sliceElems);
+    const byteOffset=this.begin+t*this.sliceElems*4;
+    const dv=new DataView(this.buffer,byteOffset,this.sliceElems*4);
+    const out=new Float32Array(this.sliceElems);
+    for(let i=0;i<this.sliceElems;i++)out[i]=dv.getFloat32(i*4,false);
+    return out;
+  }
+}
+async function decodeClassicNetcdf(buffer,name){
+  const header=parseNetcdf3Header(buffer);
+  const baseNameLc=n=>n.toLowerCase();
+  const isCoordName=n=>/^(time|reference_ts|lat|latitude|lon|longitude|x|y|chx|chy|e|n|easting|northing|rotated_pole|crs|record)$/i.test(n)||/bnds?$|bounds?$/i.test(n);
+  const timeVar=header.vars.find(v=>/^(time|reference_ts)$/i.test(baseNameLc(v.name))&&v.dimids.length===1);
+  const yVar=header.vars.find(v=>/^(lat|latitude|y|chy|n|northing)$/i.test(baseNameLc(v.name))&&v.dimids.length===1);
+  const xVar=header.vars.find(v=>/^(lon|longitude|x|chx|e|easting)$/i.test(baseNameLc(v.name))&&v.dimids.length===1);
+  const dataCandidates=header.vars.filter(v=>!isCoordName(baseNameLc(v.name))&&v.dimids.length>=2)
+    .sort((a,b)=>b.dimids.reduce((p,id)=>p*header.dims[id].length,1)-a.dimids.reduce((p,id)=>p*header.dims[id].length,1));
+  if(!dataCandidates.length)throw new Error('No suitable data variable (2D/3D, non-coordinate) was found in this classic NetCDF-3 file.');
+  const dataVar=dataCandidates[0];
+  const shape=dataVar.dimids.map(id=>header.dims[id].length);
+  const totalExpected=shape.reduce((p,c)=>p*c,1);
+  if(dataVar.nctype!==5)throw new Error(`The main data variable "${dataVar.name}" is not a 32-bit float (nc_type ${dataVar.nctype}) — this reader currently only supports float32 data variables in classic NetCDF-3 files.`);
+
+  if(!yVar||!xVar)throw new Error('X/Y coordinate variables could not be identified in this classic NetCDF-3 file.');
+  const yVals=ncReadWhole1D(buffer,yVar);
+  const xVals=ncReadWhole1D(buffer,xVar);
+  const timeVals=timeVar?ncReadWhole1D(buffer,timeVar):null;
+  const timeUnits=timeVar?.attrs?.units;
+  const times=(timeVals&&timeUnits)?parseCfTime(timeUnits,timeVals):null;
+  if(!times)throw new Error('The time coordinate could not be parsed (missing or unrecognised "units" attribute) in this classic NetCDF-3 file.');
+
+  const nY=yVals.length,nX=xVals.length,nTime=totalExpected/(nY*nX);
+  if(!Number.isInteger(nTime))throw new Error(`Data variable shape [${shape.join(',')}] does not divide evenly into ${nY} × ${nX} grid steps.`);
+
+  const fillRaw=dataVar.attrs._FillValue??dataVar.attrs.missing_value;
+  const fill=fillRaw!==undefined?Number(fillRaw):NaN;
+  const unit=dataVar.attrs.units||'mm/h';
+
+  const dimA=shape[shape.length-2],dimB=shape[shape.length-1];
+  const swap=(dimA===nX&&dimB===nY&&nX!==nY);
+
+  const isLV95=Math.abs(xVals[0])>1000||Math.abs(yVals[0])>1000;
+  let bounds,sourceExtent,projection;
+  if(isLV95){
+    const xmin=Math.min(xVals[0],xVals[xVals.length-1]),xmax=Math.max(xVals[0],xVals[xVals.length-1]);
+    const ymin=Math.min(yVals[0],yVals[yVals.length-1]),ymax=Math.max(yVals[0],yVals[yVals.length-1]);
+    const corners=[[xmin,ymin],[xmin,ymax],[xmax,ymin],[xmax,ymax]].map(xy=>proj4('EPSG:2056','EPSG:4326',xy));
+    const lons=corners.map(c=>c[0]),lats=corners.map(c=>c[1]);
+    bounds=[[Math.min(...lats),Math.min(...lons)],[Math.max(...lats),Math.max(...lons)]];
+    sourceExtent={xmin,xmax,ymin,ymax};
+    projection='EPSG:2056';
+  }else{
+    const lonMin=Math.min(xVals[0],xVals[xVals.length-1]),lonMax=Math.max(xVals[0],xVals[xVals.length-1]);
+    const latMin=Math.min(yVals[0],yVals[yVals.length-1]),latMax=Math.max(yVals[0],yVals[yVals.length-1]);
+    bounds=[[latMin,lonMin],[latMax,lonMax]];
+    sourceExtent={xmin:lonMin,xmax:lonMax,ymin:latMin,ymax:latMax};
+    projection='EPSG:4326';
+  }
+  const xAscending=xVals[0]<xVals[xVals.length-1];
+  const yAscending=yVals[0]<yVals[yVals.length-1];
+  const raw=new LazyNcSliceReader(buffer,dataVar.begin,nY*nX);
+
+  return{raw,nTime,nY,nX,swap,xAscending,yAscending,bounds,sourceExtent,projection,scale:1,offset:0,fill,unit,
+    times,dataPath:dataVar.name,shape,name,label:deriveLabel(name,dataVar.name),isLazy:true};
+}
+
 // ─── merge multiple loaded netCDF files into one combined "dataset" ────────
 // Each loaded file contributes its own time steps; we don't physically
 // concatenate the raw arrays (they can be very large), we just keep a list
@@ -251,6 +422,11 @@ function prepareDayFrames(){
   ui.slider.disabled=!ok;ui.play.disabled=!ok||dayIndices.length<2;ui.prev.disabled=!ok;ui.next.disabled=!ok;
   ui.slider.min='0';ui.slider.max=String(Math.max(0,dayIndices.length-1));ui.slider.value='0';
   ui.frame.textContent=ok?`${dayIndices.length} time step(s) this day`:'No time steps for this day';
+  ui.timeSelect.disabled=!ok;
+  ui.timeSelect.innerHTML=ok
+    ?dayIndices.map((stepIndex,i)=>`<option value="${i}">${frameTimeLabel(stepIndex)}</option>`).join('')
+    :'<option>No time steps for this day</option>';
+  if(ok)ui.timeSelect.value='0';
   if(ui.chartCard){ui.chartCard.style.display='none'}
 }
 
@@ -345,6 +521,7 @@ async function showFrame(dayPos,{fit=false}={}){
   if(!dayIndices.length||loading)return;
   currentIndex=(dayPos+dayIndices.length)%dayIndices.length;
   ui.slider.value=String(currentIndex);
+  ui.timeSelect.value=String(currentIndex);
   const stepIndex=dayIndices[currentIndex];
   setBusy(true,'Rendering frame…');
   try{
@@ -527,7 +704,11 @@ async function loadFiles(fileList){
     setStatus(`Loaded ${dataset.steps.length} time steps across ${[...new Set(dataset.steps.map(s=>s.date))].length} day(s). Pick a day and click "Show this day".`,'ok');
   }catch(e){
     console.error(e);
-    setStatus(`Could not read the file(s): ${e?.message||String(e)}`,'err');
+    const msg=String(e?.message||e||'');
+    const looksLikeOOM=/out of memory|allocation|array buffer|invalid array length|maximum call stack/i.test(msg)||e instanceof RangeError;
+    setStatus(looksLikeOOM
+      ? `Could not read ${files[Math.min(decoded.length,files.length-1)]?.name||'the file'}: the browser ran out of memory for this file (${(files[Math.min(decoded.length,files.length-1)]?.size/1e9||0).toFixed(2)} GB). Try closing other tabs, using a 64-bit desktop browser, loading one file at a time instead of a whole folder, or asking for a smaller (e.g. daily instead of weekly) export.`
+      : `Could not read the file(s): ${msg}`,'err');
   }finally{
     setBusy(false);
     setTimeout(()=>ui.progress.style.width='0%',700);
@@ -544,6 +725,7 @@ ui.localFolder.addEventListener('change',e=>loadFiles(e.target.files));
 ui.day.addEventListener('change',()=>{if(dataset)prepareDayFrames()});
 ui.load.addEventListener('click',showSelectedDay);
 ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});
+ui.timeSelect.addEventListener('change',()=>{stopAnimation();showFrame(Number(ui.timeSelect.value))});
 ui.play.addEventListener('click',toggleAnimation);
 ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});
 ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});
