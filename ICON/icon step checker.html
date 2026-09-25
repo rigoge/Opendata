@@ -1,0 +1,429 @@
+<!DOCTYPE html>
+<!--
+  ICON step checker
+  Checks whether all forecast steps of the MeteoSwiss ICON-CH1-EPS and ICON-CH2-EPS
+  model runs are available in the STAC API on data.geo.admin.ch.
+
+  SPDX-License-Identifier: MIT
+  See the LICENSE file for the full licence text.
+
+  Third-party components and data (not covered by the MIT licence):
+  - Archivo typeface by Omnibus-Type, SIL Open Font License 1.1,
+    loaded at runtime from Google Fonts (not bundled). https://openfontlicense.org
+  - Data queried at runtime: MeteoSwiss Open Data, CC BY 4.0, "Source: MeteoSwiss".
+    https://opendatadocs.meteoswiss.ch/general/terms-of-use
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICON step checker</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,400..700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#E9EEF2; --panel:#F7F9FA; --ink:#16222C; --muted:#5B6B78; --grid:#CFD8DF;
+  --ok:#1F7A6B; --miss:#C4382F; --run:#D99A1E; --err:#7A4FA0; --na:#DDE3E8; --focus:#1D5FA8;
+}
+@media (prefers-color-scheme: dark){
+  :root{ --bg:#121A21; --panel:#1A242D; --ink:#E4EAEF; --muted:#93A3B0; --grid:#2C3945;
+    --ok:#3BA68F; --miss:#E0594F; --run:#E8B04A; --err:#A77FD0; --na:#222E38; --focus:#6EA8F0; }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:"Archivo",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;font-size:15px;line-height:1.45;
+  font-variant-numeric:tabular-nums}
+main{max-width:1180px;margin:0 auto;padding:28px 20px 60px}
+h1{font-stretch:78%;font-weight:700;font-size:2.1rem;line-height:1.05;margin:0 0 4px;letter-spacing:-.01em}
+.sub{color:var(--muted);margin:0 0 22px;max-width:75ch}
+.sub a,footer a{color:inherit}
+.controls{display:flex;flex-wrap:wrap;gap:18px 26px;align-items:flex-end;background:var(--panel);
+  border:1px solid var(--grid);border-radius:10px;padding:16px 18px;margin-bottom:22px}
+fieldset{border:0;margin:0;padding:0;display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+legend{font-size:.8rem;color:var(--muted);margin-bottom:6px;padding:0}
+label{display:inline-flex;gap:6px;align-items:center;cursor:pointer}
+input,select,button{font:inherit;color:inherit}
+input[type=number]{background:var(--bg);border:1px solid var(--grid);border-radius:6px;padding:5px 8px;width:4.4em}
+button{background:var(--ink);color:var(--panel);border:0;border-radius:7px;padding:9px 18px;font-weight:600;cursor:pointer}
+button:disabled{opacity:.55;cursor:progress}
+:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+.status{color:var(--muted);min-height:1.4em;margin:0 0 14px}
+.status.bad{color:var(--miss)}
+.legend{display:flex;flex-wrap:wrap;gap:8px 18px;font-size:.82rem;color:var(--muted);margin:0 0 26px}
+.legend i{display:inline-block;width:12px;height:12px;border-radius:2px;vertical-align:-1px;margin-right:5px}
+
+section.model{margin-bottom:46px;padding-top:18px;border-top:3px solid var(--ink)}
+section.model>h2{font-stretch:75%;font-size:1.8rem;line-height:1.1;margin:0 0 2px}
+section.model>p.hint{margin:0 0 14px;color:var(--muted);font-size:.88rem}
+.summary{display:grid;grid-template-columns:max-content 1fr;gap:3px 18px;margin:0 0 22px;font-size:.92rem}
+.summary dt{font-weight:600}
+.summary dd{margin:0}
+.summary .t-miss{color:var(--miss)}
+section.var{margin-bottom:26px}
+section.var h3{font-stretch:82%;font-size:1.15rem;margin:0}
+section.var p.hint{margin:0 0 8px;color:var(--muted);font-size:.83rem}
+.scroll{overflow-x:auto;background:var(--panel);border:1px solid var(--grid);border-radius:10px;padding:12px 12px 8px}
+.matrix{display:grid;column-gap:2px;row-gap:3px;align-items:center;min-width:max-content}
+.hd{font-size:.7rem;color:var(--muted);white-space:nowrap;overflow:visible;width:0}
+.rl{font-size:.85rem;padding-right:10px;white-space:nowrap}
+.rl small{color:var(--muted)}
+.cell{width:var(--cw);height:22px;border:0;border-radius:3px;display:flex;flex-direction:column;gap:1px;padding:0;background:none;cursor:pointer}
+.cell>i{flex:1;border-radius:2px;display:block}
+.cell.na{cursor:default}
+.s-ok{background:var(--ok)} .s-miss{background:var(--miss)} .s-run{background:var(--run);opacity:.55}
+.s-err{background:var(--err)} .s-na{background:var(--na)}
+.s-extra{background:var(--ok);outline:2px dashed var(--run);outline-offset:-2px}
+.rs{font-size:.82rem;padding-left:10px;white-space:nowrap}
+.rs b{font-weight:600}
+.t-ok{color:var(--ok)} .t-miss{color:var(--miss)} .t-run{color:var(--run)} .t-err{color:var(--err)}
+.empty{color:var(--muted);font-size:.9rem;margin:0}
+#detail{position:sticky;bottom:12px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;
+  padding:14px 18px;margin-top:10px;display:none;font-size:.9rem;box-shadow:0 6px 24px rgba(20,34,44,.18)}
+#detail dl{display:grid;grid-template-columns:max-content 1fr;gap:3px 14px;margin:0}
+#detail dt{color:var(--muted)}
+#detail dd{margin:0;word-break:break-all}
+#detail a{color:var(--focus)}
+#detail .close{position:absolute;top:8px;right:10px;background:none;color:var(--muted);padding:4px 8px;font-size:1.1rem}
+footer{margin-top:50px;padding-top:16px;border-top:1px solid var(--grid);color:var(--muted);font-size:.82rem;max-width:80ch}
+footer h2{font-size:.95rem;color:var(--ink);margin:0 0 6px}
+footer p{margin:0 0 8px}
+@media (max-width:600px){ h1{font-size:1.7rem} }
+@media (prefers-reduced-motion:no-preference){ .cell>i{transition:background-color .25s} }
+</style>
+</head>
+<body>
+<main>
+  <h1>ICON step checker</h1>
+  <p class="sub">Checks for each model run whether all forecast steps are available in the STAC collections
+    <a href="https://data.geo.admin.ch/browser/#/collections/ch.meteoschweiz.ogd-forecasting-icon-ch1?.language=en" target="_blank" rel="noopener">ICON-CH1-EPS</a> and
+    <a href="https://data.geo.admin.ch/browser/#/collections/ch.meteoschweiz.ogd-forecasting-icon-ch2?.language=en" target="_blank" rel="noopener">ICON-CH2-EPS</a>.
+    Only runs from the last 24 hours are checked, since MeteoSwiss deletes older data automatically. All times in UTC.</p>
+
+  <form class="controls" id="form" onsubmit="return false">
+    <fieldset>
+      <legend>Model</legend>
+      <label><input type="checkbox" name="model" value="ch1" checked> ICON-CH1</label>
+      <label><input type="checkbox" name="model" value="ch2" checked> ICON-CH2</label>
+    </fieldset>
+    <fieldset>
+      <legend>Parameters</legend>
+      <label><input type="checkbox" name="var" value="T_2M" checked> T_2M</label>
+      <label><input type="checkbox" name="var" value="TD_2M" checked> TD_2M</label>
+      <label><input type="checkbox" name="var" value="TOT_PREC" checked> TOT_PREC</label>
+      <label><input type="checkbox" name="var" value="U_10M" checked> U_10M</label>
+      <label><input type="checkbox" name="var" value="V_10M" checked> V_10M</label>
+    </fieldset>
+    <fieldset>
+      <legend>Ensemble</legend>
+      <label><input type="checkbox" id="ctrl" checked> Control run</label>
+      <label><input type="checkbox" id="pert" checked> Perturbed</label>
+    </fieldset>
+    <fieldset>
+      <legend>Last step</legend>
+      <label>CH1 +<input type="number" id="maxCh1" value="33" min="0" max="120">h</label>
+      <label>CH1 03 UTC +<input type="number" id="maxCh1_03" value="42" min="0" max="120">h</label>
+      <label>CH2 +<input type="number" id="maxCh2" value="120" min="0" max="240">h</label>
+    </fieldset>
+    <fieldset>
+      <legend>Query</legend>
+      <label title="One request per step instead of one bulk request per run. Much slower (several thousand requests for CH2), but works even if the API does not support queries without a horizon."><input type="checkbox" id="perStep"> One request per step</label>
+      <label><input type="checkbox" id="auto"> Refresh every 5 min</label>
+    </fieldset>
+    <button id="go" type="button">Check</button>
+  </form>
+
+  <p class="status" id="status" role="status">Not checked yet.</p>
+  <div class="legend">
+    <span><i class="s-ok"></i>available</span>
+    <span><i class="s-miss"></i>missing</span>
+    <span><i class="s-run" style="opacity:.55"></i>missing, run may still be in production</span>
+    <span><i class="s-extra"></i>available, but beyond the expected last step</span>
+    <span><i class="s-err"></i>request failed</span>
+    <span><i class="s-na"></i>not expected</span>
+    <span id="legendSplit">Top half control run, bottom half perturbed</span>
+  </div>
+  <div id="out"></div>
+  <div id="detail" aria-live="polite"></div>
+
+  <footer>
+    <h2>Licences</h2>
+    <p>ICON step checker is released under the
+      <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT licence</a>.
+      Provided "as is", without warranty of any kind.</p>
+    <p>Data: Source: MeteoSwiss. MeteoSwiss Open Data is published under
+      <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+      (<a href="https://opendatadocs.meteoswiss.ch/general/terms-of-use" target="_blank" rel="noopener">terms of use</a>).
+      Accessed via the STAC API on data.geo.admin.ch. This tool is not affiliated with or endorsed by MeteoSwiss.</p>
+    <p>Typeface: Archivo by Omnibus-Type, licensed under the
+      <a href="https://openfontlicense.org" target="_blank" rel="noopener">SIL Open Font License 1.1</a>, served by Google Fonts.</p>
+  </footer>
+</main>
+
+<script>
+/* ICON step checker | SPDX-License-Identifier: MIT */
+const API = 'https://data.geo.admin.ch/api/stac/v1/search';
+const RETENTION_H = 24;       // data older than 24 h is deleted by MeteoSwiss
+const CONCURRENCY = 6;
+const VARS = {
+  T_2M:     'Temperature 2 m above ground',
+  TD_2M:    'Dew point 2 m above ground',
+  TOT_PREC: 'Total precipitation (accumulated)',
+  U_10M:    'Wind U component 10 m',
+  V_10M:    'Wind V component 10 m'
+};
+const MODELS = {
+  ch1: { name:'ICON-CH1-EPS', coll:'ch.meteoschweiz.ogd-forecasting-icon-ch1', intervalH:3, cellW:17, labelEvery:3,
+         runningWindowH:8,  grid:'1 km, 11 members, run every 3 h',
+         maxStep: run => run.getUTCHours()===3 ? +$('maxCh1_03').value : +$('maxCh1').value },
+  ch2: { name:'ICON-CH2-EPS', coll:'ch.meteoschweiz.ogd-forecasting-icon-ch2', intervalH:6, cellW:9,  labelEvery:12,
+         runningWindowH:12, grid:'2.1 km, 21 members, run every 6 h',
+         maxStep: () => +$('maxCh2').value }
+};
+
+const $ = id => document.getElementById(id);
+let controller = null, autoTimer = null;
+
+/* ---------- Time helpers ---------- */
+const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const isoZ = d => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+const pad = n => String(n).padStart(2, '0');
+const fmtRun = d => `${d.getUTCDate()} ${MONTHS[d.getUTCMonth()]} ${pad(d.getUTCHours())} UTC`;
+const fmtUtc = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth()+1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+const fmtLocal = d => d.toLocaleString('en-GB',{timeZone:'Europe/Zurich',dateStyle:'short',timeStyle:'short'});
+const horizonStr = h => `P${Math.floor(h/24)}DT${pad(h%24)}H00M00S`;
+function parseHorizon(s){
+  if (typeof s === 'number') return s;
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(String(s||''));
+  if (!m) return null;
+  return (+(m[1]||0))*24 + (+(m[2]||0)) + (+(m[3]||0))/60;
+}
+function fmtSize(b){ if (b==null) return '–'; const u=['B','KiB','MiB','GiB']; let i=0; while(b>=1024&&i<3){b/=1024;i++;} return `${b.toFixed(i?1:0)} ${u[i]}`; }
+
+// All runs between (now − 24 h) and now, newest first
+function runList(model, now){
+  const step = model.intervalH * 3600e3;
+  const oldest = now.getTime() - RETENTION_H * 3600e3;
+  const out = [];
+  for (let t = Math.floor(now.getTime() / step) * step; t >= oldest; t -= step) out.push(new Date(t));
+  return out;
+}
+
+/* ---------- API ---------- */
+async function search(body, signal){
+  const items = [];
+  let req = { url: API, method: 'POST', body: { limit: 100, ...body } }, guard = 0;
+  while (req && guard++ < 50){
+    const opt = req.method === 'POST'
+      ? { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(req.body), signal }
+      : { signal };
+    const r = await fetch(req.url, opt);
+    if (!r.ok) throw new Error(`HTTP ${r.status} ${r.statusText}`);
+    const j = await r.json();
+    items.push(...(j.features || []));
+    const nx = (j.links || []).find(l => l.rel === 'next');
+    if (!nx || !(j.features||[]).length) break;
+    if ((nx.method || 'GET').toUpperCase() === 'POST')
+      req = { url: nx.href, method: 'POST', body: nx.merge ? { ...(req.body||{}), ...(nx.body||{}) } : (nx.body || req.body) };
+    else req = { url: nx.href, method: 'GET' };
+  }
+  return items;
+}
+function itemInfo(it){
+  const p = it.properties || {};
+  const a = Object.values(it.assets || {})[0] || {};
+  return { id: it.id, href: a.href, size: a['file:size'], updated: p.updated || p.created,
+           horizon: parseHorizon(p['forecast:horizon']) };
+}
+// Filter again on the client in case the API ignores individual filters
+function matches(it, v, runIso, pert){
+  const p = it.properties || {};
+  if (p['forecast:variable'] != null && String(p['forecast:variable']).toUpperCase() !== v) return false;
+  if (p['forecast:perturbed'] != null && !!p['forecast:perturbed'] !== pert) return false;
+  if (p['forecast:reference_datetime'] != null && isoZ(new Date(p['forecast:reference_datetime'])) !== runIso) return false;
+  return true;
+}
+async function pool(tasks, n, onDone){
+  let i = 0;
+  const worker = async () => { while (i < tasks.length){ const t = tasks[i++]; await t(); onDone(); } };
+  await Promise.all(Array.from({length: Math.min(n, tasks.length)}, worker));
+}
+
+/* ---------- Check ---------- */
+async function runCheck(){
+  if (controller) controller.abort();
+  controller = new AbortController();
+  const signal = controller.signal;
+
+  const models = [...document.querySelectorAll('input[name=model]:checked')].map(x => x.value);
+  const vars = [...document.querySelectorAll('input[name=var]:checked')].map(x => x.value);
+  const ens = [];
+  if ($('ctrl').checked) ens.push(false);
+  if ($('pert').checked) ens.push(true);
+  if (!models.length || !vars.length || !ens.length){
+    setStatus('Select at least one model, one parameter and one ensemble type.', true); return;
+  }
+
+  const now = new Date(), perStep = $('perStep').checked;
+  const data = {};   // data[mk] = { runs, res[v][runIso][pert] = {steps, error} }
+  const tasks = [];
+  for (const mk of models){
+    const M = MODELS[mk], runs = runList(M, now), res = {};
+    data[mk] = { runs, res };
+    for (const v of vars){ res[v] = {};
+      for (const run of runs){ const ri = isoZ(run); res[v][ri] = {};
+        for (const pert of ens){
+          const slot = res[v][ri][pert] = { steps: new Map(), error: null };
+          const base = { collections:[M.coll], 'forecast:reference_datetime': ri, 'forecast:variable': v, 'forecast:perturbed': pert };
+          const collect = async body => {
+            try{
+              const items = (await search(body, signal)).filter(it => matches(it, v, ri, pert));
+              for (const it of items){ const inf = itemInfo(it); if (inf.horizon != null) slot.steps.set(inf.horizon, inf); }
+            }catch(e){ if (e.name !== 'AbortError') slot.error = e.message; }
+          };
+          if (!perStep) tasks.push(() => collect(base));
+          else for (let h=0; h<=M.maxStep(run); h++) tasks.push(() => collect({ ...base, 'forecast:horizon': horizonStr(h) }));
+        }
+      }
+    }
+  }
+
+  $('go').disabled = true;
+  let done = 0;
+  setStatus(`Requests 0 / ${tasks.length} …`);
+  await pool(tasks, CONCURRENCY, () => { done++; if (done % 5 === 0 || done === tasks.length) setStatus(`Requests ${done} / ${tasks.length} …`); });
+  if (signal.aborted) return;
+  $('go').disabled = false;
+
+  render(data, vars, ens, now);
+  const errs = Object.values(data).flatMap(d => Object.values(d.res).flatMap(o => Object.values(o).flatMap(e => Object.values(e)))).filter(s => s.error).length;
+  setStatus(`Checked ${fmtUtc(now)} (${fmtLocal(now)} Zurich time), window from ${fmtUtc(new Date(now - RETENTION_H*3600e3))}, `
+            + `${tasks.length} requests` + (errs ? `, ${errs} failed` : '') + '.', errs > 0);
+}
+function setStatus(t, bad){ const s = $('status'); s.textContent = t; s.classList.toggle('bad', !!bad); }
+
+/* ---------- Evaluation ---------- */
+function evaluate(M, slot, run, now){
+  const max = M.maxStep(run);
+  if (slot.error) return { cls:'err', text:'request failed', count:0, max };
+  const missing = [];
+  for (let h=0; h<=max; h++) if (!slot.steps.has(h)) missing.push(h);
+  const count = max + 1 - missing.length;
+  const ageH = (now - run) / 3600e3;
+  if (!missing.length) return { cls:'ok', text:'complete', count, max };
+  const trailing = missing.every((h,i) => h === max - missing.length + 1 + i);
+  if (ageH < M.runningWindowH && trailing)
+    return { cls:'run', text: count ? `up to +${max - missing.length}h, may still be running` : 'no data yet', count, max, running:true };
+  if (!count) return { cls:'miss', text:'no data', count, max };
+  return { cls:'miss', text:`missing: ${compactList(missing)}`, count, max };
+}
+function compactList(arr){
+  const parts = []; let s = arr[0], p = arr[0];
+  for (let i=1;i<=arr.length;i++){
+    if (arr[i] === p+1){ p = arr[i]; continue; }
+    parts.push(s===p ? `+${s}` : `+${s}–${p}`); s = p = arr[i];
+  }
+  return parts.join(', ') + 'h';
+}
+
+/* ---------- Rendering ---------- */
+function render(data, vars, ens, now){
+  const out = $('out'); out.innerHTML = '';
+  $('legendSplit').style.display = ens.length === 2 ? '' : 'none';
+
+  for (const [mk, { runs, res }] of Object.entries(data)){
+    const M = MODELS[mk];
+    const sec = document.createElement('section'); sec.className = 'model';
+    sec.innerHTML = `<h2>${M.name}</h2><p class="hint">${M.grid}. ${runs.length} runs in the 24 h window`
+      + `${runs.length ? `, ${fmtRun(runs[runs.length-1])} to ${fmtRun(runs[0])}` : ''}.</p>`;
+    if (!runs.length){ sec.append(el('p','empty','No runs in the time window.')); out.append(sec); continue; }
+
+    // Overview: latest complete run per parameter
+    const dl = document.createElement('dl'); dl.className = 'summary';
+    for (const v of vars){
+      const complete = runs.find(r => ens.every(p => evaluate(M, res[v][isoZ(r)][p], r, now).cls === 'ok'));
+      dl.append(el('dt','',v));
+      dl.append(el('dd','', complete ? `latest complete run ${fmtRun(complete)}` : '<span class="t-miss">no complete run in the window</span>', true));
+    }
+    sec.append(dl);
+
+    const colsMax = Math.max(...runs.map(M.maxStep));
+    for (const v of vars){
+      const vs = document.createElement('section'); vs.className = 'var';
+      vs.innerHTML = `<h3>${v}</h3><p class="hint">${VARS[v]}, steps +0h to +${colsMax}h</p>`;
+      const wrap = document.createElement('div'); wrap.className = 'scroll';
+      const grid = document.createElement('div'); grid.className = 'matrix';
+      grid.style.setProperty('--cw', M.cellW + 'px');
+      grid.style.gridTemplateColumns = `max-content repeat(${colsMax+1}, ${M.cellW}px) max-content`;
+
+      grid.append(el('div','hd',''));
+      for (let h=0; h<=colsMax; h++) grid.append(el('div','hd', h % M.labelEvery === 0 ? String(h) : ''));
+      grid.append(el('div','hd',''));
+
+      for (const run of runs){
+        const ri = isoZ(run), max = M.maxStep(run);
+        const evals = ens.map(p => ({ p, slot: res[v][ri][p], ev: evaluate(M, res[v][ri][p], run, now) }));
+        grid.append(el('div','rl', `${fmtRun(run)}<br><small>to +${max}h</small>`, true));
+
+        for (let h=0; h<=colsMax; h++){
+          const b = document.createElement('button');
+          b.type = 'button'; b.className = 'cell';
+          let anyInfo = false; const tips = [];
+          for (const { p, slot, ev } of evals){
+            const i = document.createElement('i');
+            const info = slot.steps.get(h);
+            let cls, word;
+            if (slot.error){ cls = 's-err'; word = 'error'; }
+            else if (info){ cls = h > max ? 's-extra' : 's-ok'; word = 'available'; anyInfo = true; }
+            else if (h > max){ cls = 's-na'; word = 'not expected'; }
+            else { cls = ev.running ? 's-run' : 's-miss'; word = 'missing'; }
+            i.className = cls; b.append(i);
+            tips.push(`${p ? 'perturbed' : 'control run'}: ${word}`);
+          }
+          const valid = new Date(run.getTime() + h*3600e3);
+          b.title = `${v} ${fmtRun(run)} +${h}h, valid ${fmtUtc(valid)}\n` + tips.join('\n');
+          b.setAttribute('aria-label', b.title.replace(/\n/g, ', '));
+          if (h > max && !anyInfo){ b.classList.add('na'); b.tabIndex = -1; }
+          else b.addEventListener('click', () => showDetail(M, v, run, h, evals));
+          grid.append(b);
+        }
+        grid.append(el('div','rs', evals.map(({p, ev}) =>
+          `${ens.length===2 ? (p ? 'pert ' : 'ctrl ') : ''}<b class="t-${ev.cls}">${ev.count}/${ev.max+1}</b> ${ev.text}`).join('<br>'), true));
+      }
+      wrap.append(grid); vs.append(wrap); sec.append(vs);
+    }
+    out.append(sec);
+  }
+}
+function el(tag, cls, content, html){
+  const e = document.createElement(tag); if (cls) e.className = cls;
+  if (html) e.innerHTML = content; else e.textContent = content;
+  return e;
+}
+function showDetail(M, v, run, h, evals){
+  const d = $('detail'); d.style.display = 'block';
+  const valid = new Date(run.getTime() + h*3600e3);
+  let rows = `<dt>Model</dt><dd>${M.name}</dd><dt>Parameter</dt><dd>${v}</dd><dt>Run</dt><dd>${fmtUtc(run)}</dd>
+              <dt>Step</dt><dd>+${h}h (${horizonStr(h)}), valid ${fmtUtc(valid)} / ${fmtLocal(valid)} Zurich time</dd>`;
+  for (const { p, slot } of evals){
+    const info = slot.steps.get(h), lab = p ? 'Perturbed' : 'Control run';
+    if (slot.error) rows += `<dt>${lab}</dt><dd>Request failed: ${slot.error}</dd>`;
+    else if (!info) rows += `<dt>${lab}</dt><dd>not available</dd>`;
+    else rows += `<dt>${lab}</dt><dd>${info.id}<br>${fmtSize(info.size)}`
+      + (info.updated ? `, updated ${fmtUtc(new Date(info.updated))}` : '')
+      + (info.href ? `<br><a href="${info.href}" target="_blank" rel="noopener">Download GRIB2</a>` : '') + `</dd>`;
+  }
+  d.innerHTML = `<button class="close" type="button" aria-label="Close details">×</button><dl>${rows}</dl>`;
+  d.querySelector('.close').onclick = () => { d.style.display = 'none'; };
+}
+
+/* ---------- Events ---------- */
+$('go').addEventListener('click', runCheck);
+$('auto').addEventListener('change', e => {
+  clearInterval(autoTimer);
+  if (e.target.checked){ autoTimer = setInterval(runCheck, 5*60e3); runCheck(); }
+});
+runCheck();
+</script>
+</body>
+</html>
