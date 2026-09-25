@@ -24,11 +24,12 @@
 <style>
 :root{
   --bg:#E9EEF2; --panel:#F7F9FA; --ink:#16222C; --muted:#5B6B78; --grid:#CFD8DF;
-  --ok:#1F7A6B; --miss:#C4382F; --run:#D99A1E; --err:#7A4FA0; --na:#DDE3E8; --focus:#1D5FA8;
+  --ok:#1F7A6B; --miss:#C4382F; --run:#E6C619; --err:#7A4FA0; --na:#DDE3E8; --focus:#1D5FA8;
 }
 @media (prefers-color-scheme: dark){
+  .t-run{color:var(--run)!important}
   :root{ --bg:#121A21; --panel:#1A242D; --ink:#E4EAEF; --muted:#93A3B0; --grid:#2C3945;
-    --ok:#3BA68F; --miss:#E0594F; --run:#E8B04A; --err:#A77FD0; --na:#222E38; --focus:#6EA8F0; }
+    --ok:#3BA68F; --miss:#E0594F; --run:#F2D43D; --err:#A77FD0; --na:#222E38; --focus:#6EA8F0; }
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);
@@ -71,12 +72,12 @@ section.var p.hint{margin:0 0 8px;color:var(--muted);font-size:.83rem}
 .cell{width:var(--cw);height:22px;border:0;border-radius:3px;display:flex;flex-direction:column;gap:1px;padding:0;background:none;cursor:pointer}
 .cell>i{flex:1;border-radius:2px;display:block}
 .cell.na{cursor:default}
-.s-ok{background:var(--ok)} .s-miss{background:var(--miss)} .s-run{background:var(--run);opacity:.55}
+.s-ok{background:var(--ok)} .s-miss{background:var(--miss)} .s-run{background:var(--run)}
 .s-err{background:var(--err)} .s-na{background:var(--na)}
 .s-extra{background:var(--ok);outline:2px dashed var(--run);outline-offset:-2px}
 .rs{font-size:.82rem;padding-left:10px;white-space:nowrap}
 .rs b{font-weight:600}
-.t-ok{color:var(--ok)} .t-miss{color:var(--miss)} .t-run{color:var(--run)} .t-err{color:var(--err)}
+.t-ok{color:var(--ok)} .t-miss{color:var(--miss)} .t-run{color:#9A7F00} .t-err{color:var(--err)}
 .empty{color:var(--muted);font-size:.9rem;margin:0}
 #detail{position:sticky;bottom:12px;background:var(--panel);border:1px solid var(--grid);border-radius:10px;
   padding:14px 18px;margin-top:10px;display:none;font-size:.9rem;box-shadow:0 6px 24px rgba(20,34,44,.18)}
@@ -137,7 +138,7 @@ footer p{margin:0 0 8px}
   <div class="legend">
     <span><i class="s-ok"></i>available</span>
     <span><i class="s-miss"></i>missing</span>
-    <span><i class="s-run" style="opacity:.55"></i>missing, run may still be in production</span>
+    <span><i class="s-run"></i>missing, run may still be in production</span>
     <span><i class="s-extra"></i>available, but beyond the expected last step</span>
     <span><i class="s-err"></i>request failed</span>
     <span><i class="s-na"></i>not expected</span>
@@ -177,7 +178,7 @@ const MODELS = {
          runningWindowH:8,  grid:'1 km, 11 members, run every 3 h',
          maxStep: run => run.getUTCHours()===3 ? +$('maxCh1_03').value : +$('maxCh1').value },
   ch2: { name:'ICON-CH2-EPS', coll:'ch.meteoschweiz.ogd-forecasting-icon-ch2', intervalH:6, cellW:9,  labelEvery:12,
-         runningWindowH:12, grid:'2.1 km, 21 members, run every 6 h',
+         runningWindowH:4,  grid:'2.1 km, 21 members, run every 6 h',
          maxStep: () => +$('maxCh2').value }
 };
 
@@ -311,9 +312,12 @@ function evaluate(M, slot, run, now){
   const count = max + 1 - missing.length;
   const ageH = (now - run) / 3600e3;
   if (!missing.length) return { cls:'ok', text:'complete', count, max };
-  const trailing = missing.every((h,i) => h === max - missing.length + 1 + i);
-  if (ageH < M.runningWindowH && trailing)
-    return { cls:'run', text: count ? `up to +${max - missing.length}h, may still be running` : 'no data yet', count, max, running:true };
+  // Within the grace period after the reference time, every missing step counts as
+  // "may still be in production" – steps are not necessarily published in order.
+  if (ageH < M.runningWindowH){
+    const until = fmtUtc(new Date(run.getTime() + M.runningWindowH*3600e3)).slice(11);
+    return { cls:'run', text: count ? `may still be running (grace until ${until})` : `no data yet (grace until ${until})`, count, max, running:true };
+  }
   if (!count) return { cls:'miss', text:'no data', count, max };
   return { cls:'miss', text:`missing: ${compactList(missing)}`, count, max };
 }
