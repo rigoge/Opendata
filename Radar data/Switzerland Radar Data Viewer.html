@@ -57,15 +57,19 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <main><div class="layout">
 <section class="card controls">
 <h2>Precipitation time series</h2>
-<div class="field"><label for="viewSelect">View</label><select id="viewSelect"><option value="day" selected>Single day</option><option value="last7">Last 7 days overview (CPC hourly only)</option></select></div>
-<div class="field" id="last7DateField" style="display:none"><label for="last7Date">End date (7 days back from here, UTC)</label><input type="date" id="last7Date"><div class="small">Loads the 7 calendar days ending on this date (inclusive). Today is not selectable, since that day's data is usually still incomplete.</div></div>
-<div class="field"><label for="productSelect">1. Product</label><select id="productSelect"><option value="CPC" selected>CPC · CombiPrecip, 60-minute total (rolling)</option><option value="RZC">RZC · PRECIP, instantaneous precipitation rate</option><option value="BZC">BZC · POH (Probability of Hail)</option><option value="MZC">MZC · MESHS (hail size)</option></select></div>
-<div class="field"><label for="dateSelect">2. Day (UTC)</label><select id="dateSelect"></select></div>
-<div class="field"><label for="modeSelect">3. Time steps</label><select id="modeSelect"><option value="5min">Every 5 minutes</option><option id="modeHourlyOpt" value="hourly" selected>Full hours only</option><option id="modeDailyOpt" value="daily">Daily sum</option></select></div>
-<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">4. Load</div>
-<div class="row"><button id="refreshBtn" class="secondary" type="button">Refresh catalogue</button><button id="loadDayBtn" type="button">Load day</button></div>
+<div class="small" style="font-weight:700;color:var(--ink)">1. File or folder path</div>
+<div class="field" style="margin-top:6px"><label for="localFolder">Archive folder</label><input id="localFolder" type="file" webkitdirectory multiple><div class="small">Select a folder with archived CPC / RZC / BZC / MZC files (<code>.h5</code>). The days, products and time steps offered below are read from the files found.</div></div>
+<div class="field"><label for="localFiles">or individual files</label><input id="localFiles" type="file" multiple accept=".h5,.hdf,.hdf5"></div>
+<div class="field"><button id="refreshBtn" class="secondary" type="button">…or use the online Open Data catalogue (STAC) (last 14 days only)</button></div>
+<div class="field" id="viewField" style="display:none"><label for="viewSelect">View (online catalogue)</label><select id="viewSelect"><option value="day" selected>Single day</option><option value="last7">Last 7 days overview (CPC hourly only)</option></select></div>
+<div class="field" id="last7DateField" style="display:none"><label for="last7Date">End date (7 days back from here, UTC)</label><input type="date" id="last7Date"><div class="small">Loads the 7 calendar days ending on this date (inclusive). Today is not selectable.</div></div>
+<div class="field"><label for="dateSelect">2. Day (UTC) – from the loaded data</label><select id="dateSelect" disabled><option>– choose a path first –</option></select></div>
+<div class="field"><label for="productSelect">3. Product</label><select id="productSelect" disabled><option>– choose a day first –</option></select></div>
+<div class="field"><label for="modeSelect">4. Time steps (granularity)</label><select id="modeSelect" disabled><option>– choose a product first –</option></select></div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">5. Load</div>
+<div class="row" style="grid-template-columns:1fr"><button id="loadDayBtn" type="button" disabled>Load day</button></div>
 <div class="small" style="margin-top:6px">Please wait until the whole day or available dataset has loaded, and keep the browser window open.</div>
-<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">5. Playback</div>
+<div class="small" style="font-weight:700;color:var(--ink);margin-top:14px">6. Playback</div>
 <div class="timeline">
   <div class="timehead"><strong id="timeLabel">–</strong><span id="frameLabel">No data loaded yet</span></div>
   <input id="timeSlider" type="range" min="0" max="23" step="1" value="0" disabled aria-label="Time step">
@@ -76,8 +80,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 </div>
 <div id="status" class="status">Initializing…</div><div class="progress"><div id="progressBar"></div></div>
 <div id="fileMeta" class="meta"></div>
-<div class="field" style="margin-top:18px"><label for="placeSearch">6. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
-<div class="field" style="margin-top:18px"><label for="localFolder">7. Open a folder of archived files</label><input id="localFolder" type="file" webkitdirectory multiple><div class="small">For archived CPC/RZC/BZC/MZC datasets select a folder. They can be animated and viewed if all the files from a day are saved in the same folder.<br><b>Important: BEFORE selecting the folder select 3. Time steps – 5min, hourly, or daily-sum data.</b></div></div>
+<div class="field" style="margin-top:18px"><label for="placeSearch">7. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <div class="hint"><b>Click the map</b> to read the exact pixel value (CPC, RZC, POH or MESHS) at that location.<br><br><b>File filters:</b><br><code>CPCyyjjjHHMMQ_DDDDD.XYZ.h5</code> for CPC, <code>RZCyyjjjHHMMKK.XYZ.h5</code> for RZC, <code>BZCyyjjjHHMMvl.845.h5</code> for BZC (POH), <code>MZCyyjjjHHMMvl.850.h5</code> for MZC (MESHS). Date and UTC time are taken exclusively from the file name. In 5-minute mode, <code>MM = 00, 05, …, 55</code>; in hourly mode, only <code>MM = 00</code>; in daily-sum mode (BZC/MZC only), the special codes <code>2400</code> (00:00–24:00 UTC) or <code>3000</code> (06:00–06:00 UTC) are used — both codes are valid for either hail product.<br><br>CPC shows the precipitation total for the preceding 60 minutes in mm — when published every 5 minutes this is a <b>rolling</b> window, so consecutive CPC readings overlap almost entirely (only the hourly, non-overlapping readings should be summed for a daily total; the time-series plot does this automatically). RZC shows the instantaneous radar-based precipitation rate in mm/h. BZC shows the Probability of Hail (POH) as a percentage; MZC shows the MESHS hail size in mm (values below 20 mm are not reported). If several CPC versions exist for the same time, the highest quality code is preferred; if tied, the most recently updated file is used.<br><br>Radar is not "all seeing" — check out <a href="https://www.meteoschweiz.admin.ch/wetter/messsysteme/atmosphaere/das-schweizer-wetterradarnetz/faq-radar.html" target="_blank" rel="noopener">https://www.meteoschweiz.admin.ch/wetter/messsysteme/atmosphaere/das-schweizer-wetterradarnetz/faq-radar.html</a> (available in German, French and Italian only). For detailed information about the POH and MESHS products see <a href="https://opendatadocs.meteoswiss.ch/d-radar-data/d3-radar-hail-products" target="_blank" rel="noopener">https://opendatadocs.meteoswiss.ch/d-radar-data/d3-radar-hail-products</a>.</div>
 </section>
 <section class="card mapcard"><div class="maptop"><strong id="mapTitle">No precipitation map loaded</strong><span id="mapSubtitle">Switzerland · LV95 / EPSG:2056</span></div><div id="legend" class="legend"><div id="legendTitle" class="legend-title">CPC precipitation total for the last 60 minutes</div><div id="legendBar" class="bar" style="background:linear-gradient(90deg,#c7e9ff 0% 8.33%,#94cef7 8.33% 16.67%,#5db5eb 16.67% 25%,#2ba4dc 25% 33.33%,#22b5ab 33.33% 41.67%,#37b55a 41.67% 50%,#8cc53a 50% 58.33%,#edd632 58.33% 66.67%,#f79e28 66.67% 75%,#ed6523 75% 83.33%,#d62d28 83.33% 91.67%,#7e0f5c 91.67% 100%)"></div><div id="legendTicks" class="ticks"><span style="left:0%">0.1</span><span style="left:25%;transform:translateX(-50%)">1</span><span style="left:58.33%;transform:translateX(-50%)">10</span><span style="left:83.33%;transform:translateX(-50%)">50</span><span style="right:0%">≥100 mm</span></div></div><div id="map"></div><div id="loader" class="loader">Processing data…</div></section>
@@ -111,7 +114,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 const STAC='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-precip/items';
 const STAC_HAIL='https://data.geo.admin.ch/api/stac/v1/collections/ch.meteoschweiz.ogd-radar-hail/items';
 const $=id=>document.getElementById(id);
-const ui={view:$('viewSelect'),last7Field:$('last7DateField'),last7Date:$('last7Date'),product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),legendBar:$('legendBar'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),cacheText:$('cacheStatusText'),cacheBar:$('cacheStatusBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
+const ui={view:$('viewSelect'),viewField:$('viewField'),last7Field:$('last7DateField'),last7Date:$('last7Date'),product:$('productSelect'),date:$('dateSelect'),mode:$('modeSelect'),refresh:$('refreshBtn'),load:$('loadDayBtn'),slider:$('timeSlider'),play:$('playBtn'),prev:$('prevBtn'),next:$('nextBtn'),speed:$('speedSelect'),hours:$('hours'),status:$('status'),progress:$('progressBar'),meta:$('fileMeta'),loader:$('loader'),title:$('mapTitle'),subtitle:$('mapSubtitle'),time:$('timeLabel'),frame:$('frameLabel'),legendTitle:$('legendTitle'),legendTicks:$('legendTicks'),legendBar:$('legendBar'),placeSearch:$('placeSearch'),placeSearchBtn:$('placeSearchBtn'),placeResults:$('placeResults'),cacheText:$('cacheStatusText'),cacheBar:$('cacheStatusBar'),chartCard:$('chartCard'),chartTitle:$('chartTitle'),chartSubtitle:$('chartSubtitle'),chartCanvas:$('chartCanvas'),chartCloseBtn:$('chartCloseBtn'),chartExportBtn:$('chartExportBtn')};
 const map=L.map('map',{preferCanvas:true}).setView([46.8,8.25],7);
 L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
 L.control.scale({imperial:false}).addTo(map);
@@ -189,7 +192,7 @@ ui.placeResults.addEventListener('change',()=>{
   const selected=results[Number(ui.placeResults.value)];
   if(selected)selectPlace(selected);
 });
-let overlay=null,catalog=new Map(),frames=[],currentIndex=0,timer=null,loading=false,catalogAbort=null,placeMarker=null,placeSearchController=null,lastDecoded=null,preloadToken=0;
+let source=null,overlay=null,catalog=new Map(),frames=[],currentIndex=0,timer=null,loading=false,catalogAbort=null,placeMarker=null,placeSearchController=null,lastDecoded=null,preloadToken=0;
 function sampleRaw(raw,rowStride,mode,x,y){if(mode==='transpose')return Number(raw[x*rowStride+y]);return Number(raw[y*rowStride+x])}
 function pixelAt(latlng){
   const d=lastDecoded;
@@ -431,9 +434,8 @@ ui.chartExportBtn.addEventListener('click',exportSeriesCsv);
 window.addEventListener('resize',()=>{if(lastSeries&&ui.chartCard.style.display!=='none')drawLineChart(ui.chartCanvas,lastSeries.labels,lastSeries.values)});
 const frameCache=new Map();const FRAME_CACHE_LIMIT=500;function cacheFrame(key,value){frameCache.set(key,value);while(frameCache.size>FRAME_CACHE_LIMIT)frameCache.delete(frameCache.keys().next().value)}
 function setStatus(t,k=''){ui.status.textContent=t;ui.status.className='status '+k}
-function setBusy(on,text='Processing data…'){loading=on;ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on;ui.refresh.disabled=on}
+function setBusy(on,text='Processing data…'){loading=on;ui.loader.textContent=text;ui.loader.classList.toggle('on',on);ui.load.disabled=on||!source;ui.refresh.disabled=on}
 function utcKey(d){return d.toISOString().slice(0,10)}
-function makeDates(){ui.date.innerHTML='';const now=new Date();for(let i=0;i<14;i++){const d=new Date(Date.UTC(now.getUTCFullYear(),now.getUTCMonth(),now.getUTCDate()-i));ui.date.add(new Option(new Intl.DateTimeFormat('de-CH',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'}).format(d),utcKey(d)))} }
 function dateFromYyDoy(yy,doy){const year=yy>=70?1900+yy:2000+yy;return utcKey(new Date(Date.UTC(year,0,doy)))}
 function fileNameFromHref(href,key){try{return decodeURIComponent(new URL(href,location.href).pathname.split('/').pop()||key)}catch{return decodeURIComponent(String(href).split('/').pop().split('?')[0]||key)}}
 function parseProductName(name){
@@ -463,7 +465,7 @@ function candidateBetter(a,b){
   return Number(a.updatedMs||0)>Number(b.updatedMs||0);
 }
 function collectAssets(json){for(const f of json.features||[]){for(const [key,a] of Object.entries(f.assets||{})){const href=a.href||'',name=fileNameFromHref(href,key),p=parseProductName(name);if(!p||(p.hour>23&&!p.isDaily)||p.minute>59||(!p.isDaily&&p.minute%5!==0))continue;const updated=a.updated||f.properties?.updated||'';const item={...p,name,href,size:a['file:size'],updated,updatedMs:Date.parse(updated)||0};const ck=`${p.product}|${p.durationMin||0}|${p.date}|${p.hhmm||(String(p.hour).padStart(2,'0')+String(p.minute).padStart(2,'0'))}`;if(candidateBetter(item,catalog.get(ck)))catalog.set(ck,item)}}}
-async function loadCatalog(){stopAnimation();if(catalogAbort)catalogAbort.abort();const ac=new AbortController();catalogAbort=ac;setBusy(true,'Loading STAC catalogue…');catalog.clear();frameCache.clear();setStatus('Loading STAC catalogue…');try{for(const base of [STAC,STAC_HAIL]){let url=base+'?limit=100';let pages=0;while(url&&pages<20){const r=await fetch(url,{cache:'no-store',signal:ac.signal});if(!r.ok)throw new Error(`STAC HTTP ${r.status}`);const j=await r.json();collectAssets(j);url=(j.links||[]).find(x=>x.rel==='next')?.href||null;pages++;ui.progress.style.width=Math.min(90,pages*8)+'%'}}if(ac.signal.aborted)return;ui.progress.style.width='100%';prepareDay();if(ui.view.value==='last7')refreshLast7DateConstraints();const cpc=[...catalog.values()].filter(x=>x.product==='CPC').length,rzc=[...catalog.values()].filter(x=>x.product==='RZC').length,bzc=[...catalog.values()].filter(x=>x.product==='BZC').length,mzc=[...catalog.values()].filter(x=>x.product==='MZC').length;setStatus(`${cpc} CPC, ${rzc} RZC, ${bzc} BZC and ${mzc} MZC files found.`,'ok')}catch(e){if(e?.name==='AbortError')return;setStatus('STAC request failed: '+e.message,'err');prepareDay()}finally{if(catalogAbort===ac){setBusy(false);catalogAbort=null}setTimeout(()=>ui.progress.style.width='0%',700)}}
+async function loadCatalog(){stopAnimation();if(catalogAbort)catalogAbort.abort();const ac=new AbortController();catalogAbort=ac;setBusy(true,'Loading STAC catalogue…');catalog.clear();frameCache.clear();source='remote';ui.viewField.style.display='';setStatus('Loading STAC catalogue…');try{for(const base of [STAC,STAC_HAIL]){let url=base+'?limit=100';let pages=0;while(url&&pages<20){const r=await fetch(url,{cache:'no-store',signal:ac.signal});if(!r.ok)throw new Error(`STAC HTTP ${r.status}`);const j=await r.json();collectAssets(j);url=(j.links||[]).find(x=>x.rel==='next')?.href||null;pages++;ui.progress.style.width=Math.min(90,pages*8)+'%'}}if(ac.signal.aborted)return;ui.progress.style.width='100%';if(ui.view.value==='last7')refreshLast7DateConstraints();else populateDates();const cpc=[...catalog.values()].filter(x=>x.product==='CPC').length,rzc=[...catalog.values()].filter(x=>x.product==='RZC').length,bzc=[...catalog.values()].filter(x=>x.product==='BZC').length,mzc=[...catalog.values()].filter(x=>x.product==='MZC').length;setStatus(`${cpc} CPC, ${rzc} RZC, ${bzc} BZC and ${mzc} MZC files found. Now choose 2. Day, 3. Product and 4. Time steps.`,'ok')}catch(e){if(e?.name==='AbortError')return;setStatus('STAC request failed: '+e.message,'err');populateDates()}finally{if(catalogAbort===ac){setBusy(false);catalogAbort=null}setTimeout(()=>ui.progress.style.width='0%',700)}}
 function frameTime(f){return `${String(f.hour).padStart(2,'0')}:${String(f.minute).padStart(2,'0')}`}
 function productSelectorFor(item){return item.product==='RZC'?'RZC':item.product==='BZC'?'BZC':item.product==='MZC'?'MZC':'CPC'}
 function productInfo(selector=ui.product.value){
@@ -664,65 +666,74 @@ return{url:canvas.toDataURL('image/png'),bounds:[[latS,lonW],[latN,lonE]],w:grid
 async function getFrameData(frame){const key=frame.href||frame.name;if(frameCache.has(key))return frameCache.get(key);let buffer;if(frame.file)buffer=await frame.file.arrayBuffer();else{const r=await fetch(frame.href,{cache:'no-store'});if(!r.ok)throw new Error(`HDF5 HTTP ${r.status}`);buffer=await r.arrayBuffer()}const decoded=await decodeFrame(buffer,frame.name,frame.product,frame.durationMin);cacheFrame(key,decoded);return decoded}
 async function showFrame(index,{fit=false}={}){if(!frames.length||loading)return;currentIndex=(index+frames.length)%frames.length;ui.slider.value=String(currentIndex);const frame=frames[currentIndex];markActiveHour();ui.time.textContent=frameTimeLabel(frame);ui.frame.textContent=`Frame ${currentIndex+1} of ${frames.length}`;setBusy(true,`${frame.name}\nis loading…`);try{const d=await getFrameData(frame);lastDecoded=d;updateCacheStatus();if(overlay){overlay.setUrl(d.url);overlay.setBounds(d.bounds)}else{overlay=L.imageOverlay(d.url,d.bounds,{opacity:.8,interactive:false}).addTo(map)}if(fit)map.fitBounds(d.bounds,{padding:[15,15]});const info=productInfo(productSelectorFor(frame));ui.title.textContent=`${info.name} · ${frame.date} · ${frameTimeLabel(frame)}`;ui.subtitle.textContent=`${d.w} × ${d.h} · ${d.path} · ${d.orientation}`;ui.meta.innerHTML=`<b>${frame.name}</b><br>Time from file name: <code>${frame.date} ${frameTimeLabel(frame)}</code>${frame.product==='CPC'?'<br>Quality code: <code>'+frame.qualityRaw+'</code>':'<br>Reserved field: <code>'+frame.qualityRaw+'</code>'}${frame.updated?'<br>Updated: '+new Date(frame.updated).toLocaleString('en-GB'):''}<br>Value range: ${Number.isFinite(d.min)?d.min.toFixed(2):'–'} to ${Number.isFinite(d.max)?d.max.toFixed(2):'–'} ${info.unit}`;setStatus(`${info.name} map displayed: ${frameTimeLabel(frame)} · ${d.valid.toLocaleString('en-GB')} visible raster cells.`,'ok')}catch(e){console.error(e);setStatus(`${frame.product} file could not be visualized: ${e?.message||String(e)}`,'err');if(timer)stopAnimation()}finally{setBusy(false)}}
 async function loadDay(){stopAnimation();prepareDay();if(!frames.length)return;ui.progress.style.width='2%';setStatus(`${frames.length} time steps found. Loading first frame…`);await showFrame(0,{fit:true});const token=preloadToken;preloadDay(frames.slice(),token);}
-$('localFolder').addEventListener('change',async e=>{
-  const files=Array.from(e.target.files||[]);
+async function ingestLocal(fileList){
+  const files=Array.from(fileList||[]);
   if(!files.length)return;
-  stopAnimation();preloadToken++;
+  stopAnimation();preloadToken++;if(catalogAbort){catalogAbort.abort();catalogAbort=null;setBusy(false)}
   const parsed=[];
   for(const file of files){
     const p=parseProductName(file.name);
     if(!p||(p.hour>23&&!p.isDaily)||p.minute>59||(!p.isDaily&&p.minute%5!==0))continue;
-    parsed.push({...p,name:file.name,file});
+    parsed.push({...p,name:file.name,file,updated:'',updatedMs:file.lastModified||0});
   }
-  if(!parsed.length){setStatus('No recognisable CPC/RZC/BZC/MZC files were found in that folder.','warn');return}
-  const selectorsFound=[...new Set(parsed.map(x=>productSelectorFor(x)))];
-  const chosenSelector=selectorsFound.includes(ui.product.value)?ui.product.value:selectorsFound[0];
-  if(ui.view.value==='last7'){ui.view.value='day';applyViewMode()}
-  ui.product.value=chosenSelector;
-  updateModeOptions();
-  updateProductUi();
-  const matching=parsed.filter(x=>productSelectorFor(x)===chosenSelector);
-  // De-duplicate same time-slot files (e.g. re-processed CPC versions), preferring the highest quality code.
-  const unique=new Map();
-  for(const it of matching){
-    const k=`${it.product}|${it.durationMin||0}|${it.date}|${it.hhmm||(String(it.hour).padStart(2,'0')+String(it.minute).padStart(2,'0'))}`;
-    const prev=unique.get(k);
-    if(!prev||(it.quality??-1)>(prev.quality??-1))unique.set(k,it);
-  }
-  const dateCounts=new Map();
-  for(const it of unique.values())dateCounts.set(it.date,(dateCounts.get(it.date)||0)+1);
-  const bestDate=[...dateCounts.entries()].sort((a,b)=>b[1]-a[1])[0][0];
-  let dayFrames=[...unique.values()].filter(x=>x.date===bestDate&&matchesMode(x,ui.mode.value));
-  dayFrames.sort((a,b)=>a.hour-b.hour||a.minute-b.minute);
-  if(!dayFrames.length){setStatus('No matching local files remained for this day after filtering by the current time-step mode.','warn');return}
-  frames=dayFrames;
-  if([...ui.date.options].some(o=>o.value===bestDate))ui.date.value=bestDate;
-  currentIndex=0;
-  ui.slider.disabled=false;ui.play.disabled=frames.length<2;ui.prev.disabled=false;ui.next.disabled=false;
-  renderHourBoxes();
-  ui.slider.min='0';ui.slider.max=String(frames.length-1);ui.slider.value='0';
-  const info=productInfo(chosenSelector);
-  ui.frame.textContent=`${frames.length} local time step(s) loaded from folder`;
-  ui.meta.innerHTML=`<b>${frames.length} local ${info.name} file(s) loaded</b><br>Data day: <code>${bestDate}</code>${matching.length>frames.length?`<br>(${matching.length-frames.length} file(s) from other days/time-steps in the same folder were not used)`:''}`;
-  setStatus(`${frames.length} local files loaded for ${bestDate}.`,'ok');
-  if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}
-  await showFrame(0,{fit:true});
-  const token=preloadToken;
-  preloadDay(frames.slice(),token);
-});
+  if(!parsed.length){setStatus('No recognisable CPC/RZC/BZC/MZC files were found in that selection.','warn');return}
+  // Same time slot present several times (re-processed CPC versions): keep the best candidate.
+  catalog.clear();frameCache.clear();overlay&&(map.removeLayer(overlay),overlay=null);source='local';
+  if(ui.view.value!=='day'){ui.view.value='day'}
+  ui.viewField.style.display='none';ui.last7Field.style.display='none';
+  ui.date.disabled=false;ui.load.textContent='Load day';
+  for(const it of parsed){const ck=`${it.product}|${it.durationMin||0}|${it.date}|${it.hhmm||(String(it.hour).padStart(2,'0')+String(it.minute).padStart(2,'0'))}`;if(candidateBetter(it,catalog.get(ck)))catalog.set(ck,it)}
+  const n=p=>[...catalog.values()].filter(x=>x.product===p).length;
+  populateDates();
+  setStatus(`${catalog.size} files recognised (${n('CPC')} CPC, ${n('RZC')} RZC, ${n('BZC')} BZC, ${n('MZC')} MZC; ${files.length-parsed.length} other files ignored). Now choose 2. Day, 3. Product and 4. Time steps.`,'ok');
+}
+$('localFolder').addEventListener('change',e=>{ingestLocal(e.target.files);$('localFiles').value=''});
+$('localFiles').addEventListener('change',e=>{ingestLocal(e.target.files);$('localFolder').value=''});
 function stopAnimation(){if(timer){clearInterval(timer);timer=null}ui.play.textContent='▶ Play'}
 function toggleAnimation(){if(timer){stopAnimation();return}if(!frames.length)return;ui.play.textContent='⏸ Pause';const advance=async()=>{if(loading)return;await showFrame((currentIndex+1)%frames.length)};timer=setInterval(advance,Number(ui.speed.value))}
 function autoModeForProduct(selector){if(selector==='BZC'||selector==='MZC')return'daily';return selector==='CPC'?'hourly':'5min'}
-function updateModeOptions(){
-  const product=ui.product.value,isCpc=product==='CPC',isHail=product==='BZC'||product==='MZC';
-  const hourlyOpt=$('modeHourlyOpt'),dailyOpt=$('modeDailyOpt');
-  hourlyOpt.disabled=!isCpc;
-  hourlyOpt.hidden=!isCpc;
-  dailyOpt.disabled=!isHail;
-  dailyOpt.hidden=!isHail;
-  if(!isCpc&&ui.mode.value==='hourly')ui.mode.value=autoModeForProduct(product);
-  if(!isHail&&ui.mode.value==='daily')ui.mode.value=autoModeForProduct(product);
+const PRODUCT_LABELS={CPC:'CPC · CombiPrecip, 60-minute total (rolling)',RZC:'RZC · PRECIP, instantaneous precipitation rate',BZC:'BZC · POH (Probability of Hail)',MZC:'MZC · MESHS (hail size)'};
+const MODE_LABELS={'5min':'Every 5 minutes',hourly:'Full hours only (CPC)',daily:'Daily sum (BZC/MZC)'};
+function fillSelect(sel,entries,keep){const prev=keep?sel.value:null;sel.innerHTML='';for(const [v,l] of entries)sel.add(new Option(l,v));if(prev!==null&&entries.some(e=>e[0]===prev))sel.value=prev}
+function resetPlayback(msg){stopAnimation();preloadToken++;frames=[];ui.hours.innerHTML='';renderHourBoxes();ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;ui.load.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';updateCacheStatus();if(msg)setStatus(msg)}
+// 2. Day: all UTC days that occur in the loaded files (or catalogue)
+function populateDates(){
+  if(ui.view.value==='last7'&&source==='remote'){refreshLast7DateConstraints();return}
+  const dates=[...new Set([...catalog.values()].map(x=>x.date))].sort().reverse();
+  if(!dates.length){fillSelect(ui.date,[['','– no data –']]);fillSelect(ui.product,[['','–']]);fillSelect(ui.mode,[['','–']]);ui.date.disabled=ui.product.disabled=ui.mode.disabled=true;resetPlayback();return}
+  const fmt=new Intl.DateTimeFormat('de-CH',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric',timeZone:'UTC'});
+  fillSelect(ui.date,dates.map(d=>[d,fmt.format(new Date(d+'T00:00:00Z'))+(dates.length>1?'':'')]),true);
+  ui.date.disabled=false;
+  populateProducts(false);
 }
+// 3. Product: only those that exist on the chosen day
+function populateProducts(){
+  const day=ui.date.value,present=['CPC','RZC','BZC','MZC'].filter(p=>[...catalog.values()].some(x=>x.date===day&&productSelectorFor(x)===p));
+  fillSelect(ui.product,present.map(p=>{const c=[...catalog.values()].filter(x=>x.date===day&&productSelectorFor(x)===p).length;return[p,`${PRODUCT_LABELS[p]} (${c} files)`]}),true);
+  ui.product.disabled=false;
+  populateModes(false);
+}
+// 4. Granularity: only those the files of that day/product can provide
+function populateModes(preferAuto){
+  const day=ui.date.value,prod=ui.product.value;
+  const items=[...catalog.values()].filter(x=>x.date===day&&productSelectorFor(x)===prod);
+  const opts=[];
+  for(const m of ['5min','hourly','daily']){
+    if(m==='hourly'&&prod!=='CPC')continue;
+    if(m==='daily'&&prod!=='BZC'&&prod!=='MZC')continue;
+    const c=items.filter(x=>matchesMode(x,m)).length;
+    if(c)opts.push([m,`${MODE_LABELS[m]} – ${c} time step${c>1?'s':''}`]);
+  }
+  if(!opts.length){fillSelect(ui.mode,[['','–']]);ui.mode.disabled=true;resetPlayback('No usable time steps for this product on this day.');updateProductUi();return}
+  const prevMode=ui.mode.value;
+  fillSelect(ui.mode,opts,false);
+  const auto=autoModeForProduct(prod),want=preferAuto?auto:prevMode;
+  ui.mode.value=opts.some(o=>o[0]===want)?want:opts.some(o=>o[0]===auto)?auto:opts[0][0];
+  ui.mode.disabled=false;
+  prepareDay();
+  ui.load.disabled=!frames.length;
+}
+function updateModeOptions(){}
 function computeValidLast7EndDates(){
   const available=new Set([...catalog.values()].filter(it=>it.product==='CPC'&&it.minute===0).map(it=>it.date));
   const sorted=[...available].sort();
@@ -755,18 +766,18 @@ function refreshLast7DateConstraints(){
 }
 function applyViewMode(){
   const is7=ui.view.value==='last7';
-  ui.product.disabled=is7;if(is7)ui.product.value='CPC';
-  ui.mode.disabled=is7;if(is7)ui.mode.value='hourly';
-  ui.date.disabled=is7;
   ui.last7Field.style.display=is7?'':'none';
-  if(is7)refreshLast7DateConstraints();
   ui.load.textContent=is7?'Load last 7 days':'Load day';
-  stopAnimation();frames=[];ui.hours.innerHTML='';
-  ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;
-  if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}
-  ui.frame.textContent='No data loaded yet';ui.time.textContent='–';
-  ui.meta.innerHTML='';
-  setStatus(is7?'7-day retroactive view: pick an end date, then choose "Load last 7 days" to fetch hourly CPC totals for that 7-day window.':'Single-day view: choose a day and click "Load day".');
+  resetPlayback();
+  if(is7){
+    fillSelect(ui.product,[['CPC',PRODUCT_LABELS.CPC]]);fillSelect(ui.mode,[['hourly','Full hours only (CPC)']]);
+    ui.product.disabled=ui.mode.disabled=ui.date.disabled=true;
+    refreshLast7DateConstraints();ui.load.disabled=ui.last7Date.disabled;
+    setStatus('7-day retroactive view: pick an end date, then choose "Load last 7 days" to fetch hourly CPC totals for that 7-day window.');
+  }else{
+    ui.date.disabled=false;populateDates();
+    setStatus('Single-day view: choose 2. Day, 3. Product and 4. Time steps, then click "Load day".');
+  }
 }
 ui.view.addEventListener('change',applyViewMode);
 ui.last7Date.addEventListener('change',()=>{
@@ -778,10 +789,10 @@ ui.last7Date.addEventListener('change',()=>{
     ui.last7Date.value=nearest;
     setStatus(`The chosen end date doesn't have a complete 7-day window available — snapped to the nearest valid date, ${nearest}.`,'warn');
   }
-  stopAnimation();frames=[];ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';setStatus('End date changed — choose "Load last 7 days" to fetch this window.')
+  stopAnimation();frames=[];ui.slider.disabled=ui.play.disabled=ui.prev.disabled=ui.next.disabled=true;if(ui.chartCard){ui.chartCard.style.display='none';lastSeries=null}ui.frame.textContent='No data loaded yet';ui.time.textContent='–';ui.meta.innerHTML='';ui.load.disabled=false;setStatus('End date changed — choose "Load last 7 days" to fetch this window.')
 });
-ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',()=>{ui.view.value==='last7'?loadLast7Days():loadDay()});ui.product.addEventListener('change',()=>{ui.mode.value=autoModeForProduct(ui.product.value);updateModeOptions();prepareDay()});ui.date.addEventListener('change',prepareDay);ui.mode.addEventListener('change',prepareDay);ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
-ui.mode.value=autoModeForProduct(ui.product.value);updateModeOptions();makeDates();renderHourBoxes();loadCatalog();
+ui.refresh.addEventListener('click',loadCatalog);ui.load.addEventListener('click',()=>{ui.view.value==='last7'?loadLast7Days():loadDay()});ui.product.addEventListener('change',()=>populateModes(true));ui.date.addEventListener('change',()=>populateProducts());ui.mode.addEventListener('change',()=>{prepareDay();ui.load.disabled=!frames.length});ui.slider.addEventListener('input',()=>{stopAnimation();showFrame(Number(ui.slider.value))});ui.play.addEventListener('click',toggleAnimation);ui.prev.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex-1)});ui.next.addEventListener('click',()=>{stopAnimation();showFrame(currentIndex+1)});ui.speed.addEventListener('change',()=>{if(timer){stopAnimation();toggleAnimation()}});
+renderHourBoxes();setStatus('1. Choose a folder or files with archived radar data (or use the online catalogue).');
 Promise.all([loadScript('https://cdn.jsdelivr.net/npm/pako@2.1.0/dist/pako.min.js'),loadScript('https://cdn.jsdelivr.net/npm/jsfive@0.3.10/dist/browser/hdf5.js')]).catch(()=>{/* decodeFrame will retry and surface a real error if this keeps failing */});
 </script>
 </body>
