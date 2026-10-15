@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<!--
+MIT License
+
+Copyright (c) 2026 G. Rigo
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Data attribution for downloaded MeteoSwiss data: Source: MeteoSwiss
+-->
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Swiss Surface Data Downloader</title>
+<style>
+:root{--bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#e2e6ed;--border2:#c8d0dc;--text:#1a2030;--muted:#7a8699;--accent:#5b21b6;--accent2:#4c1d95;--sky:#f5f3ff;--sky2:#ede9fe;--ok:#16a34a;--warn:#d97706;--danger:#dc2626;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font:14px/1.45 var(--sans);min-height:100vh}
+header{background:linear-gradient(135deg,#12192a 0%,#18233a 42%,#203150 100%);color:#fff;padding:0 1.5rem;height:80px;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.ht{font-size:20px;font-weight:800}.hs{font-size:12px;opacity:.7;margin-top:2px}
+.badge{font:11px var(--mono);background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);padding:4px 10px;border-radius:999px}
+.layout{display:grid;grid-template-columns:minmax(330px,420px) 1fr;gap:16px;padding:16px;max-width:1500px;margin:auto}
+@media(max-width:950px){.layout{grid-template-columns:1fr}}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:14px}
+.lbl{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
+.hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.seg button{padding:9px 6px;border:1px solid var(--border2);background:var(--surface2);border-radius:8px;font:inherit;font-weight:700;cursor:pointer;color:var(--text)}
+.seg button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
+.seg button:disabled{opacity:.45;cursor:not-allowed}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{display:flex;align-items:center;gap:6px;padding:6px 10px;border:1px solid var(--border2);border-radius:8px;background:var(--surface2);cursor:pointer;font-size:13px;user-select:none}
+.chip input{width:auto;accent-color:var(--accent)}
+.chip.on{background:var(--sky2);border-color:var(--accent)}
+.chip small{color:var(--muted);font-size:11px}
+.btn{font:inherit;font-weight:700;border:1px solid var(--border2);background:var(--surface);color:var(--text);padding:7px 12px;border-radius:8px;cursor:pointer}
+.btn:hover{background:var(--sky)}.btn.pri{background:var(--accent);border-color:var(--accent);color:#fff}.btn.pri:hover{background:var(--accent2)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
+input[type=search]{width:100%;padding:8px 10px;border:1px solid var(--border2);border-radius:8px;font:inherit}
+.stlist{max-height:340px;overflow:auto;border:1px solid var(--border);border-radius:8px;margin-top:8px;display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr))}
+.st{display:flex;gap:6px;align-items:center;padding:4px 8px;font-size:12.5px;border-bottom:1px solid var(--border);cursor:pointer}
+.st:hover{background:var(--sky)}.st input{accent-color:var(--accent)}.st span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.st b{font-family:var(--mono)}
+table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left;padding:5px 8px;border-bottom:1px solid var(--border)}th{position:sticky;top:0;background:var(--surface2)}
+.plan{max-height:420px;overflow:auto;border:1px solid var(--border);border-radius:8px;margin-top:10px}
+.sum{font-size:15px;font-weight:700}
+.prog{height:8px;border-radius:99px;background:#dbe4ee;overflow:hidden;margin-top:10px}.prog>div{height:100%;width:0;background:var(--accent);transition:width .15s}
+#log{font:12px var(--mono);white-space:pre-wrap;max-height:200px;overflow:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:10px;min-height:40px}
+.err{color:var(--danger)}.okc{color:var(--ok)}
+.note{background:#fff7e6;border:1px solid #f0c36b;color:#7a5200;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:8px}
+footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color:var(--muted)}footer a{color:var(--accent)}
+</style>
+</head>
+<body>
+<header>
+  <div><div class="ht">Swiss Surface Data Downloader</div><div class="hs">Ground-based measurements · STAC API · CSV</div></div>
+  <div class="badge" id="collBadge">–</div>
+</header>
+<div class="layout">
+<div>
+  <div class="card">
+    <div class="lbl">1 · Station network (category)</div>
+    <div class="seg" id="catSeg"></div>
+    <div class="hint" id="catHint"></div>
+  </div>
+  <div class="card">
+    <div class="lbl">2 · Period (file version)</div>
+    <div class="chips" id="periodChips"></div>
+    <div class="hint"><b>historical</b>: from the start of the series to the end of last year · <b>recent</b>: 1 January of this year to yesterday · <b>now</b>: yesterday up to the latest value.</div>
+  </div>
+  <div class="card">
+    <div class="lbl">3 · Temporal resolution</div>
+    <div class="chips" id="resChips"></div>
+    <div class="hint">Monthly (m) and yearly (y) files exist as a single file per station and are independent of the period selection. Only resolutions that exist in the chosen network are offered (read from the STAC assets).</div>
+  </div>
+  <div class="card" id="decCard" style="display:none">
+    <div class="lbl">3b · 10-year files (10 min and hourly, historical)</div>
+    <div class="chips" id="decChips"></div>
+    <div class="row"><button class="btn" id="decAll">All decades</button><button class="btn" id="decLast">Latest only</button></div>
+    <div class="hint">10-minute and hourly <b>historical</b> data are split into 10-year files, e.g. <code>ogd-smn_bas_h_historical_2020-2029.csv</code>. Select the decades you need; 10-minute files start in 2000 (2000-2009 onward), hourly files earlier; decades that do not exist for a resolution are skipped automatically. daily, monthly and yearly files are not affected.</div>
+  </div>
+  <div class="card">
+    <div class="lbl">4 · Stations</div>
+    <button class="btn pri" id="allCatBtn" style="width:100%">✔ Select ALL stations of this network</button>
+    <div class="row"><button class="btn" id="noneBtn">Clear selection</button><button class="btn" id="visBtn">Select shown</button></div>
+    <input type="search" id="stFilter" placeholder="Filter stations (abbreviation or name)…" style="margin-top:8px">
+    <div class="hint" id="stCount">–</div>
+    <div class="stlist" id="stList"></div>
+  </div>
+</div>
+<div>
+  <div class="card">
+    <div class="lbl">5 · Download</div>
+    <div class="sum" id="sum">–</div>
+    <label class="chip" style="margin-top:8px;display:inline-flex"><input type="checkbox" id="zipOpt" checked><span>Bundle into one ZIP file <small>(recommended for many files)</small></span></label>
+    <div class="row"><button class="btn pri" id="dlBtn" disabled>⬇ Download selected files</button><button class="btn" id="stopBtn" disabled>Stop</button><button class="btn" id="listBtn" disabled>Export URL list (.txt)</button></div>
+    <div class="note">Keep this browser window open until the download has finished. Individual downloads (without ZIP) may trigger a "download multiple files" prompt in your browser.</div>
+    <div class="prog"><div id="bar"></div></div>
+    <div id="log"></div>
+  </div>
+  <div class="card">
+    <div class="lbl">File plan</div>
+    <div class="plan"><table><thead><tr><th>Station</th><th>Resolution</th><th>Period</th><th>File</th></tr></thead><tbody id="planBody"></tbody></table></div>
+  </div>
+</div>
+</div>
+<footer><b>Licence:</b> this downloader is released under the <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. <b>Data attribution:</b> for all downloaded data use <b>Source: MeteoSwiss</b>. Data: <a href="https://data.geo.admin.ch" target="_blank" rel="noopener">data.geo.admin.ch</a> · documentation: <a href="https://opendatadocs.meteoswiss.ch" target="_blank" rel="noopener">opendatadocs.meteoswiss.ch</a>.</footer>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+<script>
+const API='https://data.geo.admin.ch/api/stac/v1';
+const FALLBACK={
+ smn:"TAE,COM,ABO,AIG,ALT,ARH,AND,ANT,ARO,RAG,BAN,BAS,LAT,BER,BEZ,BIA,BIN,BIZ,BIV,BIE,BLA,BOL,BOU,BRZ,BUS,BUF,FRE,CEV,CHZ,CHA,CHM,CHU,CHD,CIM,CDM,GSB,COY,CMA,CRM,DAV,DEM,DIS,EBK,EGH,EGO,EIN,ELM,ENG,EVI,EVO,FAH,FLU,GRA,FRU,GVE,GES,GIH,GLA,GOR,GRE,GRH,GRO,GRC,GOS,GOE,GUE,GUT,HLL,HOE,ILZ,INT,JUN,KOP,BRL,CDF,DOL,LAC,LAG,MLS,LEI,ATT,CHB,DIA,MAR,OTL,LUG,LUZ,LAE,MAG,MAS,MAH,MTR,MER,MOB,MVE,GEN,MOA,MTE,MOE,MUB,NAS,NAP,NEU,CGI,OBR,AEG,ORO,BEH,PAY,PFA,PIL,PIO,COV,PMA,PLF,ROB,PUY,QUI,ROE,RUE,SBE,HAI,SAM,SAG,SHA,SRS,SCM,SPF,SCU,SIA,SIM,SIO,PRE,STC,STG,SMM,SBO,STK,SAE,THU,TIT,UEB,ULR,VAD,VAB,VLS,VEV,VIO,VIT,VIS,WFJ,WYN,WAE,PSI,ZER,REH,SMA,KLO".split(','),
+ precip:"ABE,AIE,AIR,ALS,AMW,AFI,VSANZ,APP,VSARO,AGATT,VSBAS,BAW,VSGDX,BEY,BLZ,BEP,DOB,BEC,BEX,BOS,VSBSP,BRW,VSBRI,BRI,BRT,VSBRU,BRP,UBB,BUE,VSCHY,VSCHA,VSCHO,VSCLU,COL,COS,COU,VSDER,DIT,VSDUR,EGR,OED,VSEMO,ENT,VSERG,ESZ,FAI,FIT,VSFIN,FIO,FLW,GAD,GSG,GTT,GOA,HIW,HUT,INN,VSISE,VSJEI,JON,KAI,KAS,KIE,KIS,KLA,KUE,AUB,VSFLY,VST,LAB,LGA,LAP,LSN,LTB,AVA,VSCOL,LEU,LOH,LON,MGL,MAL,MAB,MAT,VSMAT,MEV,VSMOI,MMO,MSG,MUR,VSNEN,NEB,OBI,OPF,ORS,REM,WHF,ROM,ROG,ROT,VSSAB,SAP,SAI,VSSFE,VSSAL,SAX,SVG,SUA,SNG,SIE,VSSIE,SIH,SOG,VSSOR,SAN,VSSTA,STB,AGSTE,STP,SUS,THS,CTO,VSTRI,TRU,VSTSN,TST,VSTUR,UNK,URN,UST,VSVER,VSVIS,VRI,VAE,WAG,WAR,WEE,WIN,WIT,ZEV,ZWE,ZWK".split(','),
+ nime:"AFT,ALW,APT,ALM,ALV,ARB,ARI,AVE,AVB,BAT,BAU,BAM,BMU,BIS,BLU,BOV,BSP,BRA,BNU,BSG,BRO,BLS,BUC,BUD,CMD,CAC,CAV,CNZ,CHY,CBS,COG,COP,DEH,DIE,DMA,ECH,EFF,EIT,EPT,ERI,ERB,EKO,EHM,EUT,FIL,CTA,FLI,FRF,FRI,FRC,FRA,GEP,GEA,GRI,GWA,GSS,STF,GHS,GRY,GIN,GUG,HAU,HTW,HES,HEB,HEK,HOY,HON,HER,INF,IST,JAU,JUS,KIB,KSE,KLT,KRO,KUA,KUB,KAR,ABG,CUE,EGL,LAN,LAF,LFB,LOC,LEN,LEH,BIO,BNE,DIB,PDM,TFD,LOT,LUN,LUT,MAD,MBA,MES,MGB,MST,MOD,MTO,MOS,MAC,MGI,MDO,MOU,MUT,MOW,MUL,MUE,MUS,NIE,OBD,OLI,BOZ,ORZ,OTE,PAV,PIG,LOB,POT,PON,PUD,REG,RIC,RIH,RIX,SRL,SBA,SAF,SAB,SAR,SRN,SCH,SZB,SCE,SWZ,SWA,SCA,SCD,SED,SPA,SEM,SEV,SRE,SIS,SON,SDO,SPZ,STU,AST,SKO,SNS,STE,SGD,TAF,TAM,TAV,TEU,TIC,TDG,TRO,UNS,URB,VAR,VVI,VEL,VIG,WDO,TAW,WAN,WIE,WEF,WET,WBR,WCH,WHA,WIS,WIW,YVN,ZNZ,ZOF,ZUB".split(',')
+};
+const CATS=[
+ {id:'smn',label:'SMN',coll:'ch.meteoschweiz.ogd-smn',base:'ogd-smn',hint:'SMN – automatic weather stations'},
+ {id:'precip',label:'SMN-Precip',coll:'ch.meteoschweiz.ogd-smn-precip',base:'ogd-smn-precip',hint:'SMN-Precip – automatic precipitation stations'},
+ {id:'nime',label:'NIME',coll:'ch.meteoschweiz.ogd-nime',base:'ogd-nime',hint:'NIME – manual precipitation stations'},
+ {id:'tower',label:'SMN-Tower',coll:'ch.meteoschweiz.ogd-smn-tower',base:'ogd-smn-tower',hint:'SMN-Tower – tower measurements'},
+ {id:'hom',label:'Homogeneous data',coll:null,base:null,hint:'Homogenised long-term series (collection looked up in the STAC catalogue)'}
+];
+const PERIODS=['historical','recent','now'];
+const RES_LABEL={t:'10 min',h:'hourly',d:'daily',m:'monthly',y:'yearly'};
+const $=id=>document.getElementById(id);
+const state={cat:null,stations:new Map(),periods:new Set(['historical']),decades:new Set(),availDec:[],res:new Set(['d']),sel:new Set(),loaded:{},abort:null,allColls:null};
+const log=(t,c='')=>{const d=$('log');const s=document.createElement('div');if(c)s.className=c;s.textContent=t;d.appendChild(s);d.scrollTop=d.scrollHeight};
+function parseAsset(name){
+  const md=/_([a-z])_(historical|recent|now)_(\d{4})-(\d{4})\.csv$/i.exec(name);
+  if(md)return{res:md[1].toLowerCase(),period:md[2].toLowerCase(),decade:md[3]+'-'+md[4]};
+  const m=/_([a-z])_(historical|recent|now)\.csv$/i.exec(name);
+  if(m)return{res:m[1].toLowerCase(),period:m[2].toLowerCase()};
+  const m2=/_([a-z])\.csv$/i.exec(name);
+  if(m2&&'tdhmy'.includes(m2[1].toLowerCase()))return{res:m2[1].toLowerCase(),period:'all'};
+  return null;
+}
+async function jget(url,signal){const r=await fetch(url,{signal,headers:{Accept:'application/json'}});if(!r.ok)throw new Error('HTTP '+r.status+' '+url);return r.json()}
+async function findHomColl(){
+  if(!state.allColls){
+    const out=[];let url=API+'/collections?limit=100',p=0;
+    while(url&&p<10){const j=await jget(url);out.push(...(j.collections||[]));url=(j.links||[]).find(l=>l.rel==='next')?.href||null;p++}
+    state.allColls=out.filter(c=>/meteoschweiz/i.test(c.id));
+  }
+  return state.allColls.filter(c=>/homog/i.test(c.id+' '+(c.title||'')));
+}
+async function loadCategory(cat){
+  if(state.abort)state.abort.abort();
+  const ac=new AbortController();state.abort=ac;
+  state.cat=cat;state.sel.clear();state.stations=new Map();
+  document.querySelectorAll('#catSeg button').forEach(b=>b.classList.toggle('sel',b.dataset.id===cat.id));
+  $('catHint').textContent=cat.hint;$('stCount').textContent='Loading stations from STAC…';$('stList').innerHTML='';
+  $('collBadge').textContent=cat.coll||'homogeneous data';
+  if(cat.id==='hom'&&!cat.coll){
+    try{
+      const found=await findHomColl();
+      if(!found.length){$('catHint').innerHTML='<span class="err">No homogeneous-data collection found in the STAC catalogue.</span>';$('stCount').textContent='–';render();return}
+      cat.coll=found[0].id;cat.base=found[0].id.replace(/^ch\.meteoschweiz\./,'');
+      cat.hint=`Homogenised series – collection ${cat.coll}`+(found.length>1?` (other candidates: ${found.slice(1).map(c=>c.id).join(', ')})`:'');
+      $('catHint').textContent=cat.hint;$('collBadge').textContent=cat.coll;
+    }catch(e){$('catHint').innerHTML='<span class="err">Catalogue lookup failed: '+e.message+'</span>';render();return}
+  }
+  try{
+    let url=`${API}/collections/${cat.coll}/items?limit=100`,pages=0;
+    while(url&&pages<30){
+      const j=await jget(url,ac.signal);
+      for(const f of j.features||[]){
+        const assets=[];
+        for(const [k,a] of Object.entries(f.assets||{})){
+          const name=decodeURIComponent((a.href||k).split('?')[0].split('/').pop());
+          const pa=parseAsset(name);if(pa)assets.push({name,href:a.href,...pa});
+        }
+        if(assets.length)state.stations.set(f.id.toLowerCase(),{id:f.id.toLowerCase(),title:f.properties?.title||'',assets});
+      }
+      url=(j.links||[]).find(l=>l.rel==='next')?.href||null;pages++;
+      $('stCount').textContent=`Loading stations… ${state.stations.size}`;
+    }
+    if(!state.stations.size)throw new Error('collection returned no station items');
+  }catch(e){
+    if(e.name==='AbortError')return;
+    const fb=FALLBACK[cat.id];
+    if(!fb){$('catHint').innerHTML='<span class="err">STAC request failed: '+e.message+'</span>';render();return}
+    log(`STAC not reachable (${e.message}); using the built-in station list for ${cat.label}.`,'err');
+    for(const s of fb){const id=s.toLowerCase();const assets=[];
+      for(const r of ['t','h','d','m','y']){if(r==='m'||r==='y'){assets.push({name:`${cat.base}_${id}_${r}.csv`,href:`https://data.geo.admin.ch/${cat.coll}/${id}/${cat.base}_${id}_${r}.csv`,res:r,period:'all'});continue}if((r==='t'||r==='h')){for(let y=(r==='t'?2000:1980);y<=2020;y+=10){const dc=`${y}-${y+9}`;assets.push({name:`${cat.base}_${id}_${r}_historical_${dc}.csv`,href:`https://data.geo.admin.ch/${cat.coll}/${id}/${cat.base}_${id}_${r}_historical_${dc}.csv`,res:r,period:'historical',decade:dc})}for(const p of ['recent','now'])assets.push({name:`${cat.base}_${id}_${r}_${p}.csv`,href:`https://data.geo.admin.ch/${cat.coll}/${id}/${cat.base}_${id}_${r}_${p}.csv`,res:r,period:p});continue}for(const p of PERIODS)assets.push({name:`${cat.base}_${id}_${r}_${p}.csv`,href:`https://data.geo.admin.ch/${cat.coll}/${id}/${cat.base}_${id}_${r}_${p}.csv`,res:r,period:p})}
+      state.stations.set(id,{id,title:'',assets,synthetic:true})}
+  }
+  // resolutions / periods present
+  const res=new Set(),per=new Set();
+  for(const s of state.stations.values())for(const a of s.assets){res.add(a.res);if(a.period!=='all')per.add(a.period)}
+  state.availDec=[...new Set([...state.stations.values()].flatMap(s=>s.assets.map(a=>a.decade).filter(Boolean)))].sort();
+  state.decades=new Set(state.availDec.slice(-1));
+  state.availRes=['t','h','d','m','y'].filter(r=>res.has(r));
+  state.availPer=PERIODS.filter(p=>per.has(p));
+  state.res=new Set(state.availRes.includes('d')?['d']:state.availRes.slice(0,1));
+  state.periods=new Set(state.availPer.includes('historical')?['historical']:state.availPer.slice(0,1));
+  buildChips();buildStations();render();
+}
+function chip(container,value,label,sub,set,disabled){
+  const l=document.createElement('label');l.className='chip'+(set.has(value)?' on':'');
+  l.innerHTML=`<input type="checkbox" ${set.has(value)?'checked':''} ${disabled?'disabled':''}><span>${label}${sub?` <small>${sub}</small>`:''}</span>`;
+  l.querySelector('input').addEventListener('change',e=>{e.target.checked?set.add(value):set.delete(value);l.classList.toggle('on',e.target.checked);render()});
+  container.appendChild(l);
+}
+function buildChips(){
+  const pc=$('periodChips');pc.innerHTML='';
+  const desc={historical:'until end of last year',recent:'this year to yesterday',now:'yesterday to latest'};
+  for(const p of PERIODS)chip(pc,p,p,desc[p],state.periods,!state.availPer.includes(p));
+  const dc=$('decChips');dc.innerHTML='';$('decCard').style.display=state.availDec.length?'':'none';
+  for(const d of state.availDec)chip(dc,d,d,'',state.decades,false);
+  const rc=$('resChips');rc.innerHTML='';
+  for(const r of state.availRes)chip(rc,r,RES_LABEL[r],`(${r})`,state.res,false);
+  if(state.availPer.length===0)pc.innerHTML='<span class="hint">This network has one file per station (no period split).</span>';
+}
+function buildStations(){
+  const filter=$('stFilter').value.trim().toLowerCase();
+  const list=[...state.stations.values()].sort((a,b)=>a.id.localeCompare(b.id));
+  const box=$('stList');box.innerHTML='';let shown=0;
+  for(const s of list){
+    const txt=(s.id+' '+s.title).toLowerCase();if(filter&&!txt.includes(filter))continue;shown++;
+    const l=document.createElement('label');l.className='st';l.dataset.id=s.id;
+    l.innerHTML=`<input type="checkbox" ${state.sel.has(s.id)?'checked':''}><span><b>${s.id.toUpperCase()}</b>${s.title?' '+s.title:''}</span>`;
+    l.querySelector('input').addEventListener('change',e=>{e.target.checked?state.sel.add(s.id):state.sel.delete(s.id);render(true)});
+    box.appendChild(l);
+  }
+  $('stCount').textContent=`${state.sel.size} of ${state.stations.size} stations selected · ${shown} shown`;
+}
+function plan(){
+  const out=[];
+  for(const id of [...state.sel].sort()){
+    const s=state.stations.get(id);if(!s)continue;
+    for(const a of s.assets){
+      if(!state.res.has(a.res))continue;
+      if(a.period!=='all'&&!state.periods.has(a.period))continue;
+      if(a.decade&&!state.decades.has(a.decade))continue;
+      out.push({station:id,...a});
+    }
+  }
+  return out;
+}
+function render(keepList){
+  if(!keepList)buildStations();else $('stCount').textContent=`${state.sel.size} of ${state.stations.size} stations selected`;
+  const p=plan();
+  $('planBody').innerHTML=p.slice(0,2000).map(a=>`<tr><td><b>${a.station.toUpperCase()}</b></td><td>${RES_LABEL[a.res]||a.res}</td><td>${a.period}${a.decade?' '+a.decade:''}</td><td>${a.name}</td></tr>`).join('')+(p.length>2000?`<tr><td colspan=4>… ${p.length-2000} more</td></tr>`:'');
+  $('sum').textContent=p.length?`${p.length} file${p.length>1?'s':''} from ${state.sel.size} station${state.sel.size>1?'s':''}`:'No files selected yet';
+  $('dlBtn').disabled=!p.length;$('listBtn').disabled=!p.length;
+  if(p.length>10&&!$('zipOpt').dataset.touched)$('zipOpt').checked=true;
+}
+let stop=false;
+async function download(){
+  const p=plan();if(!p.length)return;
+  stop=false;$('dlBtn').disabled=true;$('stopBtn').disabled=false;$('bar').style.width='0%';
+  const zip=$('zipOpt').checked&&window.JSZip?new JSZip():null;
+  if($('zipOpt').checked&&!window.JSZip)log('JSZip could not be loaded – falling back to single downloads.','err');
+  let done=0,fail=0;
+  for(const a of p){
+    if(stop){log('Stopped.','err');break}
+    try{
+      const r=await fetch(a.href);if(!r.ok)throw new Error('HTTP '+r.status);
+      const blob=await r.blob();
+      if(zip)zip.file(a.name,blob);else save(blob,a.name);
+      done++;log(`✔ ${a.name}`,'okc');
+    }catch(e){fail++;log(`✘ ${a.name}: ${e.message}`,'err')}
+    $('bar').style.width=Math.round((done+fail)/p.length*100)+'%';
+    if(!zip)await new Promise(r=>setTimeout(r,250));
+  }
+  if(zip&&done){log('Creating ZIP…');const blob=await zip.generateAsync({type:'blob'});save(blob,`${state.cat.base||'ogd'}_${new Date().toISOString().slice(0,10)}.zip`)}
+  log(`Finished: ${done} downloaded, ${fail} failed. Source: MeteoSwiss`,fail?'err':'okc');
+  $('dlBtn').disabled=false;$('stopBtn').disabled=true;
+}
+function save(blob,name){const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),10000)}
+$('dlBtn').onclick=download;$('stopBtn').onclick=()=>{stop=true};
+$('zipOpt').onchange=e=>{e.target.dataset.touched='1'};
+$('listBtn').onclick=()=>save(new Blob([plan().map(a=>a.href).join('\n')],{type:'text/plain'}),'url_list.txt');
+$('allCatBtn').onclick=()=>{for(const id of state.stations.keys())state.sel.add(id);render()};
+$('decAll').onclick=()=>{state.decades=new Set(state.availDec);buildChips();render(true)};
+$('decLast').onclick=()=>{state.decades=new Set(state.availDec.slice(-1));buildChips();render(true)};
+$('noneBtn').onclick=()=>{state.sel.clear();render()};
+$('visBtn').onclick=()=>{document.querySelectorAll('#stList .st').forEach(e=>state.sel.add(e.dataset.id));render()};
+$('stFilter').addEventListener('input',buildStations);
+for(const c of CATS){const b=document.createElement('button');b.type='button';b.textContent=c.label;b.dataset.id=c.id;b.onclick=()=>loadCategory(c);$('catSeg').appendChild(b)}
+loadCategory(CATS[0]);
+</script>
+</body>
+</html>
