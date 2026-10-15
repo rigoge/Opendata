@@ -65,6 +65,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left
 .prog{height:8px;border-radius:99px;background:#dbe4ee;overflow:hidden;margin-top:10px}.prog>div{height:100%;width:0;background:var(--accent);transition:width .15s}
 #log{font:12px var(--mono);white-space:pre-wrap;max-height:200px;overflow:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:10px;min-height:40px}
 .err{color:var(--danger)}.okc{color:var(--ok)}
+.info{background:var(--sky);border-color:var(--sky2)}.info ul{list-style:none;margin:8px 0}.info li{padding:5px 8px;border-radius:6px;font-size:12.5px;line-height:1.3}.info li span{color:var(--muted);font-size:11.5px}.info li.act{background:var(--sky2);outline:1px solid var(--accent)}.info a{color:var(--accent);font-family:var(--mono);font-size:12px;word-break:break-all}
 .note{background:#fff7e6;border:1px solid #f0c36b;color:#7a5200;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:8px}
 footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color:var(--muted)}footer a{color:var(--accent)}
 </style>
@@ -76,34 +77,41 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
 </header>
 <div class="layout">
 <div>
+  <div class="card info">
+    <div class="lbl">ℹ Parameter legends</div>
+    <div class="hint" style="margin-top:0">The parameter abbreviations in the CSV columns (e.g. <code>tre200d0</code>) are explained in the <code>meta_parameters</code> file of each network:</div>
+    <ul id="metaLinks"><li data-b="ogd-smn"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn/ogd-smn_meta_parameters.csv" target="_blank" rel="noopener">ogd-smn_meta_parameters.csv</a><br><span>SMN – automatic weather stations</span></li><li data-b="ogd-smn-precip"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn-precip/ogd-smn-precip_meta_parameters.csv" target="_blank" rel="noopener">ogd-smn-precip_meta_parameters.csv</a><br><span>SMN-Precip – automatic precipitation stations</span></li><li data-b="ogd-nime"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-nime/ogd-nime_meta_parameters.csv" target="_blank" rel="noopener">ogd-nime_meta_parameters.csv</a><br><span>NIME – manual precipitation stations</span></li><li data-b="ogd-smn-tower"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-smn-tower/ogd-smn-tower_meta_parameters.csv" target="_blank" rel="noopener">ogd-smn-tower_meta_parameters.csv</a><br><span>SMN-Tower – tower measurements</span></li><li data-b="ogd-pollen"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-pollen/ogd-pollen_meta_parameters.csv" target="_blank" rel="noopener">ogd-pollen_meta_parameters.csv</a><br><span>Pollen – pollen monitoring network</span></li><li data-b="ogd-nbcn"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-nbcn/ogd-nbcn_meta_parameters.csv" target="_blank" rel="noopener">ogd-nbcn_meta_parameters.csv</a><br><span>NBCN – climate stations (homogeneous series)</span></li><li data-b="ogd-nbcn-precip"><a href="https://data.geo.admin.ch/ch.meteoschweiz.ogd-nbcn-precip/ogd-nbcn-precip_meta_parameters.csv" target="_blank" rel="noopener">ogd-nbcn-precip_meta_parameters.csv</a><br><span>NBCN-Precip – climate precipitation stations</span></li></ul>
+    <div class="hint">Further information (stations, data inventory, units, quality flags): <a href="https://opendatadocs.meteoswiss.ch" target="_blank" rel="noopener">opendatadocs.meteoswiss.ch</a>. The same file pattern applies to the other OGD networks: <code>https://data.geo.admin.ch/ch.meteoschweiz.&lt;network&gt;/&lt;network&gt;_meta_parameters.csv</code></div>
+  </div>
   <div class="card">
     <div class="lbl">1 · Station network (category)</div>
     <div class="seg" id="catSeg"></div>
     <div class="hint" id="catHint"></div>
   </div>
   <div class="card">
-    <div class="lbl">2 · Period (file version)</div>
-    <div class="chips" id="periodChips"></div>
-    <div class="hint"><b>historical</b>: from the start of the series to the end of last year · <b>recent</b>: 1 January of this year to yesterday · <b>now</b>: yesterday up to the latest value.</div>
+    <div class="lbl">2 · Stations</div>
+    <button class="btn pri" id="allCatBtn" style="width:100%">✔ Select ALL stations of this network</button>
+    <div class="row"><button class="btn" id="noneBtn">Clear selection</button><button class="btn" id="visBtn">Select shown</button></div>
+    <input type="search" id="stFilter" placeholder="Filter stations (abbreviation or name)…" style="margin-top:8px">
+    <div class="hint" id="stCount">–</div>
+    <div class="stlist" id="stList"></div>
   </div>
   <div class="card">
     <div class="lbl">3 · Temporal resolution</div>
     <div class="chips" id="resChips"></div>
     <div class="hint">Monthly (m) and yearly (y) files exist as a single file per station and are independent of the period selection. Only resolutions that exist in the chosen network are offered (read from the STAC assets).</div>
   </div>
+  <div class="card">
+    <div class="lbl">4 · Period (file version)</div>
+    <div class="chips" id="periodChips"></div>
+    <div class="hint" id="periodNote"></div>
+    <div class="hint"><b>historical</b>: from the start of the series to the end of last year · <b>recent</b>: 1 January of this year to yesterday · <b>now</b>: yesterday up to the latest value.</div>
+  </div>
   <div class="card" id="decCard" style="display:none">
-    <div class="lbl">3b · 10-year files (10 min and hourly, historical)</div>
+    <div class="lbl">4b · 10-year files (10 min and hourly, historical)</div>
     <div class="chips" id="decChips"></div>
     <div class="row"><button class="btn" id="decAll">All decades</button><button class="btn" id="decLast">Latest only</button></div>
     <div class="hint">10-minute and hourly <b>historical</b> data are split into 10-year files, e.g. <code>ogd-smn_bas_h_historical_2020-2029.csv</code>. Select the decades you need; 10-minute files start in 2000 (2000-2009 onward), hourly files earlier; decades that do not exist for a resolution are skipped automatically. daily, monthly and yearly files are not affected.</div>
-  </div>
-  <div class="card">
-    <div class="lbl">4 · Stations</div>
-    <button class="btn pri" id="allCatBtn" style="width:100%">✔ Select ALL stations of this network</button>
-    <div class="row"><button class="btn" id="noneBtn">Clear selection</button><button class="btn" id="visBtn">Select shown</button></div>
-    <input type="search" id="stFilter" placeholder="Filter stations (abbreviation or name)…" style="margin-top:8px">
-    <div class="hint" id="stCount">–</div>
-    <div class="stlist" id="stList"></div>
   </div>
 </div>
 <div>
@@ -136,6 +144,7 @@ const CATS=[
  {id:'precip',label:'SMN-Precip',coll:'ch.meteoschweiz.ogd-smn-precip',base:'ogd-smn-precip',hint:'SMN-Precip – automatic precipitation stations'},
  {id:'nime',label:'NIME',coll:'ch.meteoschweiz.ogd-nime',base:'ogd-nime',hint:'NIME – manual precipitation stations'},
  {id:'tower',label:'SMN-Tower',coll:'ch.meteoschweiz.ogd-smn-tower',base:'ogd-smn-tower',hint:'SMN-Tower – tower measurements'},
+ {id:'pollen',label:'Pollen',coll:'ch.meteoschweiz.ogd-pollen',base:'ogd-pollen',allowedRes:['h','d','y'],hint:'Pollen – pollen monitoring network. Pollen data are available as hourly, daily and yearly values only (no 10-minute and no monthly values).'},
  {id:'hom',label:'Homogeneous data',coll:null,base:null,hint:'Homogenised long-term series (collection looked up in the STAC catalogue)'}
 ];
 const PERIODS=['historical','recent','now'];
@@ -164,7 +173,7 @@ async function findHomColl(){
 async function loadCategory(cat){
   if(state.abort)state.abort.abort();
   const ac=new AbortController();state.abort=ac;
-  state.cat=cat;state.sel.clear();state.stations=new Map();
+  state.cat=cat;document.querySelectorAll('#metaLinks li').forEach(li=>li.classList.toggle('act',li.dataset.b===cat.base));state.sel.clear();state.stations=new Map();
   document.querySelectorAll('#catSeg button').forEach(b=>b.classList.toggle('sel',b.dataset.id===cat.id));
   $('catHint').textContent=cat.hint;$('stCount').textContent='Loading stations from STAC…';$('stList').innerHTML='';
   $('collBadge').textContent=cat.coll||'homogeneous data';
@@ -204,17 +213,18 @@ async function loadCategory(cat){
   }
   // resolutions / periods present
   const res=new Set(),per=new Set();
-  for(const s of state.stations.values())for(const a of s.assets){res.add(a.res);if(a.period!=='all')per.add(a.period)}
+  state.perByRes={};
+  for(const s of state.stations.values())for(const a of s.assets){res.add(a.res);if(a.period!=='all'){per.add(a.period);(state.perByRes[a.res]??=new Set()).add(a.period)}}
   state.availDec=[...new Set([...state.stations.values()].flatMap(s=>s.assets.map(a=>a.decade).filter(Boolean)))].sort();
   state.decades=new Set(state.availDec.slice(-1));
-  state.availRes=['t','h','d','m','y'].filter(r=>res.has(r));
+  state.availRes=['t','h','d','m','y'].filter(r=>res.has(r)&&(!cat.allowedRes||cat.allowedRes.includes(r)));
   state.availPer=PERIODS.filter(p=>per.has(p));
   state.res=new Set(state.availRes.includes('d')?['d']:state.availRes.slice(0,1));
   state.periods=new Set(state.availPer.includes('historical')?['historical']:state.availPer.slice(0,1));
   buildChips();buildStations();render();
 }
 function chip(container,value,label,sub,set,disabled){
-  const l=document.createElement('label');l.className='chip'+(set.has(value)?' on':'');
+  const l=document.createElement('label');l.className='chip'+(set.has(value)?' on':'');l.dataset.v=value;
   l.innerHTML=`<input type="checkbox" ${set.has(value)?'checked':''} ${disabled?'disabled':''}><span>${label}${sub?` <small>${sub}</small>`:''}</span>`;
   l.querySelector('input').addEventListener('change',e=>{e.target.checked?set.add(value):set.delete(value);l.classList.toggle('on',e.target.checked);render()});
   container.appendChild(l);
@@ -255,7 +265,17 @@ function plan(){
   }
   return out;
 }
+function updatePeriodAvail(){
+  const avail=new Set();
+  for(const r of state.res)for(const p of (state.perByRes?.[r]||[]))avail.add(p);
+  document.querySelectorAll('#periodChips label').forEach(l=>{const ok=avail.has(l.dataset.v);const i=l.querySelector('input');i.disabled=!ok;l.style.opacity=ok?'1':'.4';l.title=ok?'':'Not available for the selected resolution(s)'});
+  const onlyNoPeriod=state.res.size&&[...state.res].every(r=>!(state.perByRes?.[r]?.size));
+  $('periodNote').textContent=onlyNoPeriod?'The selected resolution(s) have one file per station – no period choice needed.':'Periods offered depend on the selected resolution(s): '+[...state.res].map(r=>`${RES_LABEL[r]}: ${state.perByRes?.[r]?.size?[...PERIODS.filter(p=>state.perByRes[r].has(p))].join(', '):'single file'}`).join(' · ');
+  const dec=[...state.res].some(r=>r==='t'||r==='h');
+  $('decCard').style.display=state.availDec.length&&dec?'':'none';
+}
 function render(keepList){
+  updatePeriodAvail();
   if(!keepList)buildStations();else $('stCount').textContent=`${state.sel.size} of ${state.stations.size} stations selected`;
   const p=plan();
   $('planBody').innerHTML=p.slice(0,2000).map(a=>`<tr><td><b>${a.station.toUpperCase()}</b></td><td>${RES_LABEL[a.res]||a.res}</td><td>${a.period}${a.decade?' '+a.decade:''}</td><td>${a.name}</td></tr>`).join('')+(p.length>2000?`<tr><td colspan=4>… ${p.length-2000} more</td></tr>`:'');
