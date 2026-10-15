@@ -29,6 +29,7 @@ Data attribution for downloaded MeteoSwiss data: Source: MeteoSwiss
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Swiss Surface Data Downloader</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
 <style>
 :root{--bg:#f0f2f5;--surface:#fff;--surface2:#f7f8fa;--border:#e2e6ed;--border2:#c8d0dc;--text:#1a2030;--muted:#7a8699;--accent:#5b21b6;--accent2:#4c1d95;--sky:#f5f3ff;--sky2:#ede9fe;--ok:#16a34a;--warn:#d97706;--danger:#dc2626;--mono:ui-monospace,Menlo,Consolas,monospace;--sans:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0}
@@ -66,6 +67,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left
 #log{font:12px var(--mono);white-space:pre-wrap;max-height:200px;overflow:auto;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:8px;margin-top:10px;min-height:40px}
 .err{color:var(--danger)}.okc{color:var(--ok)}
 .info{background:var(--sky);border-color:var(--sky2)}.info ul{list-style:none;margin:8px 0}.info li{padding:5px 8px;border-radius:6px;font-size:12.5px;line-height:1.3}.info li span{color:var(--muted);font-size:11.5px}.info li.act{background:var(--sky2);outline:1px solid var(--accent)}.info a{color:var(--accent);font-family:var(--mono);font-size:12px;word-break:break-all}
+.mapbox{height:430px;border-radius:10px;border:1px solid var(--border);overflow:hidden}.legendline{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}.legendline i{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:4px}
 .note{background:#fff7e6;border:1px solid #f0c36b;color:#7a5200;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:8px}
 footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color:var(--muted)}footer a{color:var(--accent)}
 </style>
@@ -116,6 +118,11 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
 </div>
 <div>
   <div class="card">
+    <div class="lbl">Station map</div>
+    <div id="map" class="mapbox"></div>
+    <div class="legendline"><span><i style="background:#5b21b6"></i>selected</span><span><i style="background:#9aa5b8"></i>not selected</span><span id="mapCount"></span><span>Click a station on the map to select / deselect it.</span></div>
+  </div>
+  <div class="card">
     <div class="lbl">5 · Download</div>
     <div class="sum" id="sum">–</div>
     <label class="chip" style="margin-top:8px;display:inline-flex"><input type="checkbox" id="zipOpt" checked><span>Bundle into one ZIP file <small>(recommended for many files)</small></span></label>
@@ -130,7 +137,8 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
   </div>
 </div>
 </div>
-<footer><b>Licence:</b> this downloader is released under the <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. <b>Data attribution:</b> for all downloaded data use <b>Source: MeteoSwiss</b>. Data: <a href="https://data.geo.admin.ch" target="_blank" rel="noopener">data.geo.admin.ch</a> · documentation: <a href="https://opendatadocs.meteoswiss.ch" target="_blank" rel="noopener">opendatadocs.meteoswiss.ch</a>.</footer>
+<footer><b>Licence:</b> this downloader is released under the <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT License</a>. <b>Data attribution:</b> for all downloaded data use <b>Source: MeteoSwiss</b>. Base map: © <a href="https://www.swisstopo.admin.ch" target="_blank" rel="noopener">swisstopo</a> (<code>ch.swisstopo.pixelkarte-farbe</code>), used under the <a href="https://www.swisstopo.admin.ch/en/terms-of-use-free-geodata-and-geoservices" target="_blank" rel="noopener">swisstopo terms of use for free geodata and geoservices</a>. Map library: <a href="https://leafletjs.com" target="_blank" rel="noopener">Leaflet</a> (BSD 2-Clause License, © Vladimir Agafonkin, © Leaflet contributors). ZIP creation: <a href="https://stuk.github.io/jszip/" target="_blank" rel="noopener">JSZip</a> (MIT / GPLv3, dual-licensed, © Stuart Knightley et al.). Data: <a href="https://data.geo.admin.ch" target="_blank" rel="noopener">data.geo.admin.ch</a> · documentation: <a href="https://opendatadocs.meteoswiss.ch" target="_blank" rel="noopener">opendatadocs.meteoswiss.ch</a>.</footer>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
 const API='https://data.geo.admin.ch/api/stac/v1';
@@ -196,7 +204,7 @@ async function loadCategory(cat){
           const name=decodeURIComponent((a.href||k).split('?')[0].split('/').pop());
           const pa=parseAsset(name);if(pa)assets.push({name,href:a.href,...pa});
         }
-        if(assets.length)state.stations.set(f.id.toLowerCase(),{id:f.id.toLowerCase(),title:f.properties?.title||'',assets});
+        if(assets.length){const gc=f.geometry?.type==='Point'?f.geometry.coordinates:null;state.stations.set(f.id.toLowerCase(),{id:f.id.toLowerCase(),title:f.properties?.title||'',assets,lon:gc?Number(gc[0]):NaN,lat:gc?Number(gc[1]):NaN});}
       }
       url=(j.links||[]).find(l=>l.rel==='next')?.href||null;pages++;
       $('stCount').textContent=`Loading stations… ${state.stations.size}`;
@@ -221,7 +229,7 @@ async function loadCategory(cat){
   state.availPer=PERIODS.filter(p=>per.has(p));
   state.res=new Set(state.availRes.includes('d')?['d']:state.availRes.slice(0,1));
   state.periods=new Set(state.availPer.includes('historical')?['historical']:state.availPer.slice(0,1));
-  buildChips();buildStations();render();
+  buildChips();buildMarkers();buildStations();render(false,true);
 }
 function chip(container,value,label,sub,set,disabled){
   const l=document.createElement('label');l.className='chip'+(set.has(value)?' on':'');l.dataset.v=value;
@@ -274,14 +282,35 @@ function updatePeriodAvail(){
   const dec=[...state.res].some(r=>r==='t'||r==='h');
   $('decCard').style.display=state.availDec.length&&dec?'':'none';
 }
-function render(keepList){
-  updatePeriodAvail();
+function render(keepList,fit){
+  updatePeriodAvail();updateMap(!!fit);
   if(!keepList)buildStations();else $('stCount').textContent=`${state.sel.size} of ${state.stations.size} stations selected`;
   const p=plan();
   $('planBody').innerHTML=p.slice(0,2000).map(a=>`<tr><td><b>${a.station.toUpperCase()}</b></td><td>${RES_LABEL[a.res]||a.res}</td><td>${a.period}${a.decade?' '+a.decade:''}</td><td>${a.name}</td></tr>`).join('')+(p.length>2000?`<tr><td colspan=4>… ${p.length-2000} more</td></tr>`:'');
   $('sum').textContent=p.length?`${p.length} file${p.length>1?'s':''} from ${state.sel.size} station${state.sel.size>1?'s':''}`:'No files selected yet';
   $('dlBtn').disabled=!p.length;$('listBtn').disabled=!p.length;
   if(p.length>10&&!$('zipOpt').dataset.touched)$('zipOpt').checked=true;
+}
+const map=L.map('map',{preferCanvas:true}).setView([46.8,8.2],7);
+L.tileLayer('https://wmts.geo.admin.ch/1.0.0/ch.swisstopo.pixelkarte-farbe/default/current/3857/{z}/{x}/{y}.jpeg',{maxZoom:18,attribution:'&copy; <a href="https://www.swisstopo.admin.ch/">swisstopo</a>'}).addTo(map);
+L.control.scale({imperial:false}).addTo(map);
+const markerLayer=L.layerGroup().addTo(map);let markers=new Map();
+function buildMarkers(){
+  markerLayer.clearLayers();markers=new Map();
+  for(const s of state.stations.values()){
+    if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon))continue;
+    const m=L.circleMarker([s.lat,s.lon],{radius:5,weight:1,color:'#fff',fillOpacity:.9,fillColor:'#9aa5b8'}).addTo(markerLayer);
+    m.bindTooltip(`<b>${s.id.toUpperCase()}</b>${s.title?' '+s.title:''}`);
+    m.on('click',()=>{state.sel.has(s.id)?state.sel.delete(s.id):state.sel.add(s.id);render()});
+    markers.set(s.id,m);
+  }
+}
+function updateMap(fit){
+  let n=0;const pts=[];
+  for(const [id,m] of markers){const on=state.sel.has(id);if(on){n++;pts.push(m.getLatLng())}
+    m.setStyle({fillColor:on?'#5b21b6':'#9aa5b8',radius:on?7:5,color:on?'#1a2030':'#fff'});if(on)m.bringToFront()}
+  $('mapCount').textContent=markers.size?`${n} selected of ${markers.size} stations with coordinates`:'No station coordinates available (STAC not reachable).';
+  if(fit){const b=pts.length?L.latLngBounds(pts):(markers.size?L.latLngBounds([...markers.values()].map(m=>m.getLatLng())):null);if(b&&b.isValid())map.fitBounds(b,{padding:[25,25],maxZoom:11})}
 }
 let stop=false;
 async function download(){
@@ -309,11 +338,11 @@ function save(blob,name){const a=document.createElement('a');a.href=URL.createOb
 $('dlBtn').onclick=download;$('stopBtn').onclick=()=>{stop=true};
 $('zipOpt').onchange=e=>{e.target.dataset.touched='1'};
 $('listBtn').onclick=()=>save(new Blob([plan().map(a=>a.href).join('\n')],{type:'text/plain'}),'url_list.txt');
-$('allCatBtn').onclick=()=>{for(const id of state.stations.keys())state.sel.add(id);render()};
+$('allCatBtn').onclick=()=>{for(const id of state.stations.keys())state.sel.add(id);render(false,true)};
 $('decAll').onclick=()=>{state.decades=new Set(state.availDec);buildChips();render(true)};
 $('decLast').onclick=()=>{state.decades=new Set(state.availDec.slice(-1));buildChips();render(true)};
 $('noneBtn').onclick=()=>{state.sel.clear();render()};
-$('visBtn').onclick=()=>{document.querySelectorAll('#stList .st').forEach(e=>state.sel.add(e.dataset.id));render()};
+$('visBtn').onclick=()=>{document.querySelectorAll('#stList .st').forEach(e=>state.sel.add(e.dataset.id));render(false,true)};
 $('stFilter').addEventListener('input',buildStations);
 for(const c of CATS){const b=document.createElement('button');b.type='button';b.textContent=c.label;b.dataset.id=c.id;b.onclick=()=>loadCategory(c);$('catSeg').appendChild(b)}
 loadCategory(CATS[0]);
