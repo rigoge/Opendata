@@ -92,6 +92,12 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
     <div class="lbl">1 · Station network (category)</div>
     <div class="seg" id="catSeg"></div>
     <div class="hint" id="catHint"></div>
+    <div style="margin-top:12px;border-top:1px solid var(--border);padding-top:10px">
+      <div class="lbl" style="color:var(--text)">Nearest stations to a place / postcode</div>
+      <div class="row" style="margin-top:0"><input type="search" id="placeQ" placeholder="e.g. Bern or 4051" style="flex:1;min-width:140px"><button class="btn" id="placeBtn">Search</button></div>
+      <select id="placeRes" hidden style="width:100%;margin-top:6px;padding:7px;border:1px solid var(--border2);border-radius:8px"></select>
+      <div id="nearBox" class="hint"></div>
+    </div>
   </div>
   <div class="card">
     <div class="lbl">2 · Stations</div>
@@ -248,7 +254,8 @@ async function loadCategory(cat){
   state.availPer=PERIODS.filter(p=>per.has(p));
   state.res=new Set(state.availRes.includes('d')?['d']:state.availRes.slice(0,1));
   state.periods=new Set(state.availPer.includes('historical')?['historical']:state.availPer.slice(0,1));
-  buildChips();buildMarkers();buildStations();render(false,true);
+  await applyStationMeta(cat);
+  buildChips();buildMarkers();buildStations();render(false,true);updateNearest();
 }
 function chip(container,value,label,sub,set,disabled){
   const l=document.createElement('label');l.className='chip'+(set.has(value)?' on':'');l.dataset.v=value;
@@ -319,7 +326,7 @@ function buildMarkers(){
   for(const s of state.stations.values()){
     if(!Number.isFinite(s.lat)||!Number.isFinite(s.lon))continue;
     const m=L.circleMarker([s.lat,s.lon],{radius:5,weight:1,color:'#fff',fillOpacity:.9,fillColor:'#9aa5b8'}).addTo(markerLayer);
-    m.bindTooltip(`<b>${s.id.toUpperCase()}</b>${s.title?' '+s.title:''}`);
+    m.bindTooltip(`<b>${s.id.toUpperCase()}</b>${s.title?' '+s.title:''}${Number.isFinite(s.h)?' · '+s.h.toFixed(0)+' m':''}`);
     m.on('click',()=>{state.sel.has(s.id)?state.sel.delete(s.id):state.sel.add(s.id);render()});
     markers.set(s.id,m);
   }
@@ -463,6 +470,79 @@ $('plotFrom').onchange=$('plotTo').onchange=drawPlot;
 $('plotReset').onclick=()=>{const iso=x=>new Date(x).toISOString().slice(0,10);$('plotFrom').value=iso(P.t0);$('plotTo').value=iso(P.t1);drawPlot()};
 $('plotCv').addEventListener('mousemove',plotHover);$('plotCv').addEventListener('mouseleave',()=>{$('plotTip').style.display='none'});
 window.addEventListener('resize',drawPlot);
+
+// ---------- station metadata (name, coordinates, height) and nearest-station lookup ----------
+async function applyStationMeta(cat){
+  try{
+    const r=await fetch(`https://data.geo.admin.ch/${cat.coll}/${cat.base}_meta_stations.csv`);if(!r.ok)return;
+    const buf=await r.arrayBuffer();let txt;
+    try{txt=new TextDecoder('utf-8',{fatal:true}).decode(buf)}catch{txt=new TextDecoder('windows-1252').decode(buf)}
+    const lines=txt.replace(/^﻿/,'').split(/\r?\n/).filter(Boolean);
+    const sep=(lines[0].match(/;/g)||[]).length>=(lines[0].match(/,/g)||[]).length?';':',';
+    const h=splitCsvLine(lines.shift(),sep).map(x=>x.toLowerCase());
+    const f=re=>h.findIndex(x=>re.test(x));
+    const ia=f(/^station_abbr$/),inm=f(/^station_name$/),ih=f(/^station_height_masl$/),ila=f(/wgs84_lat/),ilo=f(/wgs84_lon/);
+    if(ia<0)return;
+    for(const l of lines){
+      const c=splitCsvLine(l,sep),id=(c[ia]||'').toLowerCase(),st=state.stations.get(id);if(!st)continue;
+      if(inm>=0&&c[inm]&&!st.title)st.title=c[inm];
+      const hh=parseFloat(c[ih]),la=parseFloat(c[ila]),lo=parseFloat(c[ilo]);
+      if(Number.isFinite(hh))st.h=hh;
+      if(!Number.isFinite(st.lat)&&Number.isFinite(la)&&Number.isFinite(lo)){st.lat=la;st.lon=lo}
+    }
+  }catch(e){console.warn('station metadata not available',e)}
+}
+const place={lat:NaN,lon:NaN,label:'',h:NaN,marker:null};
+function hav(a,b,c,d){const R=6371,t=x=>x*Math.PI/180,dl=t(c-a),dn=t(d-b),q=Math.sin(dl/2)**2+Math.cos(t(a))*Math.cos(t(c))*Math.sin(dn/2)**2;return 2*R*Math.asin(Math.sqrt(q))}
+// approximate WGS84 -> LV95 (swisstopo formulas, ~1 m accuracy)
+function toLV95(lat,lon){
+  const p=(lat*3600-169028.66)/10000,l=(lon*3600-26782.5)/10000;
+  const E=2600072.37+211455.93*l-10938.51*l*p-0.36*l*p*p-44.54*l*l*l;
+  const N=1200147.07+308807.95*p+3745.25*l*l+76.63*p*p-194.56*l*l*p+119.79*p*p*p;
+  return[E,N];
+}
+async function placeSearch(){
+  const q=$('placeQ').value.trim();if(q.length<2){$('nearBox').textContent='Enter at least two characters or a Swiss postcode.';return}
+  $('placeBtn').disabled=true;
+  try{
+    const u=new URL('https://api3.geo.admin.ch/rest/services/ech/SearchServer');
+    u.searchParams.set('searchText',q);u.searchParams.set('type','locations');u.searchParams.set('sr','2056');u.searchParams.set('lang','en');u.searchParams.set('limit','12');
+    const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);
+    const res=((await r.json()).results||[]).filter(x=>Number.isFinite(Number(x?.attrs?.lat))&&Number.isFinite(Number(x?.attrs?.lon)));
+    if(!res.length){$('nearBox').textContent=`No Swiss place or postcode found for “${q}”.`;$('placeRes').hidden=true;return}
+    const sel=$('placeRes');sel.innerHTML='';
+    const strip=t=>{const d=document.createElement('div');d.innerHTML=t;return(d.textContent||'').replace(/\s+/g,' ').trim()};
+    res.forEach((x,i)=>sel.add(new Option(strip(x.attrs.label||x.attrs.detail||'Result '+(i+1)),String(i))));
+    sel._res=res;sel.hidden=res.length<2;
+    await usePlace(res[0]);
+  }catch(e){$('nearBox').innerHTML='<span class="err">Place search failed: '+e.message+'</span>'}
+  finally{$('placeBtn').disabled=false}
+}
+async function usePlace(x){
+  const a=x.attrs;place.lat=Number(a.lat);place.lon=Number(a.lon);
+  const d=document.createElement('div');d.innerHTML=a.label||a.detail||'Selected place';place.label=(d.textContent||'').replace(/\s+/g,' ').trim();
+  place.h=NaN;
+  try{const [E,N]=toLV95(place.lat,place.lon);const r=await fetch(`https://api3.geo.admin.ch/rest/services/height?easting=${E.toFixed(1)}&northing=${N.toFixed(1)}&sr=2056`);if(r.ok){const j=await r.json();const v=parseFloat(j.height);if(Number.isFinite(v))place.h=v}}catch{}
+  if(place.marker)map.removeLayer(place.marker);
+  place.marker=L.circleMarker([place.lat,place.lon],{radius:8,weight:3,color:'#fff',fillColor:'#d92d20',fillOpacity:1}).addTo(map).bindTooltip(place.label);
+  updateNearest(true);
+}
+function updateNearest(fit){
+  const box=$('nearBox');
+  if(!Number.isFinite(place.lat)){box.textContent='';return}
+  const list=[...state.stations.values()].filter(s=>Number.isFinite(s.lat)&&Number.isFinite(s.lon)).map(s=>({s,km:hav(place.lat,place.lon,s.lat,s.lon)})).sort((a,b)=>a.km-b.km).slice(0,3);
+  const head=`<b>${place.label}</b>${Number.isFinite(place.h)?` · ${place.h.toFixed(0)} m a.s.l.`:' · height n/a'}`;
+  if(!list.length){box.innerHTML=head+'<br>No station coordinates available for this network.';return}
+  const rows=list.map(({s,km})=>{const dh=Number.isFinite(s.h)&&Number.isFinite(place.h)?s.h-place.h:NaN;
+    return `<tr><td><b>${s.id.toUpperCase()}</b><br><span style="color:var(--muted)">${s.title||''}</span></td><td>${km.toFixed(1)} km</td><td>${Number.isFinite(s.h)?s.h.toFixed(0)+' m':'n/a'}</td><td>${Number.isFinite(dh)?(dh>0?'+':'')+dh.toFixed(0)+' m':'n/a'}</td><td><button class="btn" data-id="${s.id}" style="padding:3px 8px">＋</button></td></tr>`}).join('');
+  box.innerHTML=`${head}<table style="margin-top:6px"><thead><tr><th>Station</th><th>Distance</th><th>Height</th><th>Δ height</th><th></th></tr></thead><tbody>${rows}</tbody></table><div class="row"><button class="btn pri" id="nearAll">Select these ${list.length} stations</button></div><div style="margin-top:4px">Δ height = station height minus height of the searched point (positive: station is higher). Distance: great-circle, point to station.</div>`;
+  box.querySelectorAll('button[data-id]').forEach(b=>b.onclick=()=>{state.sel.add(b.dataset.id);render()});
+  $('nearAll').onclick=()=>{list.forEach(({s})=>state.sel.add(s.id));render(false,true)};
+  if(fit){const pts=[L.latLng(place.lat,place.lon),...list.map(({s})=>L.latLng(s.lat,s.lon))];map.fitBounds(L.latLngBounds(pts),{padding:[30,30],maxZoom:12})}
+}
+$('placeBtn').onclick=placeSearch;
+$('placeQ').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();placeSearch()}});
+$('placeRes').onchange=e=>usePlace(e.target._res[Number(e.target.value)]);
 let stop=false;
 async function download(){
   const p=plan();if(!p.length)return;
