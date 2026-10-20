@@ -429,6 +429,12 @@ async function plotLoad(){
   finally{$('plotLoadBtn').disabled=false}
 }
 let plotGeom=null;
+// radiation, precipitation, snow and sunshine-duration parameters are drawn as columns, all others as lines
+function isBar(n){
+  const d=(P.meta[n]?.d||'');
+  if(d)return /precipitation|rain|snow|radiation|sunshine/i.test(d)&&!/temperature|pressure|humidity|wind/i.test(d);
+  return /^(rre|rka|rza|rhs|hns|hto|hs|gre|oli|ods|ger|gld|str|sre)/i.test(n);
+}
 function drawPlot(){
   if(!P.cur||!P.items.length)return;
   const cv=$('plotCv'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
@@ -444,15 +450,34 @@ function drawPlot(){
   }
   ctx.font='11px system-ui';
   if(!act.length||!Number.isFinite(mn)){ctx.fillStyle='#7a8699';ctx.fillText('No data for this parameter in the selected range',L,Tp+20);plotGeom=null;return}
-  if(mn===mx){mn-=1;mx+=1}const pad=(mx-mn)*.05;mn-=pad;mx+=pad;
-  const tmin=Math.max(from,Math.min(...act.map(a=>a.T[a.i0]))),tmax=Math.min(to,Math.max(...act.map(a=>a.T[a.i1])));
+  const bar=isBar(P.cur);
+  if(bar){mn=Math.min(mn,0);if(mx<=mn)mx=mn+1;mx+=(mx-mn)*.05}
+  else{if(mn===mx){mn-=1;mx+=1}const pad=(mx-mn)*.05;mn-=pad;mx+=pad}
+  let tmin=Math.max(from,Math.min(...act.map(a=>a.T[a.i0]))),tmax=Math.min(to,Math.max(...act.map(a=>a.T[a.i1])));
+  let stepMs=0;if(bar){const a0=act[0];stepMs=a0.i1>a0.i0?(a0.T[Math.min(a0.i1,a0.i0+1)]-a0.T[a0.i0]):864e5;tmin-=stepMs/2;tmax+=stepMs/2}
   const xs=t=>L+(t-tmin)/(tmax-tmin||1)*pw,ys=v=>Tp+(1-(v-mn)/(mx-mn))*ph;
   ctx.fillStyle='#7a8699';ctx.strokeStyle='#e2e6ed';ctx.lineWidth=1;
   for(let k=0;k<=5;k++){const v=mn+(mx-mn)*k/5,y=ys(v);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1),L-6,y+4)}
   const span=tmax-tmin,pd=x=>String(x).padStart(2,'0');
   const fmt=span>3*365*864e5?(t=>new Date(t).getUTCFullYear()):span>2*864e5?(t=>{const d=new Date(t);return `${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()}`}):(t=>{const d=new Date(t);return `${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())}`});
   ctx.textAlign='center';for(let k=0;k<=5;k++){const t=tmin+span*k/5;ctx.fillText(fmt(t),xs(t),H-10)}
-  for(const {it,V,T,i0,i1} of act){
+  if(bar){
+    const y0=ys(Math.max(mn,0)),nIt=act.length;
+    act.forEach(({it,V,T,i0,i1},k)=>{
+      ctx.fillStyle=it.color;ctx.globalAlpha=nIt>1?.85:1;
+      const n=i1-i0+1,slot=pw*(stepMs/(tmax-tmin||1));
+      if(slot>=3){
+        const bw=Math.max(1,slot*.8/nIt);
+        for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v))continue;const xc=xs(T[i]),x=xc-slot*.4+k*bw,yv=ys(v);ctx.fillRect(x,Math.min(yv,y0),bw,Math.abs(y0-yv)||.5)}
+      }else{
+        const buckets=Math.max(1,Math.floor(pw)),bm=new Float64Array(buckets).fill(-Infinity);
+        for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v))continue;const bb=Math.max(0,Math.min(buckets-1,Math.floor((T[i]-tmin)/(tmax-tmin||1)*(buckets-1))));if(v>bm[bb])bm[bb]=v}
+        for(let b=0;b<buckets;b++)if(bm[b]>-Infinity){const yv=ys(bm[b]);ctx.fillRect(L+b,Math.min(yv,y0),1,Math.abs(y0-yv)||.5)}
+      }
+      ctx.globalAlpha=1;
+    });
+    ctx.strokeStyle='#9aa5b8';ctx.beginPath();ctx.moveTo(L,y0);ctx.lineTo(W-R,y0);ctx.stroke();
+  }else for(const {it,V,T,i0,i1} of act){
     ctx.strokeStyle=it.color;ctx.lineWidth=1.3;ctx.beginPath();
     const n=i1-i0+1;let started=false;
     if(n<=pw*2){for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v)){started=false;continue}const x=xs(T[i]),y=ys(v);started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true}}
@@ -467,7 +492,7 @@ function drawPlot(){
   const m=P.meta[P.cur];ctx.save();ctx.translate(13,Tp+ph/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillStyle='#1a2030';ctx.fillText(m?.u?`${P.cur} [${m.u}]`:P.cur,0,0);ctx.restore();
   // legend inside the plot
   let lx=L+8;ctx.textAlign='left';for(const {it} of act){ctx.fillStyle=it.color;ctx.fillRect(lx,Tp+6,16,3);ctx.fillStyle='#1a2030';ctx.fillText(it.label,lx+20,Tp+11);lx+=ctx.measureText(it.label).width+40}
-  plotGeom={L,R,W,pw,tmin,tmax,act};
+  plotGeom={L,R,W,pw,tmin,tmax,act};$('plotInfo').dataset.mode=bar?'bars':'lines';
 }
 function plotHover(ev){
   const g=plotGeom;if(!g||!P.cur)return;const rc=$('plotCv').getBoundingClientRect(),x=ev.clientX-rc.left,tip=$('plotTip');
