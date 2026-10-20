@@ -43,7 +43,7 @@ header{background:linear-gradient(135deg,#12192a 0%,#18233a 42%,#203150 100%);co
 .lbl{font-size:11px;font-weight:800;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-bottom:8px}
 .hint{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
 .seg{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-.seg button{padding:9px 6px;border:1px solid var(--border2);background:var(--surface2);border-radius:8px;font:inherit;font-weight:700;cursor:pointer;color:var(--text)}
+.seg button{padding:8px 6px;text-align:center;border:1px solid var(--border2);background:var(--surface2);border-radius:8px;font:inherit;font-weight:700;cursor:pointer;color:var(--text)}
 .seg button.sel{background:var(--accent);border-color:var(--accent);color:#fff}
 .seg button:disabled{opacity:.45;cursor:not-allowed}
 .chips{display:flex;flex-wrap:wrap;gap:6px}
@@ -70,7 +70,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left
 .mapbox{height:430px;border-radius:10px;border:1px solid var(--border);overflow:hidden}.legendline{display:flex;gap:14px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin-top:8px}.legendline i{display:inline-block;width:11px;height:11px;border-radius:50%;vertical-align:-1px;margin-right:4px}
 .plotbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.plotbar select,.plotbar input{padding:7px 9px;border:1px solid var(--border2);border-radius:8px;font:inherit;max-width:100%}
 .plotwrap{position:relative}#plotCv{width:100%;height:340px;display:block;background:#fff;border:1px solid var(--border);border-radius:8px}
-#plotTip{position:absolute;pointer-events:none;background:rgba(26,32,48,.92);color:#fff;font:12px var(--mono);padding:4px 8px;border-radius:6px;display:none;white-space:nowrap;z-index:5}
+#plotTip{position:absolute;pointer-events:none;line-height:1.5;background:rgba(26,32,48,.92);color:#fff;font:12px var(--mono);padding:4px 8px;border-radius:6px;display:none;white-space:nowrap;z-index:5}
 .note{background:#fff7e6;border:1px solid #f0c36b;color:#7a5200;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:8px}
 footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color:var(--muted)}footer a{color:var(--accent)}
 </style>
@@ -101,7 +101,7 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
   </div>
   <div class="card">
     <div class="lbl">2 · Stations</div>
-    <div class="note" style="margin:0 0 10px"><b>Attention:</b> Direct plotting of the data is only possible if only one single station has been selected!</div>
+    <div class="note" style="margin:0 0 10px"><b>Attention:</b> Direct plotting of the data is only possible for a maximum of 3 stations (3 files) – each plotted in a different colour!</div>
     <button class="btn pri" id="allCatBtn" style="width:100%">✔ Select ALL stations of this network</button>
     <div class="row"><button class="btn" id="noneBtn">Clear selection</button><button class="btn" id="visBtn">Select shown</button></div>
     <input type="search" id="stFilter" placeholder="Filter stations (abbreviation or name)…" style="margin-top:8px">
@@ -142,7 +142,7 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
     <div id="log"></div>
   </div>
   <div class="card" id="plotCard">
-    <div class="lbl">Time series preview (single file)</div>
+    <div class="lbl">Time series preview (max. 3 files / stations)</div>
     <div class="hint" id="plotHint" style="margin-top:0">Select exactly one file (one station, one resolution, one period / decade) to preview it as a time series.</div>
     <div id="plotUi" style="display:none">
       <div class="plotbar">
@@ -173,12 +173,12 @@ const FALLBACK={
  nime:"AFT,ALW,APT,ALM,ALV,ARB,ARI,AVE,AVB,BAT,BAU,BAM,BMU,BIS,BLU,BOV,BSP,BRA,BNU,BSG,BRO,BLS,BUC,BUD,CMD,CAC,CAV,CNZ,CHY,CBS,COG,COP,DEH,DIE,DMA,ECH,EFF,EIT,EPT,ERI,ERB,EKO,EHM,EUT,FIL,CTA,FLI,FRF,FRI,FRC,FRA,GEP,GEA,GRI,GWA,GSS,STF,GHS,GRY,GIN,GUG,HAU,HTW,HES,HEB,HEK,HOY,HON,HER,INF,IST,JAU,JUS,KIB,KSE,KLT,KRO,KUA,KUB,KAR,ABG,CUE,EGL,LAN,LAF,LFB,LOC,LEN,LEH,BIO,BNE,DIB,PDM,TFD,LOT,LUN,LUT,MAD,MBA,MES,MGB,MST,MOD,MTO,MOS,MAC,MGI,MDO,MOU,MUT,MOW,MUL,MUE,MUS,NIE,OBD,OLI,BOZ,ORZ,OTE,PAV,PIG,LOB,POT,PON,PUD,REG,RIC,RIH,RIX,SRL,SBA,SAF,SAB,SAR,SRN,SCH,SZB,SCE,SWZ,SWA,SCA,SCD,SED,SPA,SEM,SEV,SRE,SIS,SON,SDO,SPZ,STU,AST,SKO,SNS,STE,SGD,TAF,TAM,TAV,TEU,TIC,TDG,TRO,UNS,URB,VAR,VVI,VEL,VIG,WDO,TAW,WAN,WIE,WEF,WET,WBR,WCH,WHA,WIS,WIW,YVN,ZNZ,ZOF,ZUB".split(',')
 };
 const CATS=[
- {id:'smn',label:'SMN',coll:'ch.meteoschweiz.ogd-smn',base:'ogd-smn',hint:'SMN – automatic weather stations'},
- {id:'precip',label:'SMN-Precip',coll:'ch.meteoschweiz.ogd-smn-precip',base:'ogd-smn-precip',hint:'SMN-Precip – automatic precipitation stations'},
- {id:'nime',label:'NIME',coll:'ch.meteoschweiz.ogd-nime',base:'ogd-nime',hint:'NIME – manual precipitation stations'},
- {id:'tower',label:'SMN-Tower',coll:'ch.meteoschweiz.ogd-smn-tower',base:'ogd-smn-tower',hint:'SMN-Tower – tower measurements'},
- {id:'pollen',label:'Pollen',coll:'ch.meteoschweiz.ogd-pollen',base:'ogd-pollen',allowedRes:['h','d','y'],hint:'Pollen – pollen monitoring network. Pollen data are available as hourly, daily and yearly values only (no 10-minute and no monthly values).'},
- {id:'hom',label:'Homogeneous data',coll:null,base:null,hint:'Homogenised long-term series (collection looked up in the STAC catalogue)'}
+ {id:'smn',label:'SMN',desc:'Automated Network',coll:'ch.meteoschweiz.ogd-smn',base:'ogd-smn',hint:'SMN – automatic weather stations'},
+ {id:'precip',label:'SMN-Precip',desc:'Automated Precipitation Network',coll:'ch.meteoschweiz.ogd-smn-precip',base:'ogd-smn-precip',hint:'SMN-Precip – automatic precipitation stations'},
+ {id:'nime',label:'NIME',desc:'Manual Precipitation and Snow Network',coll:'ch.meteoschweiz.ogd-nime',base:'ogd-nime',hint:'NIME – manual precipitation stations'},
+ {id:'tower',label:'SMN-Tower',desc:'Automated boundary layer tower stations',coll:'ch.meteoschweiz.ogd-smn-tower',base:'ogd-smn-tower',hint:'SMN-Tower – tower measurements'},
+ {id:'pollen',label:'Pollen',desc:'Automated Pollen Network',coll:'ch.meteoschweiz.ogd-pollen',base:'ogd-pollen',allowedRes:['h','d','y'],hint:'Pollen – pollen monitoring network. Pollen data are available as hourly, daily and yearly values only (no 10-minute and no monthly values).'},
+ {id:'hom',label:'Homogeneous Data',desc:'Long term stations homogenized data',coll:null,base:null,hint:'Homogenised long-term series (collection looked up in the STAC catalogue)'}
 ];
 const PERIODS=['historical','recent','now'];
 const RES_LABEL={t:'10 min',h:'hourly',d:'daily',m:'monthly',y:'yearly'};
@@ -340,7 +340,7 @@ function updateMap(fit){
 }
 
 // ---------- time series preview of a single file ----------
-const P={file:null,t:[],cols:{},names:[],meta:{},cur:null,t0:0,t1:0};
+const P={key:'',items:[],names:[],meta:{},cur:null,t0:0,t1:0};
 function parseTs(v){
   let m=/^(\d{1,2})\.(\d{1,2})\.(\d{4})(?:\s+(\d{1,2}):(\d{2}))?/.exec(v);
   if(m)return Date.UTC(+m[3],+m[2]-1,+m[1],+(m[4]||0),+(m[5]||0));
@@ -388,81 +388,100 @@ async function loadMeta(){
     return out;
   }catch{return{}}
 }
+const PCOL=['#5b21b6','#e11d48','#059669'];
+const MAXPLOT=3;
+const lb=(T,x,lo=0,hi=T.length)=>{while(lo<hi){const m=(lo+hi)>>1;T[m]<x?lo=m+1:hi=m}return lo};
 function updatePlotCard(){
-  const pl=plan();const one=pl.length===1?pl[0]:null;
-  $('plotUi').style.display=one?'':'none';
-  $('plotHint').style.display=one?'none':'';
-  if(one&&(!P.file||P.file.href!==one.href)){
-    P.file=one;P.t=[];P.cols={};P.names=[];P.cur=null;
+  const pl=plan();const ok=pl.length>=1&&pl.length<=MAXPLOT;
+  $('plotUi').style.display=ok?'':'none';
+  $('plotHint').style.display=ok?'none':'';
+  $('plotHint').textContent=pl.length>MAXPLOT?`${pl.length} files are selected – at most ${MAXPLOT} files (stations) can be plotted at once. Reduce the selection to enable the preview.`:'Select up to 3 files (e.g. up to 3 stations with one resolution and one period / decade) to preview them as a time series.';
+  const key=ok?pl.map(a=>a.href).join('|'):'';
+  if(ok&&key!==P.key){
+    P.key=key;P.items=[];P.names=[];P.cur=null;
     $('plotParam').innerHTML='';$('plotParam').disabled=true;$('plotFrom').disabled=$('plotTo').disabled=$('plotReset').disabled=true;
-    $('plotInfo').textContent=`File: ${one.name} – click “Load & plot” to read it in the browser.`;
-    const cv=$('plotCv'),ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);
+    $('plotInfo').textContent=`${pl.length} file${pl.length>1?'s':''} selected – click “Load & plot” to read ${pl.length>1?'them':'it'} in the browser.`;
+    const cv=$('plotCv'),ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);plotGeom=null;
   }
-  if(!one)P.file=null;
+  if(!ok)P.key='';
 }
 async function plotLoad(){
-  if(!P.file)return;
-  $('plotLoadBtn').disabled=true;$('plotInfo').textContent='Loading '+P.file.name+' …';
+  const pl=plan();if(!pl.length||pl.length>MAXPLOT)return;
+  $('plotLoadBtn').disabled=true;$('plotInfo').textContent='Loading '+pl.length+' file(s) …';
   try{
-    const r=await fetch(P.file.href);if(!r.ok)throw new Error('HTTP '+r.status);
-    const txt=await r.text();const d=parseCsvText(txt);
-    if(!d.t.length||!d.names.length)throw new Error('no numeric time series found in this file');
-    P.t=d.t;P.cols=d.cols;P.names=d.names;P.meta=await loadMeta();
+    const res=await Promise.all(pl.map(async f=>{const r=await fetch(f.href);if(!r.ok)throw new Error(f.name+': HTTP '+r.status);const d=parseCsvText(await r.text());if(!d.t.length)throw new Error(f.name+': no time series found');return{file:f,...d}}));
+    const sameRes=new Set(pl.map(f=>f.res+f.period+(f.decade||''))).size===1;
+    res.forEach((it,i)=>{it.color=PCOL[i];it.label=sameRes?it.file.station.toUpperCase():`${it.file.station.toUpperCase()} · ${RES_LABEL[it.file.res]||it.file.res} ${it.file.period}${it.file.decade?' '+it.file.decade:''}`});
+    P.items=res;
+    const names=[];for(const it of res)for(const n of it.names)if(!names.includes(n))names.push(n);
+    if(!names.length)throw new Error('no numeric parameters found');
+    P.names=names;P.meta=await loadMeta();
     const sel=$('plotParam');sel.innerHTML='';
-    for(const n of d.names){const m=P.meta[n];sel.add(new Option(m?`${n} – ${m.d}${m.u?' ['+m.u+']':''}`:n,n))}
+    for(const n of names){const m=P.meta[n];const cnt=res.filter(it=>it.names.includes(n)).length;sel.add(new Option((m?`${n} – ${m.d}${m.u?' ['+m.u+']':''}`:n)+(res.length>1&&cnt<res.length?` (only in ${cnt} of ${res.length} files)`:''),n))}
     sel.disabled=false;
-    P.t0=d.t[0];P.t1=d.t[d.t.length-1];
+    P.t0=Math.min(...res.map(it=>it.t[0]));P.t1=Math.max(...res.map(it=>it.t[it.t.length-1]));
     const iso=x=>new Date(x).toISOString().slice(0,10);
     $('plotFrom').value=iso(P.t0);$('plotTo').value=iso(P.t1);$('plotFrom').disabled=$('plotTo').disabled=$('plotReset').disabled=false;
-    P.cur=d.names[0];
-    $('plotInfo').textContent=`${P.file.name} · ${d.t.length.toLocaleString('en-GB')} records · ${d.names.length} parameters · ${iso(P.t0)} to ${iso(P.t1)} · Source: MeteoSwiss`;
+    P.cur=names[0];
+    $('plotInfo').innerHTML=res.map(it=>`<span style="display:inline-block;margin-right:12px"><i style="display:inline-block;width:18px;height:3px;background:${it.color};vertical-align:middle;margin-right:5px"></i><b>${it.label}</b> (${it.t.length.toLocaleString('en-GB')} records)</span>`).join('')+`<br>${iso(P.t0)} to ${iso(P.t1)} · Source: MeteoSwiss`;
     drawPlot();
   }catch(e){$('plotInfo').innerHTML='<span class="err">Could not load/plot: '+e.message+'</span>'}
   finally{$('plotLoadBtn').disabled=false}
 }
 let plotGeom=null;
 function drawPlot(){
-  if(!P.cur||!P.t.length)return;
+  if(!P.cur||!P.items.length)return;
   const cv=$('plotCv'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
   const from=Date.parse($('plotFrom').value+'T00:00:00Z'),to=Date.parse($('plotTo').value+'T23:59:59Z');
-  const T=P.t,V=P.cols[P.cur];
-  let i0=0,i1=T.length-1;
-  { let lo=0,hi=T.length;while(lo<hi){const m=(lo+hi)>>1;T[m]<from?lo=m+1:hi=m}i0=lo; lo=0;hi=T.length;while(lo<hi){const m=(lo+hi)>>1;T[m]<=to?lo=m+1:hi=m}i1=lo-1 }
   const L=64,R=14,Tp=12,B=30,pw=W-L-R,ph=H-Tp-B;
-  if(i1<i0){ctx.fillStyle='#7a8699';ctx.fillText('No data in the selected range',L,Tp+20);return}
-  let mn=Infinity,mx=-Infinity;for(let i=i0;i<=i1;i++){const v=V[i];if(Number.isFinite(v)){if(v<mn)mn=v;if(v>mx)mx=v}}
-  if(!Number.isFinite(mn)){ctx.fillStyle='#7a8699';ctx.fillText('Only missing values for this parameter in the selected range',L,Tp+20);return}
-  if(mn===mx){mn-=1;mx+=1}const pad=(mx-mn)*.05;mn-=pad;mx+=pad;
-  const tmin=T[i0],tmax=T[i1]||tmin+1,xs=t=>L+(t-tmin)/(tmax-tmin||1)*pw,ys=v=>Tp+(1-(v-mn)/(mx-mn))*ph;
-  ctx.font='11px system-ui';ctx.fillStyle='#7a8699';ctx.strokeStyle='#e2e6ed';ctx.lineWidth=1;
-  for(let k=0;k<=5;k++){const v=mn+(mx-mn)*k/5,y=ys(v);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1),L-6,y+4)}
-  const span=tmax-tmin,fmt=span>3*365*864e5?(t=>new Date(t).getUTCFullYear()):span>2*864e5?(t=>{const d=new Date(t);return `${String(d.getUTCDate()).padStart(2,'0')}.${String(d.getUTCMonth()+1).padStart(2,'0')}.${d.getUTCFullYear()}`}):(t=>{const d=new Date(t);return `${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`});
-  ctx.textAlign='center';for(let k=0;k<=5;k++){const t=tmin+span*k/5;ctx.fillText(fmt(t),xs(t),H-10)}
-  // line with min/max decimation per pixel column
-  ctx.strokeStyle='#5b21b6';ctx.lineWidth=1.2;ctx.beginPath();
-  const n=i1-i0+1;let started=false;
-  if(n<=pw*2){for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v)){started=false;continue}const x=xs(T[i]),y=ys(v);started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true}}
-  else{
-    const buckets=Math.max(1,Math.floor(pw));let b=0,bmn=Infinity,bmx=-Infinity,cur=0;
-    const flush=x=>{if(bmn<=bmx){ctx.moveTo(x,ys(bmn));ctx.lineTo(x,ys(bmx))}bmn=Infinity;bmx=-Infinity};
-    for(let i=i0;i<=i1;i++){const bb=Math.floor((T[i]-tmin)/(tmax-tmin||1)*(buckets-1));if(bb!==b){flush(L+b);b=bb}const v=V[i];if(Number.isFinite(v)){if(v<bmn)bmn=v;if(v>bmx)bmx=v}}
-    flush(L+b);
+  const act=[];let mn=Infinity,mx=-Infinity;
+  for(const it of P.items){
+    const V=it.cols[P.cur];if(!V)continue;const T=it.t,i0=lb(T,from),i1=lb(T,to+1)-1;
+    if(i1<i0)continue;
+    for(let i=i0;i<=i1;i++){const v=V[i];if(Number.isFinite(v)){if(v<mn)mn=v;if(v>mx)mx=v}}
+    act.push({it,V,T,i0,i1});
   }
-  ctx.stroke();
+  ctx.font='11px system-ui';
+  if(!act.length||!Number.isFinite(mn)){ctx.fillStyle='#7a8699';ctx.fillText('No data for this parameter in the selected range',L,Tp+20);plotGeom=null;return}
+  if(mn===mx){mn-=1;mx+=1}const pad=(mx-mn)*.05;mn-=pad;mx+=pad;
+  const tmin=Math.max(from,Math.min(...act.map(a=>a.T[a.i0]))),tmax=Math.min(to,Math.max(...act.map(a=>a.T[a.i1])));
+  const xs=t=>L+(t-tmin)/(tmax-tmin||1)*pw,ys=v=>Tp+(1-(v-mn)/(mx-mn))*ph;
+  ctx.fillStyle='#7a8699';ctx.strokeStyle='#e2e6ed';ctx.lineWidth=1;
+  for(let k=0;k<=5;k++){const v=mn+(mx-mn)*k/5,y=ys(v);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1),L-6,y+4)}
+  const span=tmax-tmin,pd=x=>String(x).padStart(2,'0');
+  const fmt=span>3*365*864e5?(t=>new Date(t).getUTCFullYear()):span>2*864e5?(t=>{const d=new Date(t);return `${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()}`}):(t=>{const d=new Date(t);return `${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())}`});
+  ctx.textAlign='center';for(let k=0;k<=5;k++){const t=tmin+span*k/5;ctx.fillText(fmt(t),xs(t),H-10)}
+  for(const {it,V,T,i0,i1} of act){
+    ctx.strokeStyle=it.color;ctx.lineWidth=1.3;ctx.beginPath();
+    const n=i1-i0+1;let started=false;
+    if(n<=pw*2){for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v)){started=false;continue}const x=xs(T[i]),y=ys(v);started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true}}
+    else{
+      const buckets=Math.max(1,Math.floor(pw));let b=0,bmn=Infinity,bmx=-Infinity;
+      const flush=x=>{if(bmn<=bmx){ctx.moveTo(x,ys(bmn));ctx.lineTo(x,ys(bmx))}bmn=Infinity;bmx=-Infinity};
+      for(let i=i0;i<=i1;i++){const bb=Math.max(0,Math.min(buckets-1,Math.floor((T[i]-tmin)/(tmax-tmin||1)*(buckets-1))));if(bb!==b){flush(L+b);b=bb}const v=V[i];if(Number.isFinite(v)){if(v<bmn)bmn=v;if(v>bmx)bmx=v}}
+      flush(L+b);
+    }
+    ctx.stroke();
+  }
   const m=P.meta[P.cur];ctx.save();ctx.translate(13,Tp+ph/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillStyle='#1a2030';ctx.fillText(m?.u?`${P.cur} [${m.u}]`:P.cur,0,0);ctx.restore();
-  plotGeom={L,R,Tp,ph,pw,W,H,tmin,tmax,i0,i1,mn,mx,xs,ys};
+  // legend inside the plot
+  let lx=L+8;ctx.textAlign='left';for(const {it} of act){ctx.fillStyle=it.color;ctx.fillRect(lx,Tp+6,16,3);ctx.fillStyle='#1a2030';ctx.fillText(it.label,lx+20,Tp+11);lx+=ctx.measureText(it.label).width+40}
+  plotGeom={L,R,W,pw,tmin,tmax,act};
 }
 function plotHover(ev){
-  const g=plotGeom;if(!g||!P.cur)return;const cv=$('plotCv'),rc=cv.getBoundingClientRect(),x=ev.clientX-rc.left;
-  if(x<g.L||x>g.W-g.R){$('plotTip').style.display='none';return}
-  const t=g.tmin+(x-g.L)/g.pw*(g.tmax-g.tmin),T=P.t;
-  let lo=g.i0,hi=g.i1;while(lo<hi){const m=(lo+hi)>>1;T[m]<t?lo=m+1:hi=m}
-  if(lo>g.i0&&Math.abs(T[lo-1]-t)<Math.abs(T[lo]-t))lo--;
-  const v=P.cols[P.cur][lo],d=new Date(T[lo]),tip=$('plotTip');
-  const ts=`${String(d.getUTCDate()).padStart(2,'0')}.${String(d.getUTCMonth()+1).padStart(2,'0')}.${d.getUTCFullYear()} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')} UTC`;
-  tip.textContent=`${ts} · ${Number.isFinite(v)?v:'no data'}${P.meta[P.cur]?.u&&Number.isFinite(v)?' '+P.meta[P.cur].u:''}`;
-  tip.style.display='block';tip.style.left=Math.min(x+10,g.W-230)+'px';tip.style.top=(ev.clientY-rc.top-30)+'px';
+  const g=plotGeom;if(!g||!P.cur)return;const rc=$('plotCv').getBoundingClientRect(),x=ev.clientX-rc.left,tip=$('plotTip');
+  if(x<g.L||x>g.W-g.R){tip.style.display='none';return}
+  const t=g.tmin+(x-g.L)/g.pw*(g.tmax-g.tmin),pd=n=>String(n).padStart(2,'0'),u=P.meta[P.cur]?.u||'';
+  let ts='',rows=[];
+  for(const {it,V,T,i0,i1} of g.act){
+    let j=Math.min(i1,Math.max(i0,lb(T,t,i0,i1+1)));
+    if(j>i0&&Math.abs(T[j-1]-t)<Math.abs(T[j]-t))j--;
+    const d=new Date(T[j]);ts=ts||`${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())} UTC`;
+    const v=V[j];rows.push(`<span style="color:${it.color}">■</span> ${it.label}: ${Number.isFinite(v)?v+(u?' '+u:''):'no data'}${g.act.length>1?` (${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())})`:''}`);
+  }
+  tip.innerHTML=(g.act.length>1?'':ts+'<br>')+rows.join('<br>');tip.style.display='block';
+  tip.style.left=Math.min(x+10,g.W-300)+'px';tip.style.top=Math.max(0,ev.clientY-rc.top-20-rows.length*14)+'px';
 }
 $('plotLoadBtn').onclick=plotLoad;
 $('plotParam').onchange=e=>{P.cur=e.target.value;drawPlot()};
@@ -470,7 +489,6 @@ $('plotFrom').onchange=$('plotTo').onchange=drawPlot;
 $('plotReset').onclick=()=>{const iso=x=>new Date(x).toISOString().slice(0,10);$('plotFrom').value=iso(P.t0);$('plotTo').value=iso(P.t1);drawPlot()};
 $('plotCv').addEventListener('mousemove',plotHover);$('plotCv').addEventListener('mouseleave',()=>{$('plotTip').style.display='none'});
 window.addEventListener('resize',drawPlot);
-
 // ---------- station metadata (name, coordinates, height) and nearest-station lookup ----------
 async function applyStationMeta(cat){
   try{
@@ -575,7 +593,7 @@ $('decLast').onclick=()=>{state.decades=new Set(state.availDec.slice(-1));buildC
 $('noneBtn').onclick=()=>{state.sel.clear();render()};
 $('visBtn').onclick=()=>{document.querySelectorAll('#stList .st').forEach(e=>state.sel.add(e.dataset.id));render(false,true)};
 $('stFilter').addEventListener('input',buildStations);
-for(const c of CATS){const b=document.createElement('button');b.type='button';b.textContent=c.label;b.dataset.id=c.id;b.onclick=()=>loadCategory(c);$('catSeg').appendChild(b)}
+for(const c of CATS){const b=document.createElement('button');b.type='button';b.innerHTML=`<span style="display:block">${c.label}</span><small style="display:block;font-weight:500;font-size:11px;opacity:.85;line-height:1.25;margin-top:2px">${c.desc}</small>`;b.dataset.id=c.id;b.onclick=()=>loadCategory(c);$('catSeg').appendChild(b)}
 loadCategory(CATS[0]);
 </script>
 </body>
