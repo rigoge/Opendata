@@ -71,6 +71,7 @@ table{width:100%;border-collapse:collapse;font-size:12.5px}th,td{text-align:left
 .plotbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}.plotbar select,.plotbar input{padding:7px 9px;border:1px solid var(--border2);border-radius:8px;font:inherit;max-width:100%}
 .plotwrap{position:relative}#plotCv{width:100%;height:340px;display:block;background:#fff;border:1px solid var(--border);border-radius:8px}
 #plotTip{position:absolute;pointer-events:none;line-height:1.5;background:rgba(26,32,48,.92);color:#fff;font:12px var(--mono);padding:4px 8px;border-radius:6px;display:none;white-space:nowrap;z-index:5}
+.extgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:12px;margin-top:12px}.extcard{border:1px solid var(--border);border-radius:8px;padding:8px 10px;background:var(--surface2)}.extcard h4{font-size:12.5px;margin-bottom:6px}.extcard .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}.extcard table{font-size:11.5px}.extcard th,.extcard td{padding:2px 5px}.extcard td.v{font-family:var(--mono);text-align:right}
 .note{background:#fff7e6;border:1px solid #f0c36b;color:#7a5200;border-radius:8px;padding:8px 10px;font-size:12.5px;margin-top:8px}
 footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color:var(--muted)}footer a{color:var(--accent)}
 </style>
@@ -147,13 +148,20 @@ footer{max-width:1500px;margin:0 auto 24px;padding:0 16px;font-size:12.5px;color
     <div id="plotUi" style="display:none">
       <div class="plotbar">
         <button class="btn pri" id="plotLoadBtn">📈 Load &amp; plot</button>
-        <select id="plotParam" disabled style="flex:1;min-width:200px"></select>
+        <select id="plotParam" disabled style="flex:1;min-width:200px" title="Parameter 1"></select>
         <label class="hint" style="margin:0">from <input type="date" id="plotFrom" disabled></label>
         <label class="hint" style="margin:0">to <input type="date" id="plotTo" disabled></label>
         <button class="btn" id="plotReset" disabled>Reset range</button>
       </div>
+      <div class="plotbar">
+        <select id="plotParam2" disabled style="flex:1;min-width:200px" title="Parameter 2 (optional)"></select>
+        <select id="plotParam3" disabled style="flex:1;min-width:200px" title="Parameter 3 (optional)"></select>
+        <label class="chip" style="margin:0"><input type="checkbox" id="plotExt" disabled><span>Show 10 highest / lowest values</span></label>
+      </div>
+      <div class="hint" style="margin:-2px 0 6px">Up to 3 parameters can be shown together (parameters with different units get their own axis: left, right, far right).</div>
       <div class="hint" id="plotInfo" style="margin:0 0 6px"></div>
       <div class="plotwrap"><canvas id="plotCv"></canvas><div id="plotTip"></div></div>
+      <div id="extBox" style="display:none"></div>
     </div>
   </div>
   <div class="card">
@@ -398,8 +406,8 @@ function updatePlotCard(){
   $('plotHint').textContent=pl.length>MAXPLOT?`${pl.length} files are selected – at most ${MAXPLOT} files (stations) can be plotted at once. Reduce the selection to enable the preview.`:'Select up to 3 files (e.g. up to 3 stations with one resolution and one period / decade) to preview them as a time series.';
   const key=ok?pl.map(a=>a.href).join('|'):'';
   if(ok&&key!==P.key){
-    P.key=key;P.items=[];P.names=[];P.cur=null;
-    $('plotParam').innerHTML='';$('plotParam').disabled=true;$('plotFrom').disabled=$('plotTo').disabled=$('plotReset').disabled=true;
+    P.key=key;P.items=[];P.names=[];P.cur=P.cur2=P.cur3=null;$('extBox').style.display='none';$('plotExt').disabled=true;
+    for(const id of ['plotParam','plotParam2','plotParam3']){$(id).innerHTML='';$(id).disabled=true}$('plotFrom').disabled=$('plotTo').disabled=$('plotReset').disabled=true;
     $('plotInfo').textContent=`${pl.length} file${pl.length>1?'s':''} selected – click “Load & plot” to read ${pl.length>1?'them':'it'} in the browser.`;
     const cv=$('plotCv'),ctx=cv.getContext('2d');ctx.clearRect(0,0,cv.width,cv.height);plotGeom=null;
   }
@@ -416,13 +424,13 @@ async function plotLoad(){
     const names=[];for(const it of res)for(const n of it.names)if(!names.includes(n))names.push(n);
     if(!names.length)throw new Error('no numeric parameters found');
     P.names=names;P.meta=await loadMeta();
-    const sel=$('plotParam');sel.innerHTML='';
-    for(const n of names){const m=P.meta[n];const cnt=res.filter(it=>it.names.includes(n)).length;sel.add(new Option((m?`${n} – ${m.d}${m.u?' ['+m.u+']':''}`:n)+(res.length>1&&cnt<res.length?` (only in ${cnt} of ${res.length} files)`:''),n))}
-    sel.disabled=false;
+    const mk=n=>{const m=P.meta[n];const cnt=res.filter(it=>it.names.includes(n)).length;return (m?`${n} – ${m.d}${m.u?' ['+m.u+']':''}`:n)+(res.length>1&&cnt<res.length?` (only in ${cnt} of ${res.length} files)`:'')};
+    ['plotParam','plotParam2','plotParam3'].forEach((id,k)=>{const sel=$(id);sel.innerHTML='';if(k>0)sel.add(new Option('– parameter '+(k+1)+' (optional) –',''));for(const n of names)sel.add(new Option(mk(n),n));sel.disabled=false});
+    $('plotExt').disabled=false;
     P.t0=Math.min(...res.map(it=>it.t[0]));P.t1=Math.max(...res.map(it=>it.t[it.t.length-1]));
     const iso=x=>new Date(x).toISOString().slice(0,10);
     $('plotFrom').value=iso(P.t0);$('plotTo').value=iso(P.t1);$('plotFrom').disabled=$('plotTo').disabled=$('plotReset').disabled=false;
-    P.cur=names[0];
+    P.cur=names[0];P.cur2=P.cur3=null;
     $('plotInfo').innerHTML=res.map(it=>`<span style="display:inline-block;margin-right:12px"><i style="display:inline-block;width:18px;height:3px;background:${it.color};vertical-align:middle;margin-right:5px"></i><b>${it.label}</b> (${it.t.length.toLocaleString('en-GB')} records)</span>`).join('')+`<br>${iso(P.t0)} to ${iso(P.t1)} · Source: MeteoSwiss`;
     drawPlot();
   }catch(e){$('plotInfo').innerHTML='<span class="err">Could not load/plot: '+e.message+'</span>'}
@@ -435,81 +443,130 @@ function isBar(n){
   if(d)return /precipitation|rain|snow|radiation|sunshine/i.test(d)&&!/temperature|pressure|humidity|wind/i.test(d);
   return /^(rre|rka|rza|rhs|hns|hto|hs|gre|oli|ods|ger|gld|str|sre)/i.test(n);
 }
+const DASH=[[],[7,3],[2,3]];
+function curParams(){return [...new Set([P.cur,P.cur2,P.cur3].filter(Boolean))]}
+const fv=v=>Number.isInteger(v)?v:+v.toFixed(3);
+const pdd=x=>String(x).padStart(2,'0');
+const fmtTs=(t,dateOnly)=>{const d=new Date(t);return `${pdd(d.getUTCDate())}.${pdd(d.getUTCMonth()+1)}.${d.getUTCFullYear()}`+(dateOnly?'':` ${pdd(d.getUTCHours())}:${pdd(d.getUTCMinutes())}`)};
+function buildSeries(from,to){
+  const ps=curParams(),nf=P.items.length,out=[];
+  P.items.forEach((it,fi)=>ps.forEach((pn,pi)=>{
+    const V=it.cols[pn];if(!V)return;
+    const T=it.t,i0=lb(T,from),i1=lb(T,to+1)-1;if(i1<i0)return;
+    const u=P.meta[pn]?.u||'';
+    out.push({it,pn,pi,fi,V,T,i0,i1,u,axisKey:u||pn,bar:isBar(pn),color:nf>1?it.color:PCOL[pi],dash:nf>1?DASH[pi]:[],
+      label:(nf>1&&ps.length>1?`${it.label} · ${pn}`:nf>1?it.label:pn)+(u?` [${u}]`:'')});
+  }));
+  return out;
+}
 function drawPlot(){
   if(!P.cur||!P.items.length)return;
   const cv=$('plotCv'),dpr=window.devicePixelRatio||1,W=cv.clientWidth,H=cv.clientHeight;
   cv.width=W*dpr;cv.height=H*dpr;const ctx=cv.getContext('2d');ctx.scale(dpr,dpr);ctx.clearRect(0,0,W,H);
   const from=Date.parse($('plotFrom').value+'T00:00:00Z'),to=Date.parse($('plotTo').value+'T23:59:59Z');
-  const L=64,R=14,Tp=12,B=30,pw=W-L-R,ph=H-Tp-B;
-  const act=[];let mn=Infinity,mx=-Infinity;
-  for(const it of P.items){
-    const V=it.cols[P.cur];if(!V)continue;const T=it.t,i0=lb(T,from),i1=lb(T,to+1)-1;
-    if(i1<i0)continue;
-    for(let i=i0;i<=i1;i++){const v=V[i];if(Number.isFinite(v)){if(v<mn)mn=v;if(v>mx)mx=v}}
-    act.push({it,V,T,i0,i1});
-  }
+  const series=buildSeries(from,to);
   ctx.font='11px system-ui';
-  if(!act.length||!Number.isFinite(mn)){ctx.fillStyle='#7a8699';ctx.fillText('No data for this parameter in the selected range',L,Tp+20);plotGeom=null;return}
-  const bar=isBar(P.cur);
-  if(bar){mn=Math.min(mn,0);if(mx<=mn)mx=mn+1;mx+=(mx-mn)*.05}
-  else{if(mn===mx){mn-=1;mx+=1}const pad=(mx-mn)*.05;mn-=pad;mx+=pad}
-  let tmin=Math.max(from,Math.min(...act.map(a=>a.T[a.i0]))),tmax=Math.min(to,Math.max(...act.map(a=>a.T[a.i1])));
-  let stepMs=0;if(bar){const a0=act[0];stepMs=a0.i1>a0.i0?(a0.T[Math.min(a0.i1,a0.i0+1)]-a0.T[a0.i0]):864e5;tmin-=stepMs/2;tmax+=stepMs/2}
-  const xs=t=>L+(t-tmin)/(tmax-tmin||1)*pw,ys=v=>Tp+(1-(v-mn)/(mx-mn))*ph;
-  ctx.fillStyle='#7a8699';ctx.strokeStyle='#e2e6ed';ctx.lineWidth=1;
-  for(let k=0;k<=5;k++){const v=mn+(mx-mn)*k/5,y=ys(v);ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(W-R,y);ctx.stroke();ctx.textAlign='right';ctx.fillText(Math.abs(v)>=100?v.toFixed(0):v.toFixed(1),L-6,y+4)}
-  const span=tmax-tmin,pd=x=>String(x).padStart(2,'0');
-  const fmt=span>3*365*864e5?(t=>new Date(t).getUTCFullYear()):span>2*864e5?(t=>{const d=new Date(t);return `${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()}`}):(t=>{const d=new Date(t);return `${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())}`});
-  ctx.textAlign='center';for(let k=0;k<=5;k++){const t=tmin+span*k/5;ctx.fillText(fmt(t),xs(t),H-10)}
-  if(bar){
-    const y0=ys(Math.max(mn,0)),nIt=act.length;
-    act.forEach(({it,V,T,i0,i1},k)=>{
-      ctx.fillStyle=it.color;ctx.globalAlpha=nIt>1?.85:1;
-      const n=i1-i0+1,slot=pw*(stepMs/(tmax-tmin||1));
-      if(slot>=3){
-        const bw=Math.max(1,slot*.8/nIt);
-        for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v))continue;const xc=xs(T[i]),x=xc-slot*.4+k*bw,yv=ys(v);ctx.fillRect(x,Math.min(yv,y0),bw,Math.abs(y0-yv)||.5)}
-      }else{
-        const buckets=Math.max(1,Math.floor(pw)),bm=new Float64Array(buckets).fill(-Infinity);
-        for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v))continue;const bb=Math.max(0,Math.min(buckets-1,Math.floor((T[i]-tmin)/(tmax-tmin||1)*(buckets-1))));if(v>bm[bb])bm[bb]=v}
-        for(let b=0;b<buckets;b++)if(bm[b]>-Infinity){const yv=ys(bm[b]);ctx.fillRect(L+b,Math.min(yv,y0),1,Math.abs(y0-yv)||.5)}
-      }
-      ctx.globalAlpha=1;
-    });
-    ctx.strokeStyle='#9aa5b8';ctx.beginPath();ctx.moveTo(L,y0);ctx.lineTo(W-R,y0);ctx.stroke();
-  }else for(const {it,V,T,i0,i1} of act){
-    ctx.strokeStyle=it.color;ctx.lineWidth=1.3;ctx.beginPath();
+  const axKeys=[...new Set(series.map(x=>x.axisKey))];
+  const nAx=Math.max(1,axKeys.length);
+  let legRows=1,legX=0;for(const sr of series){const w=ctx.measureText(sr.label).width+46;if(legX+w>W-72&&legX>0){legRows++;legX=0}legX+=w}
+  const L=64,Tp=14+16*legRows,B=30,Rr=14+(nAx>1?56*(nAx-1):0),pw=W-L-Rr,ph=H-Tp-B,xr=L+pw;
+  const axes=axKeys.map(k=>({key:k,mn:Infinity,mx:-Infinity,bar:false,series:[]}));
+  for(const sr of series){const ax=axes[axKeys.indexOf(sr.axisKey)];ax.series.push(sr);if(sr.bar)ax.bar=true;
+    for(let i=sr.i0;i<=sr.i1;i++){const v=sr.V[i];if(Number.isFinite(v)){if(v<ax.mn)ax.mn=v;if(v>ax.mx)ax.mx=v}}}
+  const live=axes.filter(a=>Number.isFinite(a.mn));
+  if(!series.length||!live.length){ctx.fillStyle='#7a8699';ctx.fillText('No data for the selected parameter(s) in the selected range',L,Tp+20);plotGeom=null;$('extBox').style.display='none';return}
+  for(const ax of axes){
+    if(!Number.isFinite(ax.mn)){ax.mn=0;ax.mx=1}
+    if(ax.bar){ax.mn=Math.min(ax.mn,0);if(ax.mx<=ax.mn)ax.mx=ax.mn+1;ax.mx+=(ax.mx-ax.mn)*.05}
+    else{if(ax.mn===ax.mx){ax.mn-=1;ax.mx+=1}const pad=(ax.mx-ax.mn)*.05;ax.mn-=pad;ax.mx+=pad}
+    ax.ys=v=>Tp+(1-(v-ax.mn)/(ax.mx-ax.mn))*ph;
+  }
+  let tmin=Math.max(from,Math.min(...series.map(a=>a.T[a.i0]))),tmax=Math.min(to,Math.max(...series.map(a=>a.T[a.i1])));
+  const anyBar=series.some(x=>x.bar);let stepMs=0;
+  if(anyBar){const b=series.find(x=>x.bar);stepMs=b.i1>b.i0?(b.T[b.i0+1]-b.T[b.i0]):864e5;tmin-=stepMs/2;tmax+=stepMs/2}
+  const xs=t=>L+(t-tmin)/(tmax-tmin||1)*pw,span=tmax-tmin;
+  // grid + axis labels
+  ctx.strokeStyle='#e2e6ed';ctx.lineWidth=1;
+  axes.forEach((ax,a)=>{
+    const col=ax.series.length&&new Set(ax.series.map(x=>x.color)).size===1?ax.series[0].color:'#7a8699';
+    for(let k=0;k<=5;k++){const v=ax.mn+(ax.mx-ax.mn)*k/5,y=ax.ys(v);
+      if(a===0){ctx.beginPath();ctx.moveTo(L,y);ctx.lineTo(xr,y);ctx.stroke()}
+      ctx.fillStyle=col;const txt=Math.abs(v)>=100?v.toFixed(0):v.toFixed(1);
+      if(a===0){ctx.textAlign='right';ctx.fillText(txt,L-6,y+4)}else{ctx.textAlign='left';ctx.fillText(txt,xr+6+(a-1)*56,y+4)}}
+    if(a>0){ctx.strokeStyle=col;ctx.beginPath();ctx.moveTo(xr+(a-1)*56,Tp);ctx.lineTo(xr+(a-1)*56,Tp+ph);ctx.stroke();ctx.strokeStyle='#e2e6ed'}
+  });
+  const fmt=span>3*365*864e5?(t=>new Date(t).getUTCFullYear()):span>2*864e5?(t=>fmtTs(t,true)):(t=>`${pdd(new Date(t).getUTCHours())}:${pdd(new Date(t).getUTCMinutes())}`);
+  ctx.fillStyle='#7a8699';ctx.textAlign='center';for(let k=0;k<=5;k++){const t=tmin+span*k/5;ctx.fillText(fmt(t),xs(t),H-10)}
+  // columns first
+  const bars=series.filter(x=>x.bar),nb=bars.length;
+  bars.forEach((sr,k)=>{
+    const ax=axes[axKeys.indexOf(sr.axisKey)],y0=ax.ys(Math.max(ax.mn,0));
+    ctx.fillStyle=sr.color;ctx.globalAlpha=series.length>1?.7:1;
+    const slot=pw*(stepMs/(tmax-tmin||1));
+    if(slot>=3){const bw=Math.max(1,slot*.8/nb);
+      for(let i=sr.i0;i<=sr.i1;i++){const v=sr.V[i];if(!Number.isFinite(v))continue;const x=xs(sr.T[i])-slot*.4+k*bw,yv=ax.ys(v);ctx.fillRect(x,Math.min(yv,y0),bw,Math.abs(y0-yv)||.5)}}
+    else{const buckets=Math.max(1,Math.floor(pw)),bm=new Float64Array(buckets).fill(-Infinity);
+      for(let i=sr.i0;i<=sr.i1;i++){const v=sr.V[i];if(!Number.isFinite(v))continue;const bb=Math.max(0,Math.min(buckets-1,Math.floor((sr.T[i]-tmin)/(tmax-tmin||1)*(buckets-1))));if(v>bm[bb])bm[bb]=v}
+      for(let b=0;b<buckets;b++)if(bm[b]>-Infinity){const yv=ax.ys(bm[b]);ctx.fillRect(L+b,Math.min(yv,y0),1,Math.abs(y0-yv)||.5)}}
+    ctx.globalAlpha=1;
+  });
+  if(anyBar){const ax=axes[axKeys.indexOf(bars[0].axisKey)],y0=ax.ys(Math.max(ax.mn,0));ctx.strokeStyle='#9aa5b8';ctx.beginPath();ctx.moveTo(L,y0);ctx.lineTo(xr,y0);ctx.stroke()}
+  // lines
+  for(const sr of series.filter(x=>!x.bar)){
+    const ax=axes[axKeys.indexOf(sr.axisKey)],ys=ax.ys,{V,T,i0,i1}=sr;
+    ctx.strokeStyle=sr.color;ctx.lineWidth=1.3;ctx.setLineDash(sr.dash);ctx.beginPath();
     const n=i1-i0+1;let started=false;
     if(n<=pw*2){for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v)){started=false;continue}const x=xs(T[i]),y=ys(v);started?ctx.lineTo(x,y):ctx.moveTo(x,y);started=true}}
-    else{
-      const buckets=Math.max(1,Math.floor(pw));let b=0,bmn=Infinity,bmx=-Infinity;
+    else{const buckets=Math.max(1,Math.floor(pw));let b=0,bmn=Infinity,bmx=-Infinity;
       const flush=x=>{if(bmn<=bmx){ctx.moveTo(x,ys(bmn));ctx.lineTo(x,ys(bmx))}bmn=Infinity;bmx=-Infinity};
       for(let i=i0;i<=i1;i++){const bb=Math.max(0,Math.min(buckets-1,Math.floor((T[i]-tmin)/(tmax-tmin||1)*(buckets-1))));if(bb!==b){flush(L+b);b=bb}const v=V[i];if(Number.isFinite(v)){if(v<bmn)bmn=v;if(v>bmx)bmx=v}}
-      flush(L+b);
-    }
-    ctx.stroke();
+      flush(L+b)}
+    ctx.stroke();ctx.setLineDash([]);
   }
-  const m=P.meta[P.cur];ctx.save();ctx.translate(13,Tp+ph/2);ctx.rotate(-Math.PI/2);ctx.textAlign='center';ctx.fillStyle='#1a2030';ctx.fillText(m?.u?`${P.cur} [${m.u}]`:P.cur,0,0);ctx.restore();
-  // legend inside the plot
-  let lx=L+8;ctx.textAlign='left';for(const {it} of act){ctx.fillStyle=it.color;ctx.fillRect(lx,Tp+6,16,3);ctx.fillStyle='#1a2030';ctx.fillText(it.label,lx+20,Tp+11);lx+=ctx.measureText(it.label).width+40}
-  plotGeom={L,R,W,pw,tmin,tmax,act};$('plotInfo').dataset.mode=bar?'bars':'lines';
+  // legend (wraps)
+  ctx.textAlign='left';let lx=L+4,ly=2;
+  for(const sr of series){const w=ctx.measureText(sr.label).width+46;if(lx+w>W-8&&lx>L+4){lx=L+4;ly+=16}
+    ctx.strokeStyle=sr.color;ctx.fillStyle=sr.color;ctx.lineWidth=sr.bar?6:2;ctx.setLineDash(sr.dash);ctx.beginPath();ctx.moveTo(lx,ly+4);ctx.lineTo(lx+18,ly+4);ctx.stroke();ctx.setLineDash([]);
+    ctx.fillStyle='#1a2030';ctx.fillText(sr.label,lx+23,ly+8);lx+=w}
+  plotGeom={L,W,pw,xr,tmin,tmax,series,stepMs};
+  renderExtremes(series);
+}
+function extremes(V,i0,i1,k=10){
+  const hi=[],lo=[];
+  const ins=(arr,v,i,cmp)=>{let j=arr.length;arr.push(null);while(j>0&&cmp(v,arr[j-1][0])){arr[j]=arr[j-1];j--}arr[j]=[v,i];if(arr.length>k)arr.pop()};
+  for(let i=i0;i<=i1;i++){const v=V[i];if(!Number.isFinite(v))continue;
+    if(hi.length<k||v>hi[k-1][0])ins(hi,v,i,(a,b)=>a>b);
+    if(lo.length<k||v<lo[k-1][0])ins(lo,v,i,(a,b)=>a<b)}
+  return{hi,lo};
+}
+function renderExtremes(series){
+  const box=$('extBox');
+  if(!$('plotExt').checked||!series?.length){box.style.display='none';box.innerHTML='';return}
+  const cards=series.map(sr=>{
+    const e=extremes(sr.V,sr.i0,sr.i1),dateOnly=sr.T.length>1&&(sr.T[1]-sr.T[0])>=864e5-1;
+    const rows=arr=>arr.map(([v,i],k)=>`<tr><td>${k+1}</td><td>${fmtTs(sr.T[i],dateOnly)}</td><td class="v">${fv(v)}</td></tr>`).join('')||'<tr><td colspan="3">no data</td></tr>';
+    return `<div class="extcard"><h4><span style="color:${sr.color}">■</span> ${sr.label}${P.meta[sr.pn]?.d?`<br><span style="font-weight:500;color:var(--muted)">${P.meta[sr.pn].d}</span>`:''}</h4><div class="two"><div><b>10 highest</b><table><tbody>${rows(e.hi)}</tbody></table></div><div><b>10 lowest</b><table><tbody>${rows(e.lo)}</tbody></table></div></div></div>`;
+  }).join('');
+  box.innerHTML=`<div class="hint" style="margin:10px 0 0">Highest / lowest values within the period shown in the graph (times in UTC). For precipitation, radiation, snow and sunshine many values can be 0 – tied values are listed from the earliest date.</div><div class="extgrid">${cards}</div>`;
+  box.style.display='';
 }
 function plotHover(ev){
   const g=plotGeom;if(!g||!P.cur)return;const rc=$('plotCv').getBoundingClientRect(),x=ev.clientX-rc.left,tip=$('plotTip');
-  if(x<g.L||x>g.W-g.R){tip.style.display='none';return}
-  const t=g.tmin+(x-g.L)/g.pw*(g.tmax-g.tmin),pd=n=>String(n).padStart(2,'0'),u=P.meta[P.cur]?.u||'';
-  let ts='',rows=[];
-  for(const {it,V,T,i0,i1} of g.act){
+  if(x<g.L||x>g.xr){tip.style.display='none';return}
+  const t=g.tmin+(x-g.L)/g.pw*(g.tmax-g.tmin);let rows=[];
+  for(const sr of g.series){const {V,T,i0,i1}=sr;
     let j=Math.min(i1,Math.max(i0,lb(T,t,i0,i1+1)));
     if(j>i0&&Math.abs(T[j-1]-t)<Math.abs(T[j]-t))j--;
-    const d=new Date(T[j]);ts=ts||`${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())} UTC`;
-    const v=V[j];rows.push(`<span style="color:${it.color}">■</span> ${it.label}: ${Number.isFinite(v)?v+(u?' '+u:''):'no data'}${g.act.length>1?` (${pd(d.getUTCDate())}.${pd(d.getUTCMonth()+1)}.${d.getUTCFullYear()} ${pd(d.getUTCHours())}:${pd(d.getUTCMinutes())})`:''}`);
-  }
-  tip.innerHTML=(g.act.length>1?'':ts+'<br>')+rows.join('<br>');tip.style.display='block';
-  tip.style.left=Math.min(x+10,g.W-300)+'px';tip.style.top=Math.max(0,ev.clientY-rc.top-20-rows.length*14)+'px';
+    const dateOnly=T.length>1&&(T[1]-T[0])>=864e5-1,v=V[j];
+    rows.push(`<span style="color:${sr.color}">■</span> ${fmtTs(T[j],dateOnly)}${dateOnly?'':' UTC'} · ${sr.label.replace(/ \[[^\]]*\]$/,'')}: ${Number.isFinite(v)?fv(v)+(sr.u?' '+sr.u:''):'no data'}`)}
+  tip.innerHTML=rows.join('<br>');tip.style.display='block';
+  tip.style.left=Math.min(x+10,g.W-360)+'px';tip.style.top=Math.max(0,ev.clientY-rc.top-20-rows.length*14)+'px';
 }
 $('plotLoadBtn').onclick=plotLoad;
 $('plotParam').onchange=e=>{P.cur=e.target.value;drawPlot()};
+$('plotParam2').onchange=e=>{P.cur2=e.target.value||null;drawPlot()};
+$('plotParam3').onchange=e=>{P.cur3=e.target.value||null;drawPlot()};
+$('plotExt').onchange=()=>drawPlot();
 $('plotFrom').onchange=$('plotTo').onchange=drawPlot;
 $('plotReset').onclick=()=>{const iso=x=>new Date(x).toISOString().slice(0,10);$('plotFrom').value=iso(P.t0);$('plotTo').value=iso(P.t1);drawPlot()};
 $('plotCv').addEventListener('mousemove',plotHover);$('plotCv').addEventListener('mouseleave',()=>{$('plotTip').style.display='none'});
