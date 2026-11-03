@@ -1,0 +1,5 @@
+INFO
+The ICON step checker is only set up for a selection of the most demanded parameters only. 
+
+The ICON Viewer NEEDS to be started with the Python file, since the python file sets up the proxy which enables it to dowload the ICON files
+with the browser for visualizing. It won't work standalone without the Python file. 
