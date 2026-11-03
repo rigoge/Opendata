@@ -1,0 +1,1296 @@
+<!doctype html>
+<!--
+  Local Forecast Viewer – visualises the MeteoSwiss open-data local forecasts
+  (STAC collection ch.meteoschweiz.ogd-local-forecasting)
+
+  SPDX-License-Identifier: MIT
+  The code of this tool is licensed under the MIT licence; full licence text in the LICENSE file.
+
+  Data: Source: MeteoSwiss – Open Data under CC BY 4.0
+        https://opendatadocs.meteoswiss.ch/general/terms-of-use
+  Not an official MeteoSwiss product. The weather symbols are an original design
+  and not MeteoSwiss symbols.
+  Charts: uPlot (MIT licence, https://github.com/leeoniya/uPlot), loaded from cdn.jsdelivr.net
+
+  Workflow: select parameters -> complete parameter files (all ~6000 points) are downloaded once
+  and kept in memory while the page is open. Changing the location afterwards needs no further
+  download; newly selected parameters are fetched individually.
+-->
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Forecast Viewer</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20viewBox%3D%220%200%2064%2064%22%20width%3D%2264%22%20height%3D%2264%22%3E%20%3Cdefs%3E%20%3CradialGradient%20id%3D%22lfBall%22%20cx%3D%220.38%22%20cy%3D%220.32%22%20r%3D%220.75%22%3E%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23eef6ff%22/%3E%20%3Cstop%20offset%3D%220.45%22%20stop-color%3D%22%239cc8f2%22/%3E%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%233f6fb8%22/%3E%20%3C/radialGradient%3E%20%3ClinearGradient%20id%3D%22lfBase%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23c8913f%22/%3E%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%237a4f1c%22/%3E%20%3C/linearGradient%3E%20%3CclipPath%20id%3D%22lfClip%22%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2227%22%20r%3D%2221%22/%3E%3C/clipPath%3E%20%3C/defs%3E%20%3Cellipse%20cx%3D%2232%22%20cy%3D%2258.5%22%20rx%3D%2217%22%20ry%3D%222.6%22%20fill%3D%22%23000%22%20opacity%3D%22.18%22/%3E%20%3Cpath%20d%3D%22M18%2057%20L22%2047%20H42%20L46%2057%20Z%22%20fill%3D%22url%28%23lfBase%29%22%20stroke%3D%22%235e3a12%22%20stroke-width%3D%221.2%22%20stroke-linejoin%3D%22round%22/%3E%20%3Crect%20x%3D%2220%22%20y%3D%2245%22%20width%3D%2224%22%20height%3D%224%22%20rx%3D%222%22%20fill%3D%22%23d9a552%22%20stroke%3D%22%235e3a12%22%20stroke-width%3D%221.1%22/%3E%20%3Ccircle%20cx%3D%2232%22%20cy%3D%2227%22%20r%3D%2221%22%20fill%3D%22url%28%23lfBall%29%22%20stroke%3D%22%232d4f86%22%20stroke-width%3D%221.4%22/%3E%20%3Cg%20clip-path%3D%22url%28%23lfClip%29%22%3E%20%3Cpath%20d%3D%22M11%2042%20C17%2038%2021%2044%2027%2040.5%20S37%2037%2043%2039%20S50%2037.5%2054%2035.5%22%20fill%3D%22none%22%20stroke%3D%22%23e34948%22%20stroke-width%3D%222%22%20stroke-linecap%3D%22round%22/%3E%20%3Ccircle%20cx%3D%2225%22%20cy%3D%2221%22%20r%3D%225.2%22%20fill%3D%22%23ffc21a%22%20stroke%3D%22%23e39b00%22%20stroke-width%3D%221%22/%3E%20%3Cg%20stroke%3D%22%23e39b00%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%20%3Cline%20x1%3D%2225%22%20y1%3D%2212.5%22%20x2%3D%2225%22%20y2%3D%2214.3%22/%3E%3Cline%20x1%3D%2216.5%22%20y1%3D%2221%22%20x2%3D%2218.3%22%20y2%3D%2221%22/%3E%20%3Cline%20x1%3D%2219%22%20y1%3D%2215%22%20x2%3D%2220.3%22%20y2%3D%2216.3%22/%3E%3Cline%20x1%3D%2231%22%20y1%3D%2215%22%20x2%3D%2229.7%22%20y2%3D%2216.3%22/%3E%20%3C/g%3E%20%3Cpath%20d%3D%22M30%2031H42A4.6%204.6%200%200%200%2042%2021.8A6.4%206.4%200%200%200%2030.1%2022.5A4.3%204.3%200%200%200%2030%2031Z%22%20fill%3D%22%23fff%22%20stroke%3D%22%236f7f92%22%20stroke-width%3D%221.1%22%20stroke-linejoin%3D%22round%22/%3E%20%3Cg%20stroke%3D%22%232f80d6%22%20stroke-width%3D%221.6%22%20stroke-linecap%3D%22round%22%3E%3Cline%20x1%3D%2234%22%20y1%3D%2233.5%22%20x2%3D%2233%22%20y2%3D%2236.5%22/%3E%3Cline%20x1%3D%2238.5%22%20y1%3D%2233.5%22%20x2%3D%2237.5%22%20y2%3D%2236.5%22/%3E%3C/g%3E%20%3C/g%3E%20%3Cpath%20d%3D%22M19%2017%20A16%2016%200%200%201%2030%209.5%22%20fill%3D%22none%22%20stroke%3D%22%23fff%22%20stroke-width%3D%222.4%22%20stroke-linecap%3D%22round%22%20opacity%3D%22.75%22/%3E%20%3Cg%20fill%3D%22%23ffd86b%22%3E%3Cpath%20d%3D%22M52%206l1%202.4%202.4%201-2.4%201-1%202.4-1-2.4-2.4-1%202.4-1z%22/%3E%3Cpath%20d%3D%22M8%2011l.7%201.6%201.6.7-1.6.7-.7%201.6-.7-1.6-1.6-.7%201.6-.7z%22/%3E%3C/g%3E%20%3C/svg%3E">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.min.css">
+<script src="https://cdn.jsdelivr.net/npm/uplot@1.6.32/dist/uPlot.iife.min.js"></script>
+<style>
+:root{
+  --bg:#f4f4f2; --surface:#fcfcfb; --border:#dcdbd6; --grid:#e8e7e3;
+  --text:#0b0b0b; --text2:#52514e; --muted:#8a8984; --accent:#2a78d6; --accent-ink:#fff;
+  --warn:#b25e00; --err:#c22c2c; --ok:#1d7a4c; --now:#6b6a66; --cloud-ink:#3d4855; --c-temp:#d13b32; --c-temp2:#f0884f; --c-prec:#2a78d6; --c-prec2:#7fb2ea; --head-bg:#eaf1f9; --hdr1:#123a63; --hdr2:#2a6db3; --hdr-line:#ffc21a;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --bg:#121211; --surface:#1a1a19; --border:#34332f; --grid:#2a2a27;
+    --text:#f0efec; --text2:#c3c2b7; --muted:#8a8984; --accent:#3987e5; --accent-ink:#fff;
+    --warn:#e0a040; --err:#ef6b6b; --ok:#4fbf86; --now:#b5b4ae; --cloud-ink:#e3e8ee; --c-temp:#f0645c; --c-temp2:#f5a06e; --c-prec:#3d8ff0; --c-prec2:#8cbcf2; --head-bg:#20262e; --hdr1:#0d1b2b; --hdr2:#1b3a5e; --hdr-line:#c98500;
+    --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#008300; --s7:#9085e9; --s8:#e66767;
+  }
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+header{background:linear-gradient(120deg,var(--hdr1),var(--hdr2));color:#fff;margin-bottom:16px;border-bottom:3px solid var(--hdr-line)}
+.hdr{max-width:1280px;margin:0 auto;padding:14px 20px;display:flex;align-items:center;gap:14px}
+.hdr svg{width:58px;height:58px;flex:none;filter:drop-shadow(0 2px 3px rgba(0,0,0,.25))}
+h1{font-size:21px;margin:0 0 2px;font-weight:700;letter-spacing:.01em}
+.sub{color:rgba(255,255,255,.82);font-size:13px}
+.sub code{color:#fff;background:rgba(255,255,255,.14);padding:0 4px;border-radius:3px}
+main{max-width:1280px;margin:0 auto;padding:0 20px 40px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 16px 14px;margin-bottom:14px;overflow:visible}
+.row{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end}
+label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--text2)}
+input[type=text],select{font:inherit;color:var(--text);background:var(--bg);border:1px solid var(--border);border-radius:7px;padding:7px 9px;min-height:36px}
+input[type=text]:focus,select:focus{outline:2px solid var(--accent);outline-offset:-1px}
+button{font:inherit;border:1px solid var(--border);background:var(--bg);color:var(--text);border-radius:7px;padding:7px 12px;min-height:36px;cursor:pointer}
+button:hover{border-color:var(--text2)}
+button.primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+button:disabled{opacity:.5;cursor:default}
+.search{position:relative;flex:1 1 320px;min-width:240px}
+.search input{width:100%}
+#sugg{position:absolute;z-index:20;left:0;right:0;top:100%;margin-top:4px;background:var(--surface);border:1px solid var(--border);border-radius:8px;max-height:320px;overflow:auto;display:none;box-shadow:0 8px 24px rgba(0,0,0,.15)}
+#sugg div{padding:7px 10px;cursor:pointer;display:flex;justify-content:space-between;gap:10px}
+#sugg div.act,#sugg div:hover{background:var(--bg)}
+#sugg .t{color:var(--muted);font-size:12px;white-space:nowrap}
+.pinfo{font-size:13px;color:var(--text2);margin-top:8px;min-height:19px}
+.pinfo b{color:var(--text)}
+.params{display:grid;grid-template-columns:repeat(auto-fill,minmax(270px,1fr));gap:4px 18px;margin-top:10px}
+.pgroup{grid-column:1/-1;font-weight:600;font-size:12px;color:var(--text2);margin-top:8px;text-transform:uppercase;letter-spacing:.04em}
+.params label{display:flex;gap:7px;align-items:flex-start;font-size:13px;cursor:pointer;padding:2px 0}
+.params label.na{opacity:.4}
+.params code{font-size:11.5px;color:var(--muted)}
+.presets{display:flex;gap:8px;flex-wrap:wrap}
+.presets button{min-height:30px;padding:4px 10px;font-size:12.5px}
+#status{font-size:12.5px;color:var(--text2)}
+#status .err{color:var(--err)} #status .warn{color:var(--warn)} #status .ok{color:var(--ok)}
+#log{font:12px/1.5 ui-monospace,SFMono-Regular,Menlo,monospace;color:var(--text2);max-height:150px;overflow:auto;margin-top:6px;white-space:pre-wrap}
+.panel{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:0 12px 6px;margin-bottom:12px;overflow:hidden}
+.panel h3{margin:0 -12px 8px;padding:8px 12px 8px 14px;font-size:14px;font-weight:650;text-align:left;background:var(--head-bg);border-bottom:1px solid var(--border);border-left:4px solid var(--accent);display:flex;flex-wrap:wrap;align-items:center;gap:4px 10px}
+.panel h3 span{color:var(--text2);font-weight:400;font-size:12.5px}
+.u-legend{font-size:12.5px;text-align:left}
+.u-legend .u-marker{width:12px;height:3px;border-radius:2px}
+.u-legend th{font-weight:500;color:var(--text2)}
+.u-legend td{color:var(--text)}
+.u-select{background:rgba(42,120,214,.12)}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.toolbar .sp{flex:1}
+.hint{font-size:12px;color:var(--muted)}
+table.data{border-collapse:collapse;font-size:12.5px;width:100%}
+table.data th,table.data td{padding:4px 8px;border-bottom:1px solid var(--grid);text-align:right;white-space:nowrap}
+table.data th:first-child,table.data td:first-child{text-align:left}
+table.data thead th{position:sticky;top:0;background:var(--surface);color:var(--text2);font-weight:600}
+#tablewrap{max-height:520px;overflow:auto;display:none}
+footer{max-width:1280px;margin:0 auto;padding:0 20px 30px;font-size:12px;color:var(--text2)}
+footer p{margin:0 0 6px}
+footer .src{color:var(--text)}
+.srcline{font-size:12px;color:var(--text2);text-align:right;margin:-4px 2px 14px}
+footer a{color:var(--text2)}
+@media (max-width:600px){.hdr,main,footer{padding-left:16px;padding-right:16px}.hdr svg{width:46px;height:46px}h1{font-size:18px}}
+</style>
+<style>
+.step{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--accent);color:var(--accent-ink);font-size:12px;font-weight:700;margin-right:8px;flex:none}
+.cardhead{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;margin:0 -16px 12px;padding:9px 16px;background:var(--head-bg);border-bottom:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px 10px 0 0}
+#out .toolbar{background:var(--head-bg);border:1px solid var(--border);border-left:4px solid var(--accent);border-radius:10px;padding:8px 12px}
+.cardhead strong{display:flex;align-items:center;font-size:14px}
+.badge{font-size:11px;border-radius:4px;padding:0 5px;margin-left:4px;white-space:nowrap}
+.badge.ok{background:color-mix(in srgb,var(--ok) 18%,transparent);color:var(--ok)}
+.badge.busy{background:color-mix(in srgb,var(--accent) 18%,transparent);color:var(--accent)}
+.badge.err{background:color-mix(in srgb,var(--err) 18%,transparent);color:var(--err)}
+.loadrow{display:flex;flex-wrap:wrap;gap:12px 16px;align-items:flex-end;margin-top:14px;padding-top:12px;border-top:1px solid var(--grid)}
+#cacheinfo{font-size:12.5px;color:var(--text2)}
+.progress{height:4px;background:var(--grid);border-radius:2px;overflow:hidden;margin-top:6px;display:none}
+.progress div{height:100%;background:var(--accent);width:0;transition:width .2s}
+</style>
+</head>
+<body>
+<header>
+  <div class="hdr">
+    <svg aria-hidden="true" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <defs>
+    <radialGradient id="lfBall" cx="0.38" cy="0.32" r="0.75">
+      <stop offset="0" stop-color="#eef6ff"/>
+      <stop offset="0.45" stop-color="#9cc8f2"/>
+      <stop offset="1" stop-color="#3f6fb8"/>
+    </radialGradient>
+    <linearGradient id="lfBase" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#c8913f"/>
+      <stop offset="1" stop-color="#7a4f1c"/>
+    </linearGradient>
+    <clipPath id="lfClip"><circle cx="32" cy="27" r="21"/></clipPath>
+  </defs>
+  <ellipse cx="32" cy="58.5" rx="17" ry="2.6" fill="#000" opacity=".18"/>
+  <path d="M18 57 L22 47 H42 L46 57 Z" fill="url(#lfBase)" stroke="#5e3a12" stroke-width="1.2" stroke-linejoin="round"/>
+  <rect x="20" y="45" width="24" height="4" rx="2" fill="#d9a552" stroke="#5e3a12" stroke-width="1.1"/>
+  <circle cx="32" cy="27" r="21" fill="url(#lfBall)" stroke="#2d4f86" stroke-width="1.4"/>
+  <g clip-path="url(#lfClip)">
+    <path d="M11 42 C17 38 21 44 27 40.5 S37 37 43 39 S50 37.5 54 35.5" fill="none" stroke="#e34948" stroke-width="2" stroke-linecap="round"/>
+    <circle cx="25" cy="21" r="5.2" fill="#ffc21a" stroke="#e39b00" stroke-width="1"/>
+    <g stroke="#e39b00" stroke-width="1.6" stroke-linecap="round">
+      <line x1="25" y1="12.5" x2="25" y2="14.3"/><line x1="16.5" y1="21" x2="18.3" y2="21"/>
+      <line x1="19" y1="15" x2="20.3" y2="16.3"/><line x1="31" y1="15" x2="29.7" y2="16.3"/>
+    </g>
+    <path d="M30 31H42A4.6 4.6 0 0 0 42 21.8A6.4 6.4 0 0 0 30.1 22.5A4.3 4.3 0 0 0 30 31Z" fill="#fff" stroke="#6f7f92" stroke-width="1.1" stroke-linejoin="round"/>
+    <g stroke="#2f80d6" stroke-width="1.6" stroke-linecap="round"><line x1="34" y1="33.5" x2="33" y2="36.5"/><line x1="38.5" y1="33.5" x2="37.5" y2="36.5"/></g>
+  </g>
+  <path d="M19 17 A16 16 0 0 1 30 9.5" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round" opacity=".75"/>
+  <g fill="#ffd86b"><path d="M52 6l1 2.4 2.4 1-2.4 1-1 2.4-1-2.4-2.4-1 2.4-1z"/><path d="M8 11l.7 1.6 1.6.7-1.6.7-.7 1.6-.7-1.6-1.6-.7 1.6-.7z"/></g>
+</svg>
+    <div>
+      <h1>Local Forecast Viewer</h1>
+      <div class="sub">MeteoSwiss point forecasts (Open Data <code>ogd-local-forecasting</code>) for postcodes, stations and mountain locations</div>
+    </div>
+  </div>
+</header>
+<main>
+  <div class="card">
+    <div class="cardhead">
+      <strong><span class="step">1</span>Select and load parameters</strong>
+      <div class="presets">
+        <button data-preset="std">Standard</button>
+        <button data-preset="temp">Temperature + uncertainty</button>
+        <button data-preset="prec">Precipitation</button>
+        <button data-preset="wind">Wind</button>
+        <button data-preset="cloud">Cloud cover</button>
+        <button data-preset="daily">Daily values</button>
+        <button data-preset="none">None</button>
+      </div>
+    </div>
+    <div class="params" id="params"><span class="hint">Loading metadata …</span></div>
+    <div class="loadrow">
+      <label class="f">Forecast run
+        <select id="run" style="min-width:250px"><option>loading …</option></select>
+      </label>
+      <button class="primary" id="load" disabled>Load selected parameters</button>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px;font-size:13px;color:var(--text)"><input type="checkbox" id="autoload" checked> automatically load newly selected parameters</label>
+      <span class="sp" style="flex:1"></span>
+      <span id="cacheinfo"></span>
+      <button id="clear" disabled>Clear memory</button>
+    </div>
+    <div class="progress" id="progress"><div></div></div>
+    <div id="status" style="margin-top:8px">Initialising …</div>
+    <div id="log"></div>
+  </div>
+
+  <div class="card">
+    <div class="cardhead"><strong><span class="step">2</span>Select location</strong><span class="hint">No new download when switching location once the parameters are loaded</span></div>
+    <div class="row">
+      <div class="search">
+        <label class="f">Place, postcode or station abbreviation
+          <input type="text" id="q" placeholder="e.g. 1201, Genève, GVE, Jungfraujoch" autocomplete="off" disabled>
+        </label>
+        <div id="sugg"></div>
+      </div>
+      <label class="f">Point type
+        <select id="ptype">
+          <option value="">all</option><option value="2">Postcode</option><option value="1">Station</option><option value="3">Peak/pass/hut</option>
+        </select>
+      </label>
+      <button class="primary" id="plot">Plot</button>
+    </div>
+    <div class="pinfo" id="pinfo"></div>
+    <div id="plotmsg" style="font-size:12.5px;margin-top:4px"></div>
+  </div>
+
+  <div id="out" style="display:none">
+    <div class="toolbar">
+      <strong id="outtitle"></strong><span class="sp"></span>
+      <label class="f" style="flex-direction:row;align-items:center;gap:6px">Period
+        <select id="win">
+          <option value="all">whole run</option><option value="48">next 48 h</option><option value="72">next 72 h</option><option value="120" selected>next 5 days</option>
+        </select>
+      </label>
+      <span class="hint">Drag = zoom, double-click = reset</span>
+      <button id="btnTable">Table</button>
+      <button id="btnCsv">Export CSV</button>
+    </div>
+    <div id="charts"></div>
+    <div class="srcline">Source: MeteoSwiss (Open Data, CC BY 4.0)</div>
+    <div class="panel" id="tablewrap"></div>
+  </div>
+</main>
+<footer>
+  <p class="src"><b>Source: MeteoSwiss</b> – local forecasts from
+    <a href="https://opendatadocs.meteoswiss.ch/e-forecast-data/e4-local-forecast-data" target="_blank" rel="noopener">MeteoSwiss Open Data</a>,
+    licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener">CC BY 4.0</a>
+    (<a href="https://opendatadocs.meteoswiss.ch/general/terms-of-use" target="_blank" rel="noopener">terms of use</a>).
+    The data are converted for display (cloud cover in %, daily values at midday, times in local time).</p>
+  <p>Not an official MeteoSwiss product; MeteoSwiss does not endorse this tool. No guarantee is given for the correctness,
+    accuracy, timeliness or completeness of the data or their presentation. The weather symbols are an original design.</p>
+  <p>Times in local time Europe/Zurich (files in UTC) · values refer to the interval ending at the time shown ·
+    code under the <a href="https://opensource.org/license/mit" target="_blank" rel="noopener">MIT licence</a> ·
+    charts with <a href="https://github.com/leeoniya/uPlot" target="_blank" rel="noopener">uPlot</a> (MIT)</p>
+</footer>
+
+<script>
+/* ===================== WEATHER SYMBOLS ===================== */
+/* Custom weather symbols for the MeteoSwiss weather symbol codes (1–42 day, 101–142 night).
+   Original design, generated from building blocks – these are not MeteoSwiss symbols.
+   Code mapping and descriptions follow the MeteoSwiss weather symbol code list.
+   SPDX-License-Identifier: MIT (full licence text in the LICENSE file)
+
+   Usage: WX.svg(code, size) -> SVG string · WX.dataURL(code, size) -> image URL
+          WX.text(code, lang) -> description ('en' default, 'de' available) */
+const WX = (() => {
+  // [sky, precipitation, intensity 0–3, thunder 0–3]
+  // sky: clear | few | part | var | ovc | heavy | high | stratus | fog | dry
+  const T = {
+    1: ['clear', '', 0, 0], 2: ['few', '', 0, 0], 3: ['part', '', 0, 0], 4: ['var', '', 0, 0], 5: ['ovc', '', 0, 0],
+    6: ['part', 'rain', 1, 0], 7: ['part', 'sleet', 1, 0], 8: ['part', 'snow', 1, 0],
+    9: ['var', 'rain', 2, 0], 10: ['var', 'sleet', 2, 0], 11: ['var', 'snow', 2, 0],
+    12: ['part', '', 0, 1], 13: ['var', 'rain', 1, 2],
+    14: ['heavy', 'rain', 1, 0], 15: ['heavy', 'sleet', 1, 0], 16: ['heavy', 'snow', 1, 0],
+    17: ['heavy', 'rain', 2, 0], 18: ['heavy', 'sleet', 2, 0], 19: ['heavy', 'snow', 2, 0],
+    20: ['heavy', 'rain', 3, 0], 21: ['heavy', 'sleet', 3, 0], 22: ['heavy', 'snow', 3, 0],
+    23: ['heavy', 'rain', 1, 1], 24: ['heavy', 'rain', 1, 2], 25: ['heavy', 'rain', 2, 3],
+    26: ['high', '', 0, 0], 27: ['stratus', '', 0, 0], 28: ['fog', '', 0, 0],
+    29: ['few', 'rain', 1, 0], 30: ['few', 'snow', 1, 0], 31: ['part', 'sleet', 2, 0], 32: ['part', 'rain', 2, 0],
+    33: ['var', 'rain', 3, 0], 34: ['var', 'snow', 3, 0], 35: ['dry', '', 0, 0],
+    36: ['part', '', 0, 2], 37: ['part', 'snow', 1, 2], 38: ['var', 'rain', 3, 2], 39: ['var', 'snow', 3, 2],
+    40: ['heavy', '', 0, 1], 41: ['var', '', 0, 1], 42: ['heavy', 'snow', 3, 2]
+  };
+  const TEXT = {
+    en: {   // translated from the German MeteoSwiss terms
+      1: 'sunny', 2: 'mostly sunny', 3: 'partly sunny', 4: 'variably cloudy', 5: 'overcast',
+      6: 'sunny spells, isolated rain showers', 7: 'sunny spells, isolated rain or snow showers', 8: 'sunny spells, isolated snow showers',
+      9: 'cloudy, some rain showers', 10: 'cloudy, some rain or snow showers', 11: 'cloudy, some snow showers',
+      12: 'sunny spells, slightly thundery', 13: 'sunny spells and thundery',
+      14: 'very cloudy, light rain', 15: 'very cloudy, light snow or rain', 16: 'very cloudy, light snow',
+      17: 'very cloudy, intermittent rain', 18: 'very cloudy, intermittent snow or rain', 19: 'very cloudy, intermittent snow',
+      20: 'very cloudy, persistent rain', 21: 'very cloudy, persistent rain or snow', 22: 'very cloudy, persistent snow',
+      23: 'very cloudy, slightly thundery', 24: 'very cloudy, thundery', 25: 'very cloudy, strongly thundery',
+      26: 'high cloud', 27: 'low stratus', 28: 'fog',
+      29: 'slightly cloudy, isolated rain showers', 30: 'slightly cloudy, light snowfall', 31: 'partly sunny, some snow or rain showers',
+      32: 'partly sunny, some rain showers', 33: 'cloudy, frequent rain showers', 34: 'cloudy, frequent snow showers', 35: 'overcast and dry',
+      36: 'partly sunny, thundery', 37: 'partly sunny, thunderstorms and snow showers', 38: 'cloudy, thunderstorms and frequent rain showers',
+      39: 'cloudy, thunderstorms and frequent snow showers', 40: 'very cloudy, slightly thundery', 41: 'cloudy, slightly thundery',
+      42: 'very cloudy, thunderstorms and frequent snow showers',
+      101: 'clear', 102: 'slightly cloudy', 103: 'partly cloudy',
+      106: 'clear spells, isolated rain showers', 107: 'clear spells, isolated rain or snow showers', 108: 'clear spells, isolated snow showers',
+      112: 'clear spells, slightly thundery', 113: 'clear spells and thundery',
+      129: 'slightly cloudy, isolated rain showers', 130: 'slightly cloudy, light snowfall', 131: 'slightly cloudy, some snow or rain showers',
+      132: 'slightly cloudy, some rain showers', 136: 'clear spells, thundery', 137: 'slightly cloudy, thunderstorms and snow showers'
+    },
+    de: {
+      1: 'sonnig', 2: 'ziemlich sonnig', 3: 'teilweise sonnig', 4: 'wechselnd bewölkt', 5: 'bedeckt',
+      6: 'Aufhellungen, einzelne Regenschauer', 7: 'Aufhellungen, einzelne Regen- oder Schneeschauer', 8: 'Aufhellungen, einzelne Schneeschauer',
+      9: 'bewölkt, einige Regenschauer', 10: 'bewölkt, einige Regen- oder Schneeschauer', 11: 'bewölkt, einige Schneeschauer',
+      12: 'Aufhellungen, leicht gewitterhaft', 13: 'Aufhellungen und gewitterhaft',
+      14: 'stark bewölkt, schwacher Regen', 15: 'stark bewölkt, schwacher Schnee oder Regen', 16: 'stark bewölkt, schwacher Schnee',
+      17: 'stark bewölkt, zeitweise Regen', 18: 'stark bewölkt, zeitweise Schnee oder Regen', 19: 'stark bewölkt, zeitweise Schnee',
+      20: 'stark bewölkt, anhaltender Regen', 21: 'stark bewölkt, anhaltender Regen oder Schnee', 22: 'stark bewölkt, anhaltender Schnee',
+      23: 'stark bewölkt, leicht gewitterhaft', 24: 'stark bewölkt, gewitterhaft', 25: 'stark bewölkt, stark gewitterhaft',
+      26: 'Hohe Bewölkung', 27: 'Hochnebel', 28: 'Nebel',
+      29: 'leicht bewölkt, einzelne Regenschauer', 30: 'leicht bewölkt, leichter Schneefall', 31: 'teilweise sonnig, einige Schnee- oder Regenschauer',
+      32: 'teilweise sonnig, einige Regenschauer', 33: 'bewölkt, häufige Regenschauer', 34: 'bewölkt, häufige Schneeschauer', 35: 'bedeckt und trocken',
+      36: 'teilweise sonnig, gewitterhaft', 37: 'teilweise sonnig, Gewitter und Schneeschauer', 38: 'bewölkt, Gewitter und häufige Regenschauer',
+      39: 'bewölkt, Gewitter und häufige Schneeschauer', 40: 'stark bewölkt, leicht gewitterhaft', 41: 'bewölkt, leicht gewitterhaft',
+      42: 'stark bewölkt, Gewitter und häufige Schneeschauer',
+      101: 'klar', 102: 'leicht bewölkt', 103: 'zum Teil bewölkt', 129: 'leicht bewölkt, einzelne Regenschauer', 130: 'leicht bewölkt, leichter Schneefall',
+      131: 'leicht bewölkt, einige Schnee- oder Regenschauer', 132: 'leicht bewölkt, einige Regenschauer', 136: 'Aufhellungen, gewitterhaft',
+      137: 'leicht bewölkt, Gewitter und Schneeschauer'
+    }
+  };
+  const text = (code, lang = 'en') => {
+    const t = TEXT[lang] || TEXT.en;
+    return t[code] || t[code > 100 ? code - 100 : code] || `Code ${code}`;
+  };
+
+  /* ---- colours ---- */
+  const C = {
+    sun: '#FFC21A', sunEdge: '#E39B00', moon: '#F3E6B0', moonEdge: '#B9A562',
+    cLight: '#FFFFFF', cLightEdge: '#7E8A99', cGrey: '#D3D9E0', cGreyEdge: '#73808F', cDark: '#8E99A6', cDarkEdge: '#566271',
+    rain: '#2F80D6', snow: '#4FA3E0', bolt: '#FFC21A', boltEdge: '#C77B00', fog: '#9AA4B0', haze: '#B8C0CA'
+  };
+  const CLOUD = 'M10 24H32A8 8 0 0 0 32 8A11 11 0 0 0 11.2 9.2A7.5 7.5 0 0 0 10 24Z';   // box 0..40 × ~1..24
+
+  const sun = (cx, cy, r) => {
+    let s = '';
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4, c = Math.cos(a), d = Math.sin(a);
+      s += `<line x1="${(cx + c * (r + 3)).toFixed(1)}" y1="${(cy + d * (r + 3)).toFixed(1)}" x2="${(cx + c * (r + 7)).toFixed(1)}" y2="${(cy + d * (r + 7)).toFixed(1)}"/>`;
+    }
+    return `<g stroke="${C.sunEdge}" stroke-width="2.4" stroke-linecap="round">${s}</g><circle cx="${cx}" cy="${cy}" r="${r}" fill="${C.sun}" stroke="${C.sunEdge}" stroke-width="1.5"/>`;
+  };
+  const moon = (cx, cy, r) => {
+    // crescent opening to the right: left half circle + flat inner arc
+    const t = (cy - r).toFixed(1), u = (cy + r).toFixed(1), ri = (r * 0.55).toFixed(1);
+    return `<path d="M${cx} ${t}A${r} ${r} 0 0 0 ${cx} ${u}A${ri} ${r} 0 0 1 ${cx} ${t}Z" transform="rotate(-25 ${cx} ${cy}) translate(${(r * 0.35).toFixed(1)} 0)" fill="${C.moon}" stroke="${C.moonEdge}" stroke-width="1.5" stroke-linejoin="round"/>` +
+      `<path d="M${cx + r * 0.9} ${cy - r * 0.95}l0.9 2 2 0.9-2 0.9-0.9 2-0.9-2-2-0.9 2-0.9z" fill="${C.moonEdge}"/>`;
+  };
+  const cloud = (x, y, s, kind) => {
+    const f = kind === 'dark' ? [C.cDark, C.cDarkEdge] : kind === 'grey' ? [C.cGrey, C.cGreyEdge] : [C.cLight, C.cLightEdge];
+    return `<path d="${CLOUD}" transform="translate(${x} ${y}) scale(${s})" fill="${f[0]}" stroke="${f[1]}" stroke-width="${(1.6 / s).toFixed(2)}" stroke-linejoin="round"/>`;
+  };
+  const drop = (x, y) => `<line x1="${x}" y1="${y}" x2="${x - 2.8}" y2="${y + 7.5}" stroke="${C.rain}" stroke-width="2.8" stroke-linecap="round"/>`;
+  const flake = (x, y) => {
+    const cy = y + 4, L = 4; let s = '';
+    for (let i = 0; i < 3; i++) { const a = i * Math.PI / 3 + Math.PI / 2, c = Math.cos(a) * L, d = Math.sin(a) * L; s += `<line x1="${(x - c).toFixed(1)}" y1="${(cy - d).toFixed(1)}" x2="${(x + c).toFixed(1)}" y2="${(cy + d).toFixed(1)}"/>`; }
+    return `<g stroke="${C.snow}" stroke-width="1.9" stroke-linecap="round">${s}</g>`;
+  };
+  const bolt = (x, y, s = 1) => `<path d="M3 0L-4 11H0.5L-2.5 20L7 7H2.5L6 0Z" transform="translate(${x} ${y}) scale(${s})" fill="${C.bolt}" stroke="${C.boltEdge}" stroke-width="${(1.2 / s).toFixed(2)}" stroke-linejoin="round"/>`;
+
+  /* precipitation below the cloud: positions depend on intensity */
+  const precip = (type, n, thunder) => {
+    const xsBy = { 1: [32], 2: [25, 39], 3: [20, 32, 44] };
+    let xs = xsBy[n] || [];
+    if (thunder && n >= 1) xs = n === 1 ? [22] : n === 2 ? [18, 44] : [16, 28, 46];
+    const rows = n === 3 ? [46, 55] : [48];
+    let s = '';
+    rows.forEach((y, ri) => xs.forEach((x, i) => {
+      const xx = x + (ri ? -5 : 0);
+      if (ri && thunder) return;
+      const k = type === 'sleet' ? ((i + ri) % 2 ? 'snow' : 'rain') : type;
+      s += k === 'snow' ? flake(xx, y) : drop(xx, y);
+    }));
+    return s;
+  };
+
+  function svg(code, size = 64) {
+    code = +code;
+    const night = code > 100, base = night ? code - 100 : code, d = T[base];
+    let body;
+    if (!d) {
+      body = `<circle cx="32" cy="32" r="20" fill="none" stroke="${C.cGreyEdge}" stroke-width="2" stroke-dasharray="4 4"/><text x="32" y="38" text-anchor="middle" font-family="system-ui,sans-serif" font-size="16" fill="${C.cGreyEdge}">?</text>`;
+    } else {
+      const [sky, pr, n, th] = d;
+      const wet = !!pr || th > 0;
+      const dy = wet ? -9 : 0;                             // raise the cloud when something falls below it
+      const star = (cx, cy, r) => night ? moon(cx, cy, r * 0.95) : sun(cx, cy, r);
+      const parts = [];
+      switch (sky) {
+        case 'clear': parts.push(star(32, 32, 13)); break;
+        case 'few': parts.push(star(wet ? 24 : 26, wet ? 20 : 25, 11), cloud(26, 30 + dy, 0.8, 'light')); break;
+        case 'part': parts.push(star(22, 21 + dy * 0.6, 10), cloud(14, 26 + dy, 1.1, 'light')); break;
+        case 'var': parts.push(star(19, 18 + dy * 0.6, 8), cloud(9, 22 + dy, 1.25, 'grey')); break;
+        case 'ovc': parts.push(cloud(22, 12, 0.9, 'grey'), cloud(4, 22, 1.2, 'grey')); break;
+        case 'dry': parts.push(cloud(22, 10, 0.9, 'grey'), cloud(4, 20, 1.2, 'grey'),
+          `<line x1="12" y1="54" x2="52" y2="54" stroke="${C.cGreyEdge}" stroke-width="2.4" stroke-linecap="round"/>`); break;
+        case 'heavy': parts.push(cloud(22, 12 + dy, 0.9, 'dark'), cloud(4, 22 + dy, 1.2, 'dark')); break;
+        case 'high': parts.push(star(30, 34, 11),
+          `<g fill="none" stroke="${C.cGreyEdge}" stroke-width="2.2" stroke-linecap="round"><path d="M8 20Q22 13 36 18T58 14"/><path d="M14 28Q26 22 40 26T60 23"/></g>`); break;
+        case 'stratus': parts.push(star(32, 44, 9),
+          `<rect x="6" y="12" width="52" height="16" rx="8" fill="${C.cGrey}" stroke="${C.cGreyEdge}" stroke-width="1.6"/>`,
+          `<line x1="10" y1="34" x2="54" y2="34" stroke="${C.haze}" stroke-width="2.6" stroke-linecap="round"/>`); break;
+        case 'fog': parts.push(`<g stroke="${C.fog}" stroke-width="3.2" stroke-linecap="round"><line x1="10" y1="20" x2="46" y2="20"/><line x1="16" y1="29" x2="56" y2="29"/><line x1="8" y1="38" x2="50" y2="38"/><line x1="18" y1="47" x2="54" y2="47"/></g>`); break;
+      }
+      if (pr) parts.push(precip(pr, n, th));
+      if (th) {
+        if (th === 3) parts.push(bolt(27, 37, 0.85), bolt(41, 39, 0.85));
+        else parts.push(bolt(th === 1 ? 33 : 32, 37, th === 1 ? 0.8 : 1));
+      }
+      body = parts.join('');
+    }
+    return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="${size}" height="${size}">${body}</svg>`;
+  }
+  const dataURL = (code, size) => 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg(code, size));
+  const codes = () => [...Object.keys(T).map(Number), ...Object.keys(T).map(c => +c + 100)];
+  return { svg, dataURL, text, codes };
+})();
+</script>
+<script>
+'use strict';
+/* ===================== DATA ACCESS ===================== */
+const OGD = (() => {
+  const BASE = 'https://data.geo.admin.ch';
+  const COLL = 'ch.meteoschweiz.ogd-local-forecasting';
+  const STAC = BASE + '/api/stac/v1';
+  const ASSET_RE = /vnut12\.lssw\.(\d{12})\.([^.\/]+)\.csv$/;
+  const dec = () => new TextDecoder('iso-8859-1');
+
+  async function getJSON(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status} – ${url}`);
+    return r.json();
+  }
+  async function getText(url) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status} – ${url}`);
+    return dec().decode(await r.arrayBuffer());
+  }
+  /* CSV with ';' and quotes ("…; …", "" as escape, line breaks inside fields) */
+  function parseCSV(txt) {
+    const rows = []; let row = [], f = '', q = false;
+    for (let i = 0; i < txt.length; i++) {
+      const ch = txt[i];
+      if (q) {
+        if (ch === '"') { if (txt[i + 1] === '"') { f += '"'; i++; } else q = false; }
+        else f += ch;
+      } else if (ch === '"') q = true;
+      else if (ch === ';') { row.push(f); f = ''; }
+      else if (ch === '\n') { row.push(f); f = ''; if (row.length > 1 || row[0] !== '') rows.push(row); row = []; }
+      else if (ch !== '\r') f += ch;
+    }
+    if (f !== '' || row.length) { row.push(f); rows.push(row); }
+    const head = rows.shift().map(h => h.trim().replace(/^\uFEFF/, ''));
+    return rows.map(c => { const o = {}; head.forEach((h, i) => o[h] = (c[i] ?? '').trim()); return o; });
+  }
+  async function collectionAssets() {
+    const j = await getJSON(`${STAC}/collections/${COLL}`);
+    const out = {};
+    for (const [k, v] of Object.entries(j.assets || {})) {
+      if (/meta_point\.csv$/.test(k)) out.point = v.href;
+      if (/meta_parameters\.csv$/.test(k)) out.param = v.href;
+    }
+    return out;
+  }
+  const metaPoints = href => getText(href || `${BASE}/${COLL}/ogd-local-forecasting_meta_point.csv`).then(parseCSV);
+  const metaParams = href => getText(href || `${BASE}/${COLL}/ogd-local-forecasting_meta_parameters.csv`).then(parseCSV);
+
+  /* runs from the daily items (UTC days): {ts: {param: {href, size}}} */
+  async function listRuns(days = 3) {
+    const runs = {}, now = Date.now(), ids = [];
+    for (let d = 0; d < days; d++) ids.push(new Date(now - d * 864e5).toISOString().slice(0, 10).replace(/-/g, '') + '-ch');
+    const add = assets => {
+      for (const [name, a] of Object.entries(assets || {})) {
+        const m = ASSET_RE.exec(name) || ASSET_RE.exec(a.href || '');
+        if (m) (runs[m[1]] ||= {})[m[2]] = { href: a.href, size: a['file:size'] || null };
+      }
+    };
+    const res = await Promise.allSettled(ids.map(id => getJSON(`${STAC}/collections/${COLL}/items/${id}`)));
+    res.forEach(r => r.status === 'fulfilled' && add(r.value.assets));
+    if (!res.some(r => r.status === 'fulfilled')) {          // fallback: paginated item list
+      let url = `${STAC}/collections/${COLL}/items?limit=100`, pages = 0;
+      while (url && pages++ < 30) {
+        const j = await getJSON(url);
+        (j.features || []).forEach(f => add(f.assets));
+        url = (j.links || []).find(l => l.rel === 'next')?.href;
+      }
+    }
+    return runs;
+  }
+
+  /* Stream a complete parameter file and index it for all points.
+     Result: { dates:[YYYYMMDDHHMM…], xs:Float64Array(sek), byKey:Map(pid*10+ptype -> Float32Array), bytes } */
+  async function loadParam(url, onProgress) {
+    const r = await fetch(url);
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    const total = +r.headers.get('content-length') || 0;
+    const d = dec();
+    const dateIdx = new Map(), dates = [], tmp = new Map();
+    let rest = '', header = true, bytes = 0;
+    const handle = chunk => {
+      const txt = rest + chunk;
+      let i = 0, j;
+      while ((j = txt.indexOf('\n', i)) >= 0) {
+        if (header) header = false;
+        else if (j > i) {
+          const a = txt.indexOf(';', i), b = txt.indexOf(';', a + 1), c = txt.indexOf(';', b + 1);
+          if (a > 0 && c > 0 && c < j) {
+            const key = (+txt.slice(i, a)) * 10 + (+txt.slice(a + 1, b));
+            const ds = txt.slice(b + 1, c);
+            let di = dateIdx.get(ds);
+            if (di === undefined) { di = dates.length; dateIdx.set(ds, di); dates.push(ds); }
+            let e = txt.charCodeAt(j - 1) === 13 ? j - 1 : j;
+            const vs = txt.slice(c + 1, e);
+            let p = tmp.get(key);
+            if (!p) { p = { d: [], v: [] }; tmp.set(key, p); }
+            p.d.push(di); p.v.push(vs === '' ? NaN : +vs);
+          }
+        }
+        i = j + 1;
+      }
+      rest = txt.slice(i);
+    };
+    if (r.body && r.body.getReader) {
+      const rd = r.body.getReader();
+      for (;;) {
+        const { done, value } = await rd.read();
+        if (done) break;
+        bytes += value.byteLength; onProgress && onProgress(bytes, total);
+        handle(d.decode(value, { stream: true }));
+      }
+    } else {
+      const buf = await r.arrayBuffer(); bytes = buf.byteLength; handle(d.decode(buf));
+    }
+    handle(d.decode() + '\n');
+    // sort the time axis and convert each point into a compact Float32Array
+    const order = dates.map((s, k) => k).sort((x, y) => dates[x] < dates[y] ? -1 : dates[x] > dates[y] ? 1 : 0);
+    const remap = new Int32Array(dates.length); order.forEach((old, nw) => remap[old] = nw);
+    const sortedDates = order.map(k => dates[k]);
+    const byKey = new Map();
+    for (const [key, p] of tmp) {
+      const arr = new Float32Array(sortedDates.length).fill(NaN);
+      for (let k = 0; k < p.d.length; k++) arr[remap[p.d[k]]] = p.v[k];
+      byKey.set(key, arr);
+    }
+    const xs = Float64Array.from(sortedDates, s => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(8, 10), +s.slice(10, 12)) / 1000);
+    return { dates: sortedDates, xs, byKey, bytes, mem: byKey.size * sortedDates.length * 4 };
+  }
+
+  return { collectionAssets, metaPoints, metaParams, listRuns, loadParam };
+})();
+
+/* ===================== STATE & HELPERS ===================== */
+const $ = id => document.getElementById(id);
+const TZ = 'Europe/Zurich';
+const state = {
+  points: [], params: [], paramByCode: {}, runs: {}, point: null, selected: new Set(),
+  run: null,                 // active (resolved) run
+  cache: new Map(),          // "run|code" -> entry from OGD.loadParam
+  busy: new Map(),           // "run|code" -> Promise
+  failed: new Set(), charts: []
+};
+const PTYPE_LABEL = { 1: 'Station', 2: 'Postcode', 3: 'Mountain' };
+const PRESETS = {
+  std: ['jww003i0', 'tre200h0', 'rre150h0', 'rp0003i0', 'fu3010h0', 'fu3010h1'],
+  temp: ['tre200h0', 'treq10h0', 'treq90h0', 'zprfr0hs'],
+  prec: ['rre150h0', 'rreq10h0', 'rreq90h0', 'rp0003i0'],
+  cloud: ['nprohihs', 'npromths', 'nprolohs'],
+  wind: ['fu3010h0', 'fu3q10h0', 'fu3q90h0', 'fu3010h1', 'fu3q10h1', 'fu3q90h1', 'dkl010h0'],
+  daily: ['jp2000d0', 'tre200px', 'tre200pn', 'rka150p0', 'rreq10p0', 'rreq90p0'],
+  none: []
+};
+const FAMILIES = [
+  { re: /^(jww|jp2)/, key: 'sym', title: 'Weather symbol', icons: true },
+  { re: /^tre/, key: 'temp', title: '2 m temperature' },
+  { re: /^zpr/, key: 'zero', title: 'Zero degree level' },
+  { re: /^(rre|rka)/, key: 'prec', title: 'Precipitation', bars: true, y0: true },
+  { re: /^rp0/, key: 'prob', title: 'Probability of precipitation', range: [0, 100] },
+  { re: /^fu3/, key: 'wind', title: 'Wind', y0: true },
+  { re: /^dkl/, key: 'dir', title: 'Wind direction', points: true, range: [0, 360] },
+  { re: /^sre/, key: 'sun', title: 'Sunshine duration', bars: true, y0: true },
+  { re: /^(gre|ods)/, key: 'rad', title: 'Radiation', y0: true },
+  { re: /^npro/, key: 'cloud', title: 'Cloud cover', range: [0, 100] },
+];
+const familyOf = code => FAMILIES.find(f => f.re.test(code)) || { key: 'other', title: 'Other' };
+/* Display: group (= shared chart), scale (= own y axis) and drawing style per parameter */
+const ROLES = [
+  { re: /^(jww|jp2)/, grp: 'sym', scale: 'sym', kind: 'icons' },
+  { re: /^tre/, grp: 'temp', scale: 'degC', kind: 'line', pad: true },
+  { re: /^zpr/, grp: 'zero', scale: 'm', kind: 'line', pad: true },
+  { re: /^rre003/, grp: 'prec', scale: 'mm', kind: 'line', y0: true, min: 1 },
+  { re: /^(rre|rka)/, grp: 'prec', scale: 'mm', kind: 'bars', y0: true, min: 1 },
+  { re: /^rp0/, grp: 'prec', scale: 'pct', kind: 'line', range: [0, 100] },
+  { re: /^fu3/, grp: 'wind', scale: 'kmh', kind: 'line', y0: true, min: 5 },
+  { re: /^dkl/, grp: 'wind', scale: 'dir', kind: 'arrows', range: [0, 360] },
+  { re: /^(gre|ods)/, grp: 'sun', scale: 'wm2', kind: 'line', y0: true, min: 10 },
+  { re: /^sre/, grp: 'sun', scale: 'min', kind: 'bars', range: [0, 60], dailyY0: true },
+  { re: /^npro/, grp: 'cloud', scale: 'cloudrow', kind: 'clouds' },
+];
+const ROLE_OTHER = { grp: 'other', scale: 'other', kind: 'line', pad: true };
+const roleOf = code => ROLES.find(r => r.re.test(code)) || ROLE_OTHER;
+const PLOT_ORDER = ['sym', 'cloud', 'temp', 'zero', 'prec', 'wind', 'sun', 'other'];
+function groupTitle(grp, list) {
+  const has = re => list.some(s => re.test(s.code));
+  switch (grp) {
+    case 'sym': return 'Weather symbol';
+    case 'temp': return '2 m temperature';
+    case 'zero': return 'Zero degree level';
+    case 'prec': return [has(/^(rre|rka)/) && 'Precipitation', has(/^rp0/) && 'probability of precipitation'].filter(Boolean).join(' and ').replace(/^p/, 'P');
+    case 'wind': return [has(/^fu3...h0/) && 'Wind speed', has(/^fu3...h1/) && 'gusts', has(/^dkl/) && 'wind direction'].filter(Boolean).join(', ').replace(/, ([^,]*)$/, ' and $1').replace(/^./, c => c.toUpperCase()) || 'Wind';
+    case 'sun': return [has(/^(gre|ods)/) && 'Radiation', has(/^sre/) && 'sunshine duration'].filter(Boolean).join(' and ').replace(/^s/, 'S');
+    case 'cloud': return 'Cloud cover';
+    default: return 'Other';
+  }
+}
+function scaleRange(r, daily, mn, mx) {
+  if (r.kind === 'icons') return [0, 1];
+  if (r.range && !(daily && r.dailyY0)) return [r.range[0], Math.max(r.range[1], mx ?? r.range[1])];
+  if (mn == null) return [0, 1];
+  if (r.y0 || r.dailyY0) return [0, Math.max(mx * 1.12, r.min || 5)];
+  const pad = Math.max((mx - mn) * 0.1, 0.5); return [Math.floor(mn - pad), Math.ceil(mx + pad)];
+}
+const COMPASS = ['N', 'NNE', 'NE', 'ENE', 'E', 'ESE', 'SE', 'SSE', 'S', 'SSW', 'SW', 'WSW', 'W', 'WNW', 'NW', 'NNW'];
+const compass = d => COMPASS[Math.round(((d % 360) + 360) % 360 / 22.5) % 16];
+const GROUP_LABEL = { sym: 'Weather', temp: 'Temperature', zero: 'Temperature', prec: 'Precipitation', prob: 'Precipitation', wind: 'Wind', dir: 'Wind', sun: 'Sun & radiation', rad: 'Sun & radiation', cloud: 'Cloud cover', other: 'Other' };
+const isQuantile = code => /^...q\d\d/.test(code);
+/* Quantiles: upper (q90) dashed, lower (q10) dotted – in the chart and in the legend */
+/* Fixed colours per quantity: temperature in reds, precipitation in blues, the rest from the categorical palette.
+   Quantiles share the colour of their base parameter (they match the same patterns). */
+const SEM_COLORS = [
+  [/^tre...(pn|dn)$/, '--c-temp2'],                      // daily minimum temperature: lighter red/orange
+  [/^tre/, '--c-temp'],                                   // temperature (incl. quantiles, daily maximum)
+  [/^rre003/, '--c-prec2'],                               // 3-hour precipitation: lighter blue
+  [/^(rre|rka)/, '--c-prec'],                             // precipitation (incl. quantiles)
+  [/^rp0/, '--s3'],                                       // probability of precipitation: teal
+  [/^zpr/, '--s7'],                                       // zero degree level: violet
+  [/^fu3...h0/, '--s3'],                                  // wind speed: teal
+  [/^fu3...h1/, '--s5'],                                  // gusts: magenta
+  [/^gre/, '--s2'],                                       // global radiation: orange
+  [/^ods/, '--s7'],                                       // diffuse radiation: violet
+  [/^sre/, '--s4'],                                       // sunshine duration: yellow
+];
+const quantileKind = code => /^...q9/.test(code) ? 'hi' : 'lo';
+const quantileName = code => quantileKind(code) === 'hi' ? `Upper bound (${code.slice(4, 6)} % quantile)` : `Lower bound (${code.slice(4, 6)} % quantile)`;
+const QSTYLE = { hi: { dash: [7, 4], css: 'dashed' }, lo: { dash: [1, 4], css: 'dotted' } };
+function styleQuantileMarkers(u, list, cols) {
+  // legend marker as a short line sample in the series' own dash style
+  u.root.querySelectorAll('.u-legend .u-series').forEach((row, i) => {
+    const s = list[i - 1]; if (!s || !isQuantile(s.code)) return;
+    const m = row.querySelector('.u-marker'); if (!m) return;
+    const col = cols[i - 1];
+    m.style.cssText = `width:22px;height:0;background:none;border:0;border-top:2.5px ${QSTYLE[quantileKind(s.code)].css} ${col};border-radius:0;margin-bottom:3px`;
+  });
+}
+const gran = code => {
+  const g = ((state.paramByCode[code] || {}).parameter_granularity || '').trim();
+  if (g) return /^d/i.test(g) ? 'd' : 'h';
+  return /p[0nx]$|d[0nx]$/.test(code) ? 'd' : 'h';
+};
+const norm = s => (s || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+const css = v => getComputedStyle(document.documentElement).getPropertyValue(v).trim();
+const esc = s => String(s).replace(/[&<>"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+const mb = b => (b / 1048576).toFixed(b < 10485760 ? 1 : 0) + ' MB';
+const ckey = (run, code) => run + '|' + code;
+const pkey = p => p.pid * 10 + p.ptype;
+const fmtLocal = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, weekday: 'short', day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit', hour12: false });
+const fmtLocalFull = new Intl.DateTimeFormat('en-GB', { timeZone: TZ, day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: false });
+const utcStampToSec = s => Date.UTC(+s.slice(0, 4), +s.slice(4, 6) - 1, +s.slice(6, 8), +s.slice(8, 10), +s.slice(10, 12)) / 1000;
+const runLabel = t => `${fmtLocalFull.format(new Date(utcStampToSec(t) * 1000))} (${t.slice(8, 10)}:${t.slice(10)} UTC)`;
+function setStatus(html) { $('status').innerHTML = html; }
+function log(msg) { const el = $('log'); el.textContent += msg + '\n'; el.scrollTop = el.scrollHeight; }
+
+/* ===================== INITIALISATION ===================== */
+async function init() {
+  setStatus('Loading metadata and forecast runs …');
+  let assets = {};
+  try { assets = await OGD.collectionAssets(); } catch (e) { log('Collection assets: ' + e.message + ' – using default URLs'); }
+  const [pts, prm, runs] = await Promise.allSettled([OGD.metaPoints(assets.point), OGD.metaParams(assets.param), OGD.listRuns(3)]);
+  if (pts.status !== 'fulfilled') { setStatus(`<span class="err">Could not load point metadata: ${esc(pts.reason.message)}</span>`); return; }
+  state.points = pts.value.map(p => ({
+    pid: +p.point_id, ptype: +p.point_type_id, abbr: p.station_abbr || '', plz: p.postal_code || '', name: p.point_name || '',
+    h: p.point_height_masl, lat: +p.point_coordinates_wgs84_lat, lon: +p.point_coordinates_wgs84_lon,
+    e: p.point_coordinates_lv95_east, n: p.point_coordinates_lv95_north
+  }));
+  state.points.forEach(p => p.s = norm(`${p.plz} ${p.name} ${p.abbr}`));
+  if (prm.status === 'fulfilled') { state.params = prm.value; state.params.forEach(p => state.paramByCode[p.parameter_shortname] = p); }
+  else log('Parameter metadata: ' + prm.reason.message);
+  if (runs.status === 'fulfilled') state.runs = runs.value; else log('Runs: ' + runs.reason.message);
+  const autoLoad = /(^|[#&])auto\b/.test(location.hash);
+  fillRuns();
+  applyHash();
+  if (!state.selected.size) setPreset('std', true);
+  renderParams();
+  updateCacheInfo();
+  $('q').disabled = false; $('load').disabled = false;
+  setStatus(`<span class="ok">Ready.</span> ${state.points.length.toLocaleString('en-GB')} points, ${state.params.length || '?'} parameters, ${Object.keys(state.runs).length} runs. Select and load parameters.`);
+  if (autoLoad) loadSelected();
+}
+
+/* ===================== RUNS ===================== */
+function fillRuns() {
+  const sel = $('run'), cur = sel.value; sel.innerHTML = '';
+  const add = (v, t) => { const o = document.createElement('option'); o.value = v; o.textContent = t; sel.appendChild(o); };
+  add('', 'latest available');
+  Object.keys(state.runs).sort().reverse().forEach(t => add(t, `${runLabel(t)} · ${Object.keys(state.runs[t]).length} par.`));
+  if ([...sel.options].some(o => o.value === cur)) sel.value = cur;
+}
+/* Resolve run: explicit choice, else the currently active run (keeps the cache valid), else the latest matching one */
+function resolveRun(codes, forceNewest) {
+  const v = $('run').value;
+  if (v) return v;
+  if (state.run && !forceNewest && state.runs[state.run]) return state.run;
+  const ts = Object.keys(state.runs).sort().reverse();
+  return ts.find(t => codes.every(c => state.runs[t][c])) || ts.find(t => codes.some(c => state.runs[t][c])) || null;
+}
+$('run').onchange = () => {
+  const v = $('run').value;
+  if (v && v !== state.run) { state.run = v; renderParams(); updateCacheInfo(); if (anyCached()) loadSelected(); else render(); }
+  else renderParams();
+};
+const anyCached = () => [...state.cache.keys()].length > 0;
+
+/* ===================== PARAMETER LIST ===================== */
+function availableCodes() {
+  const r = state.run || $('run').value;
+  if (r && state.runs[r]) return new Set(Object.keys(state.runs[r]));
+  const all = new Set(); Object.values(state.runs).forEach(x => Object.keys(x).forEach(k => all.add(k))); return all;
+}
+function badgeFor(code) {
+  const r = state.run; if (!r) return '';
+  const k = ckey(r, code);
+  if (state.cache.has(k)) return '<span class="badge ok">loaded</span>';
+  if (state.busy.has(k)) return '<span class="badge busy">loading …</span>';
+  if (state.failed.has(k)) return '<span class="badge err">error</span>';
+  return '';
+}
+function renderParams() {
+  const el = $('params'); el.innerHTML = '';
+  const avail = availableCodes();
+  const codes = new Set([...state.params.map(p => p.parameter_shortname), ...avail]);
+  const groups = {};
+  for (const c of codes) { const g = GROUP_LABEL[familyOf(c).key]; (groups[g] ||= []).push(c); }
+  for (const g of ['Weather', 'Temperature', 'Precipitation', 'Wind', 'Sun & radiation', 'Cloud cover', 'Other']) {
+    if (!groups[g]) continue;
+    const h = document.createElement('div'); h.className = 'pgroup'; h.textContent = g; el.appendChild(h);
+    groups[g].sort((a, b) => (gran(a) + a).localeCompare(gran(b) + b)).forEach(c => {
+      const p = state.paramByCode[c] || {};
+      const lab = document.createElement('label');
+      if (avail.size && !avail.has(c)) { lab.className = 'na'; lab.title = 'not available in this run'; }
+      const cb = document.createElement('input'); cb.type = 'checkbox'; cb.value = c; cb.checked = state.selected.has(c);
+      cb.onchange = () => { cb.checked ? state.selected.add(c) : state.selected.delete(c); writeHash(); updateCacheInfo(); render(); scheduleAutoload(); };
+      const unit = p.parameter_unit && p.parameter_unit !== '-' ? ` [${p.parameter_unit}]` : '';
+      const span = document.createElement('span');
+      span.innerHTML = `${esc(p.parameter_description_en || p.parameter_description_de || c)}${esc(unit)} <code>${c}</code><span data-badge="${c}">${badgeFor(c)}</span>`;
+      lab.append(cb, span); el.appendChild(lab);
+    });
+  }
+}
+function refreshBadges() { document.querySelectorAll('[data-badge]').forEach(s => s.innerHTML = badgeFor(s.dataset.badge)); }
+function setPreset(name, silent) {
+  state.selected = new Set(PRESETS[name]);
+  document.querySelectorAll('#params input').forEach(cb => cb.checked = state.selected.has(cb.value));
+  writeHash();
+  if (!silent) { updateCacheInfo(); render(); scheduleAutoload(); }
+}
+document.querySelectorAll('[data-preset]').forEach(b => b.onclick = () => setPreset(b.dataset.preset));
+
+/* ===================== LOADING & CACHE ===================== */
+let autoT;
+function scheduleAutoload() {
+  clearTimeout(autoT);
+  if (!$('autoload').checked || !anyCached()) return;    // automatic only after the first deliberate load
+  autoT = setTimeout(loadSelected, 700);
+}
+function estSize(run, code) {
+  const a = state.runs[run] && state.runs[run][code];
+  return a && a.size ? a.size : (gran(code) === 'd' ? 1.3e6 : 31e6);
+}
+function updateCacheInfo() {
+  let mem = 0, n = 0;
+  for (const e of state.cache.values()) { mem += e.mem; n++; }
+  const run = resolveRun([...state.selected], false);
+  const todo = run ? [...state.selected].filter(c => state.runs[run]?.[c] && !state.cache.has(ckey(run, c))) : [];
+  const est = todo.reduce((a, c) => a + estSize(run, c), 0);
+  $('cacheinfo').innerHTML = (n ? `In memory: ${n} files, ${mb(mem)}` : 'Memory empty') +
+    (todo.length ? ` · still to load: ${todo.length} (≈ ${mb(est)})` : (n ? ' · all loaded' : ''));
+  $('clear').disabled = !n;
+  $('load').textContent = todo.length ? `Load ${todo.length} parameter${todo.length > 1 ? 's' : ''}` : 'Load selected parameters';
+}
+$('clear').onclick = () => { state.cache.clear(); state.failed.clear(); updateCacheInfo(); refreshBadges(); render(); log('Memory cleared.'); };
+
+let loadRunning = null;
+async function loadSelected(forceNewest) {
+  if (loadRunning) { await loadRunning; }               // wait for a running load, then fetch the rest
+  loadRunning = (async () => {
+    const codes = [...state.selected];
+    if (!codes.length) { setStatus('<span class="warn">Please select at least one parameter.</span>'); return; }
+    if (forceNewest || !Object.keys(state.runs).length) { try { state.runs = await OGD.listRuns(2); fillRuns(); } catch (e) { log('Runs: ' + e.message); } }
+    const run = resolveRun(codes, forceNewest);
+    if (!run) { setStatus('<span class="err">No forecast run found.</span>'); return; }
+    if (run !== state.run) { state.run = run; renderParams(); }
+    const missing = codes.filter(c => !state.runs[run][c]);
+    const todo = codes.filter(c => state.runs[run][c] && !state.cache.has(ckey(run, c)));
+    if (!todo.length) { setStatus(`<span class="ok">All selected parameters are loaded</span> · run ${runLabel(run)}` + (missing.length ? ` · <span class="warn">not in run: ${missing.join(', ')}</span>` : '')); updateCacheInfo(); render(); return; }
+    $('load').disabled = true;
+    const t0 = performance.now(), prog = {}, tot = {};
+    const bar = $('progress'); bar.style.display = 'block';
+    const upd = () => {
+      const got = Object.values(prog).reduce((a, b) => a + b, 0), all = todo.reduce((a, c) => a + (tot[c] || estSize(run, c)), 0);
+      bar.firstElementChild.style.width = Math.min(100, got / all * 100).toFixed(1) + '%';
+      setStatus(`Loading ${todo.length} parameter${todo.length > 1 ? 's' : ''} from run ${runLabel(run)}: ${mb(got)} of ≈ ${mb(all)} … ` + todo.map(c => `<code>${c}</code>${state.cache.has(ckey(run, c)) ? ' ✓' : ''}`).join(' · '));
+    };
+    // max. 3 files at a time (parsing in the browser), retry on network errors
+    const queue = todo.slice();
+    const worker = async () => {
+      while (queue.length) {
+        const c = queue.shift(), k = ckey(run, c);
+        state.failed.delete(k);
+        const p = (async () => {
+          for (let attempt = 1; ; attempt++) {
+            try {
+              prog[c] = 0;
+              const e = await OGD.loadParam(state.runs[run][c].href, (b, t) => { prog[c] = b; if (t) tot[c] = t; upd(); });
+              e.code = c; e.run = run;
+              state.cache.set(k, e);
+              log(`${c}: ${e.byKey.size.toLocaleString('en-GB')} points × ${e.dates.length} time steps · ${mb(e.bytes)} downloaded · ${mb(e.mem)} in memory`);
+              return;
+            } catch (err) {
+              if (attempt >= 3) { state.failed.add(k); log(`${c}: ERROR ${err.message}`); return; }
+              log(`${c}: ${err.message} – attempt ${attempt + 1} …`);
+              await new Promise(r => setTimeout(r, 1500 * attempt));
+            }
+          }
+        })();
+        state.busy.set(k, p); refreshBadges();
+        await p;
+        state.busy.delete(k); refreshBadges(); updateCacheInfo();
+        render();                                            // show progressively
+      }
+    };
+    upd();
+    await Promise.all([worker(), worker(), worker()]);
+    bar.style.display = 'none';
+    $('load').disabled = false;
+    const ok = todo.filter(c => state.cache.has(ckey(run, c))).length;
+    let msg = `<span class="${ok === todo.length ? 'ok' : 'err'}">${ok}/${todo.length} parameters loaded</span> in ${((performance.now() - t0) / 1000).toFixed(0)} s · run ${runLabel(run)}`;
+    if (missing.length) msg += ` · <span class="warn">not in run: ${missing.join(', ')}</span>`;
+    if (!state.point) msg += ' · now select a location';
+    setStatus(msg);
+    updateCacheInfo();
+  })();
+  try { await loadRunning; } finally { loadRunning = null; }
+}
+$('load').onclick = () => loadSelected(false);
+
+/* ===================== LOCATION SEARCH ===================== */
+let suggList = [], suggIdx = -1;
+function search(q) {
+  const t = $('ptype').value, nq = norm(q.trim());
+  if (!nq) return [];
+  const scored = [];
+  for (const p of state.points) {
+    if (t && p.ptype !== +t) continue;
+    let s = -1;
+    if (p.plz && p.plz === nq) s = 0;
+    else if (p.abbr && norm(p.abbr) === nq) s = 0;
+    else if (norm(p.name) === nq) s = 1;
+    else if (p.plz && p.plz.startsWith(nq)) s = 2;
+    else if (norm(p.name).startsWith(nq)) s = 3;
+    else if (p.s.includes(nq)) s = 4;
+    if (s >= 0) scored.push([s, p]);
+  }
+  scored.sort((a, b) => a[0] - b[0] || a[1].ptype - b[1].ptype || (a[1].plz || '').localeCompare(b[1].plz || '') || a[1].name.localeCompare(b[1].name));
+  return scored.slice(0, 60).map(x => x[1]);
+}
+const pointLabel = p => p.ptype === 2 ? `${p.plz} ${p.name}` : p.ptype === 1 ? `${p.name} (${p.abbr})` : p.name;
+function showSugg() {
+  const el = $('sugg');
+  suggList = search($('q').value); suggIdx = suggList.length ? 0 : -1;
+  if (!suggList.length) { el.style.display = 'none'; return; }
+  el.innerHTML = suggList.map((p, i) => `<div data-i="${i}" class="${i === suggIdx ? 'act' : ''}"><span>${esc(pointLabel(p))}</span><span class="t">${PTYPE_LABEL[p.ptype] || p.ptype} · ${esc(p.h)} m</span></div>`).join('');
+  el.style.display = 'block';
+}
+function pickPoint(p, quiet) {
+  state.point = p;
+  $('q').value = pointLabel(p);
+  $('sugg').style.display = 'none';
+  $('pinfo').innerHTML = `<b>${esc(pointLabel(p))}</b> · ${PTYPE_LABEL[p.ptype]} · ${esc(p.h)} m a.s.l. · LV95 ${esc(p.e)}/${esc(p.n)} · ${p.lat.toFixed(4)}°N ${p.lon.toFixed(4)}°E · <code>point_id ${p.pid}, type ${p.ptype}</code>`;
+  writeHash();
+  if (!quiet) render();
+}
+$('q').addEventListener('input', () => { state.point = null; showSugg(); });
+$('q').addEventListener('focus', () => { if ($('q').value && !state.point) showSugg(); });
+$('q').addEventListener('keydown', e => {
+  const el = $('sugg');
+  if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+    if (!suggList.length) return; e.preventDefault();
+    suggIdx = (suggIdx + (e.key === 'ArrowDown' ? 1 : -1) + suggList.length) % suggList.length;
+    [...el.children].forEach((c, i) => c.classList.toggle('act', i === suggIdx));
+    el.children[suggIdx].scrollIntoView({ block: 'nearest' });
+  } else if (e.key === 'Enter') {
+    e.preventDefault();
+    if (el.style.display === 'block' && suggIdx >= 0) pickPoint(suggList[suggIdx]);
+    else plot();
+  } else if (e.key === 'Escape') el.style.display = 'none';
+});
+$('sugg').addEventListener('mousedown', e => { const d = e.target.closest('[data-i]'); if (d) { e.preventDefault(); pickPoint(suggList[+d.dataset.i]); } });
+document.addEventListener('click', e => { if (!e.target.closest('.search')) $('sugg').style.display = 'none'; });
+$('ptype').onchange = () => { if ($('q').value) showSugg(); };
+
+/* Plot: resolve a typed location (if no suggestion was clicked) and draw */
+function plot() {
+  const msg = $('plotmsg');
+  if (!state.point) {
+    const q = $('q').value.trim();
+    if (!q) { msg.innerHTML = '<span class="warn" style="color:var(--warn)">Please enter a place, postcode or station abbreviation.</span>'; $('q').focus(); return; }
+    const m = search(q);
+    if (!m.length) { msg.innerHTML = `<span style="color:var(--err)">No point found for “${esc(q)}”.</span>`; return; }
+    pickPoint(m[0], true);
+  }
+  $('sugg').style.display = 'none';
+  render();
+  document.getElementById('out').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+$('plot').onclick = plot;
+
+/* ===================== URL-HASH ===================== */
+function writeHash() {
+  const h = new URLSearchParams();
+  if (state.point) h.set('point', `${state.point.pid}-${state.point.ptype}`);
+  if (state.selected.size) h.set('params', [...state.selected].join(','));
+  history.replaceState(null, '', '#' + h.toString());
+}
+function applyHash() {
+  const h = new URLSearchParams(location.hash.slice(1));
+  if (h.get('params')) state.selected = new Set(h.get('params').split(',').filter(Boolean));
+  const pt = h.get('point'), plz = h.get('plz');
+  let p = null;
+  if (pt) { const [pid, ty] = pt.split('-').map(Number); p = state.points.find(x => x.pid === pid && x.ptype === ty); }
+  else if (plz) p = state.points.find(x => x.ptype === 2 && x.plz === plz);
+  if (p) pickPoint(p, true);
+}
+
+/* ===================== CHARTS ===================== */
+function seriesFor(code, entry, key) {
+  const arr = entry.byKey.get(key);
+  if (!arr) return null;
+  const p = state.paramByCode[code] || {};
+  let unit = (p.parameter_unit || '').trim();
+  const dRaw = parseInt(p.parameter_decimals, 10);
+  const decimals = Number.isFinite(dRaw) && dRaw >= 0 && dRaw <= 6 ? dRaw : (familyOf(code).icons ? 0 : 1);
+  const f = 10 ** decimals;
+  let vals = Array.from(arr, v => Number.isNaN(v) ? null : Math.round(v * f) / f);
+  if (/^npro/.test(code)) {                 // cloud cover delivered as fraction 0–1 -> convert to %
+    const mx = Math.max(...vals.filter(v => v != null));
+    if (mx <= 1) vals = vals.map(v => v == null ? v : Math.round(v * 100));
+    unit = '%';
+  }
+  if (unit === '-') unit = '';
+  if (!vals.some(v => v != null)) return null;
+  const d = gran(code) === 'd';
+  const xs = Array.from(entry.xs, x => x + (d ? 12 * 3600 : 0));   // daily values at midday
+  return { code, xs, vals, unit, d, decimals, label: p.parameter_description_en || p.parameter_description_en || p.parameter_description_de || code };
+}
+
+function render() {
+  state.charts.forEach(c => c.destroy()); state.charts = [];
+  const box = $('charts'); box.innerHTML = '';
+  const P = state.point, run = state.run;
+  const codes = [...state.selected].filter(c => run && state.cache.has(ckey(run, c)));
+  const msg = $('plotmsg');
+  if (!P) { $('out').style.display = 'none'; msg.innerHTML = ''; return; }
+  if (!state.selected.size) { $('out').style.display = 'none'; msg.innerHTML = '<span style="color:var(--warn)">No parameters selected (step 1).</span>'; return; }
+  if (!codes.length) {
+    $('out').style.display = 'none';
+    msg.innerHTML = state.busy.size ? '<span style="color:var(--accent)">Parameters are still loading – the chart appears as soon as the first one is ready.</span>'
+      : '<span style="color:var(--warn)">No data loaded yet for the selected parameters – load them first in step 1.</span>';
+    return;
+  }
+  const all = [], absent = [];
+  for (const c of codes) { const s = seriesFor(c, state.cache.get(ckey(run, c)), pkey(P)); s ? all.push(s) : absent.push(c); }
+  $('out').style.display = 'block';
+  $('outtitle').innerHTML = `${esc(pointLabel(P))} · run ${runLabel(run)}` + (absent.length ? ` <span class="hint">· no values for: ${absent.join(', ')}</span>` : '');
+  const notLoaded = [...state.selected].filter(c => !codes.includes(c));
+  msg.innerHTML = `<span style="color:var(--ok)">${all.length} parameter${all.length > 1 ? 's' : ''} plotted</span>` +
+    (absent.length ? ` · <span style="color:var(--warn)">no values for this point: ${absent.join(', ')}</span>` : '') +
+    (notLoaded.length ? ` · <span style="color:var(--text2)">not loaded yet: ${notLoaded.join(', ')}</span>` : '');
+  if (!all.length) { $('tablewrap').innerHTML = ''; return; }
+
+  // colours follow the parameter (fixed selection order); quantiles take the colour of their base parameter
+  const slot = {}; let n = 0;
+  [...state.selected].forEach(c => { const k = roleOf(c).kind; if (!isQuantile(c) && !['icons', 'arrows', 'clouds'].includes(k) && !(c in slot)) slot[c] = (n++ % 8) + 1; });
+  const colorFor = c => {
+    const sem = SEM_COLORS.find(([re]) => re.test(c));          // fixed, meaningful colour per quantity
+    if (sem) return css(sem[1]);
+    if (isQuantile(c)) { const base = all.find(s => !isQuantile(s.code) && s.code.slice(0, 3) === c.slice(0, 3) && s.code.slice(6) === c.slice(6)); if (base) return colorFor(base.code); }
+    return css(`--s${slot[c] || 1}`);
+  };
+  // groups: related parameters in one chart (hourly and daily kept apart)
+  const groups = {};
+  for (const s of all) { const r = roleOf(s.code); const k = r.grp + '|' + (s.d ? 'd' : 'h'); (groups[k] ||= { grp: r.grp, d: s.d, list: [] }).list.push(s); }
+  const keys = Object.keys(groups).sort((a, b) => {
+    const [fa, ga] = a.split('|'), [fb, gb] = b.split('|');
+    if (ga !== gb) return ga === 'h' ? -1 : 1;
+    return PLOT_ORDER.indexOf(fa) - PLOT_ORDER.indexOf(fb);
+  });
+  const xsAll = all.flatMap(s => s.xs);
+  const xmin = Math.min(...xsAll), xmax = Math.max(...xsAll);
+  const win = $('win').value, now = Date.now() / 1000;
+  let X0 = xmin, X1 = xmax;
+  if (win !== 'all') { X0 = Math.max(xmin, now - 6 * 3600); X1 = Math.min(xmax, now + (+win) * 3600); if (X1 <= X0) { X0 = xmin; X1 = xmax; } }
+  const width = Math.max(300, box.clientWidth - 26);
+  const syncKey = 'lf' + Date.now();
+  let syncing = false;
+  const axisStroke = css('--text2'), gridStroke = css('--grid');
+
+  for (const k of keys) {
+    const g = groups[k];
+    const roleIdx = c => ROLES.indexOf(roleOf(c));
+    const layerIdx = c => /^npro/.test(c) ? ['hi', 'mt', 'lo'].indexOf(cloudLayer(c)) : 0;
+    const list = g.list.sort((a, b) => roleIdx(a.code) - roleIdx(b.code) || layerIdx(a.code) - layerIdx(b.code) || (isQuantile(a.code) ? 1 : 0) - (isQuantile(b.code) ? 1 : 0) || a.code.localeCompare(b.code));
+    const xs = [...new Set(list.flatMap(s => s.xs))].sort((a, b) => a - b);
+    const idx = new Map(xs.map((x, i) => [x, i]));
+    const data = [xs];
+    const series = [{ label: 'Time', value: (u, v) => v == null ? '–' : fmtLocal.format(new Date(v * 1000)) }];
+    const scaleInfo = {};                           // scale -> { role, units:Set }
+    const hasIcons = list.some(s => roleOf(s.code).kind === 'icons');
+    const arrowSeries = [], cloudSeries = [];
+    list.forEach(s => {
+      const r = roleOf(s.code);
+      const arr = new Array(xs.length).fill(null);
+      s.xs.forEach((x, i) => arr[idx.get(x)] = s.vals[i]);
+      data.push(arr);
+      (scaleInfo[r.scale] ||= { role: r, units: new Set() }).units.add(s.unit);
+      const col = colorFor(s.code), q = isQuantile(s.code), dp = s.decimals;
+      const o = {
+        label: q ? `${quantileName(s.code)} – ${s.label.replace(/[;,]?\s*\d+\s*%[- ]?quantile/i, '')} (${s.code})` : `${s.label} (${s.code})`, scale: r.scale, stroke: col, width: q ? 1.6 : 2, spanGaps: true,
+        value: (u, v) => v == null ? '–' : `${(+v).toFixed(dp)}${s.unit ? ' ' + s.unit : ''}`,
+        points: { show: false }
+      };
+      if (q) {
+        o.dash = QSTYLE[quantileKind(s.code)].dash; o.cap = 'round';
+        if (r.kind === 'bars') o.paths = uPlot.paths.stepped({ align: -1 });   // interval values, aligned with the bars
+      }
+      if (r.kind === 'bars' && !q) { o.paths = uPlot.paths.bars({ size: [0.75, 60], align: s.d ? 0 : -1 }); o.fill = col + '99'; o.width = 0; }
+      if (r.kind === 'icons') { o.paths = () => null; o.stroke = css('--text2'); o.value = (u, v) => v == null ? '–' : `${v} – ${WX.text(v)}`; }
+      if (r.kind === 'arrows') { o.paths = () => null; o.stroke = css('--text2'); o.value = (u, v) => v == null ? '–' : `${Math.round(v)}° from ${compass(v)}`; arrowSeries.push({ si: series.length, col: css('--text2') }); }
+      if (r.kind === 'clouds') { o.paths = () => null; o.stroke = css('--cloud-ink'); o.value = (u, v) => v == null ? '–' : `${Math.round(v)} %`; cloudSeries.push({ si: series.length, layer: cloudLayer(s.code) }); }
+      if (s.d && r.kind === 'line') o.points = { show: true, size: 7, fill: col };
+      series.push(o);
+    });
+    const bands = [];
+    list.forEach((s, i) => {
+      if (!/^...q90/.test(s.code)) return;
+      const j = list.findIndex(t => t.code === s.code.replace('q90', 'q10'));
+      if (j >= 0) bands.push({ series: [i + 1, j + 1], fill: colorFor(s.code) + '26' });
+    });
+    // scales & axes: first scale on the left (with grid), others on the right; direction and symbols without axis
+    const scales = { x: { time: true } };
+    const axes = [{ stroke: axisStroke, grid: { stroke: gridStroke, width: 1 }, ticks: { stroke: gridStroke, width: 1 }, values: xTickLabels, space: 52 }];
+    let nAxis = 0;
+    const unitText = [];
+    const nAxisTotal = Object.values(scaleInfo).filter(i => !['icons', 'arrows', 'clouds'].includes(i.role.kind)).length;
+    for (const [sc, info] of Object.entries(scaleInfo)) {
+      const r = info.role;
+      scales[sc] = { range: (u, mn, mx) => scaleRange(r, g.d, mn, mx) };
+      if (r.kind === 'icons' || r.kind === 'arrows') continue;
+      if (r.kind === 'clouds') {
+        const rows = cloudRows(cloudSeries);
+        scales[sc] = { range: () => [0, rows.length] };
+        axes.push({ scale: sc, side: 3, stroke: axisStroke, size: 54, ticks: { show: false }, grid: { show: false },
+          splits: () => rows.map((r2, i) => i + 0.5), values: () => rows.map(r2 => CLOUD_LAYER_LABEL[r2]) });
+        unitText.push('shading in 10 % steps');
+        nAxis++;
+        continue;
+      }
+      const unit = [...info.units].filter(Boolean).join(', ');
+      const side = nAxis === 0 ? 3 : 1;
+      axes.push({ scale: sc, side, stroke: axisStroke, size: 54, ticks: { show: false },
+        grid: { show: nAxis === 0, stroke: gridStroke, width: 1 }, label: unit || undefined, labelSize: 18 });
+      unitText.push((nAxisTotal > 1 ? (nAxis === 0 ? 'left ' : 'right ') : '') + unit);
+      nAxis++;
+    }
+    if (!nAxis) axes.push({ scale: Object.keys(scaleInfo)[0], show: false });
+    if (arrowSeries.length) unitText.push('arrows point where the wind blows to');
+    const panel = document.createElement('div'); panel.className = 'panel';
+    panel.innerHTML = `<h3>${esc(groupTitle(g.grp, list))}${g.d ? ' – daily values' : ''} <span>${esc(unitText.join(' · '))}</span>${cloudSeries.length ? cloudKeyHTML() : ''}</h3>`;
+    box.appendChild(panel);
+    const opts = {
+      width, height: hasIcons ? 130 : cloudSeries.length ? 50 + 46 * cloudRows(cloudSeries).length : nAxis ? 250 : 110,
+      padding: [arrowSeries.length && nAxis ? 30 : 12, nAxis > 1 ? 4 : 12, 0, 0],
+      tzDate: ts => uPlot.tzDate(new Date(ts * 1000), TZ),
+      scales, axes, series, bands,
+      cursor: { sync: { key: syncKey }, drag: { x: true, y: false }, y: !(hasIcons || cloudSeries.length) },
+      legend: { live: true, markers: { dash: (u, i) => i > 0 && isQuantile(list[i - 1]?.code || '') ? QSTYLE[quantileKind(list[i - 1].code)].css : 'solid' } },
+      hooks: {
+        draw: [u => { drawOverlay(u); if (hasIcons) drawIcons(u); arrowSeries.forEach(a => drawArrows(u, a.si, a.col, nAxis > 0)); if (cloudSeries.length) drawClouds(u, cloudSeries); }],
+        setCursor: hasIcons || arrowSeries.length || cloudSeries.length ? [u => u.redraw(false)] : [],
+        setScale: [(u, key) => {
+          if (key !== 'x' || syncing) return;
+          syncing = true;
+          const { min, max } = u.scales.x;
+          state.charts.forEach(c => { if (c !== u && (c.scales.x.min !== min || c.scales.x.max !== max)) c.setScale('x', { min, max }); });
+          syncing = false;
+        }]
+      }
+    };
+    const u = new uPlot(opts, data, panel);
+    styleQuantileMarkers(u, list, list.map(x => colorFor(x.code)));
+    u.over.addEventListener('dblclick', () => state.charts.forEach(c => c.setScale('x', { min: X0, max: X1 })));
+    state.charts.push(u);
+  }
+  syncing = true; state.charts.forEach(c => c.setScale('x', { min: X0, max: X1 })); syncing = false;
+  renderTable(all);
+}
+
+const WD = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const pad2 = n => String(n).padStart(2, '0');
+function xTickLabels(u, splits) {
+  return splits.map(t => {
+    const d = uPlot.tzDate(new Date(t * 1000), TZ);
+    return d.getHours() === 0 && d.getMinutes() === 0 ? `${WD[d.getDay()]} ${d.getDate()}` : `${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  });
+}
+const iconCache = {};
+function iconImg(code) {
+  if (!iconCache[code]) {
+    const im = new Image();
+    im.onload = () => state.charts.forEach(c => c.redraw(false));
+    im.src = WX.dataURL(code, 96);
+    iconCache[code] = im;
+  }
+  return iconCache[code];
+}
+function drawIcons(u) {
+  const { left, top, width, height } = u.bbox, dpr = devicePixelRatio || 1;
+  const size = Math.min(height * 0.8, 40 * dpr), gap = size * 1.05;
+  const xs = u.data[0], min = u.scales.x.min, max = u.scales.x.max, ctx = u.ctx;
+  ctx.save(); ctx.beginPath(); ctx.rect(left, top, width, height); ctx.clip();
+  for (let si = 1; si < u.data.length; si++) {
+    const dt = xs.length > 1 ? xs[1] - xs[0] : 86400, pxPerSec = width / (max - min);
+    let step = 1;
+    if (dt < 86400) for (const h of [1, 3, 6, 12, 24]) { step = h; if (h * 3600 * pxPerSec >= gap) break; }
+    for (let i = 0; i < xs.length; i++) {
+      const v = u.data[si][i];
+      if (v == null) continue;
+      if (dt < 86400 && step > 1 && uPlot.tzDate(new Date(xs[i] * 1000), TZ).getHours() % step) continue;
+      const x = u.valToPos(xs[i], 'x', true);
+      if (x - size / 2 < left || x + size / 2 > left + width) continue;
+      const im = iconImg(v);
+      if (im.complete && im.naturalWidth) ctx.drawImage(im, x - size / 2, top + (height - size) / 2, size, size);
+    }
+  }
+  const ci = u.cursor.idx;
+  if (ci != null && u.data[1] && u.data[1][ci] != null) {
+    const x = u.valToPos(xs[ci], 'x', true), im = iconImg(u.data[1][ci]), b = size * 1.25;
+    ctx.fillStyle = css('--surface'); ctx.strokeStyle = css('--border'); ctx.lineWidth = dpr;
+    ctx.beginPath(); ctx.roundRect ? ctx.roundRect(x - b / 2, top + (height - b) / 2, b, b, 6 * dpr) : ctx.rect(x - b / 2, top + (height - b) / 2, b, b); ctx.fill(); ctx.stroke();
+    if (im.complete) ctx.drawImage(im, x - size * 0.6, top + (height - size * 1.2) / 2, size * 1.2, size * 1.2);
+  }
+  ctx.restore();
+}
+/* Cloud cover as a cloud strip: rows high / mid / low, shading in 10 % steps */
+const CLOUD_LAYER_LABEL = { hi: 'high', mt: 'mid', lo: 'low' };
+const cloudLayer = code => /hi/.test(code) ? 'hi' : /mt/.test(code) ? 'mt' : 'lo';
+const cloudRows = cs => ['lo', 'mt', 'hi'].filter(l => cs.some(c => c.layer === l));      // bottom to top
+const CLOUD_PATH = new Path2D('M10 24H32A8 8 0 0 0 32 8A11 11 0 0 0 11.2 9.2A7.5 7.5 0 0 0 10 24Z');   // Box ~42×24
+function hexMix(a, b, t) {
+  const p = h => [1, 3, 5].map(i => parseInt(h.slice(i, i + 2), 16));
+  const x = p(a), y = p(b);
+  return '#' + x.map((v, i) => Math.round(v + (y[i] - v) * t).toString(16).padStart(2, '0')).join('');
+}
+const cloudColor = pct => hexMix(css('--surface'), css('--cloud-ink'), 0.08 + 0.84 * pct / 100);
+function cloudKeyHTML() {
+  let h = ' <span style="display:inline-flex;gap:2px;align-items:center;margin-left:10px;vertical-align:middle">0 %';
+  for (let p = 10; p <= 100; p += 10) h += `<i title="${p} %" style="display:inline-block;width:14px;height:10px;border-radius:3px;background:${cloudColor(p)};border:1px solid var(--border)"></i>`;
+  return h + '100 %</span>';
+}
+function drawClouds(u, cs) {
+  const { left, width } = u.bbox, dpr = devicePixelRatio || 1, ctx = u.ctx;
+  const xs = u.data[0], min = u.scales.x.min, max = u.scales.x.max;
+  const rows = cloudRows(cs), sc = u.series[cs[0].si].scale;
+  const rowH = Math.abs(u.valToPos(1, sc, true) - u.valToPos(0, sc, true));
+  const dt = xs.length > 1 ? xs[1] - xs[0] : 3600, pxPerSec = width / (max - min);
+  const cw = Math.min(rowH * 1.45, 46 * dpr);                // cloud width
+  let step = 1;
+  for (const h of [1, 2, 3, 6, 12, 24]) { step = h; if (h * 3600 * pxPerSec >= cw * 0.95) break; }
+  const ink = css('--cloud-ink'), border = css('--border');
+  ctx.save(); ctx.beginPath(); ctx.rect(left, u.bbox.top, width, u.bbox.height); ctx.clip();
+  const draw = (x, y, pct, s, hl) => {
+    const q = Math.round(pct / 10) * 10;                    // 10 % steps
+    if (q <= 0 && !hl) return;
+    const k = (cw * s) / 42;
+    ctx.save(); ctx.translate(x - 21 * k, y - 16 * k); ctx.scale(k, k);
+    ctx.fillStyle = cloudColor(q); ctx.fill(CLOUD_PATH);
+    ctx.lineWidth = (hl ? 1.6 : 1) * dpr / k; ctx.strokeStyle = hl ? ink : border; ctx.stroke(CLOUD_PATH);
+    ctx.restore();
+  };
+  for (const c of cs) {
+    const y = u.valToPos(rows.indexOf(c.layer) + 0.5, sc, true), vals = u.data[c.si];
+    // mean over the window [t, t+step) starting at a local hour divisible by step
+    for (let i = 0; i < xs.length; i++) {
+      if (xs[i] < min - step * 3600 || xs[i] > max) continue;
+      if (step > 1 && uPlot.tzDate(new Date(xs[i] * 1000), TZ).getHours() % step) continue;
+      let sum = 0, n = 0;
+      for (let j = i; j < xs.length && xs[j] < xs[i] + step * 3600; j++) if (vals[j] != null) { sum += vals[j]; n++; }
+      if (!n) continue;
+      const xc = u.valToPos(xs[i] + (step * 3600 - dt) / 2, 'x', true);
+      if (xc < left - cw / 2 || xc > left + width + cw / 2) continue;
+      draw(xc, y, sum / n, 0.92, false);
+    }
+  }
+  const ci = u.cursor.idx;                                   // highlight the value under the cursor
+  if (ci != null) for (const c of cs) {
+    const v = u.data[c.si][ci];
+    if (v == null) continue;
+    const x = u.valToPos(xs[ci], 'x', true), y = u.valToPos(rows.indexOf(c.layer) + 0.5, sc, true);
+    draw(x, y, v, 1.12, true);
+    const q = Math.round(v / 10) * 10;
+    ctx.fillStyle = q >= 50 ? css('--surface') : css('--text'); ctx.font = `600 ${10 * dpr}px system-ui,sans-serif`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(`${q}`, x, y + cw * 0.06);
+  }
+  ctx.restore();
+}
+
+/* Wind direction as a row of arrows (arrow points where the wind blows to) */
+function drawArrows(u, si, col, above) {
+  const { left, top, width, height } = u.bbox, dpr = devicePixelRatio || 1;
+  const xs = u.data[0], vals = u.data[si], min = u.scales.x.min, max = u.scales.x.max, ctx = u.ctx;
+  const L = 8 * dpr, gap = 22 * dpr;
+  const cy = above ? top - 15 * dpr : top + height / 2;
+  const dt = xs.length > 1 ? xs[1] - xs[0] : 86400, pxPerSec = width / (max - min);
+  let step = 1;
+  if (dt < 86400) for (const h of [1, 2, 3, 6, 12, 24]) { step = h; if (h * 3600 * pxPerSec >= gap) break; }
+  ctx.save();
+  ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 1.8 * dpr; ctx.lineCap = 'round';
+  const one = (x, deg, s) => {
+    const phi = (deg + 180) * Math.PI / 180, dx = Math.sin(phi) * L * s, dy = -Math.cos(phi) * L * s;
+    ctx.beginPath(); ctx.moveTo(x - dx, cy - dy); ctx.lineTo(x + dx, cy + dy); ctx.stroke();
+    const ah = 4.5 * dpr * s, a1 = Math.atan2(dy, dx);
+    ctx.beginPath(); ctx.moveTo(x + dx, cy + dy);
+    ctx.lineTo(x + dx - ah * Math.cos(a1 - 0.5), cy + dy - ah * Math.sin(a1 - 0.5));
+    ctx.lineTo(x + dx - ah * Math.cos(a1 + 0.5), cy + dy - ah * Math.sin(a1 + 0.5));
+    ctx.closePath(); ctx.fill();
+  };
+  for (let i = 0; i < xs.length; i++) {
+    const v = vals[i];
+    if (v == null || xs[i] < min || xs[i] > max) continue;
+    if (dt < 86400 && step > 1 && uPlot.tzDate(new Date(xs[i] * 1000), TZ).getHours() % step) continue;
+    const x = u.valToPos(xs[i], 'x', true);
+    if (x < left + L || x > left + width - L) continue;
+    one(x, v, 1);
+  }
+  const ci = u.cursor.idx;                              // highlight the arrow under the cursor
+  if (ci != null && vals[ci] != null) {
+    const x = u.valToPos(xs[ci], 'x', true);
+    ctx.fillStyle = css('--surface'); ctx.beginPath(); ctx.arc(x, cy, L * 1.5, 0, 2 * Math.PI); ctx.fill();
+    ctx.strokeStyle = css('--border'); ctx.lineWidth = dpr; ctx.stroke();
+    ctx.strokeStyle = col; ctx.fillStyle = col; ctx.lineWidth = 2.2 * dpr; one(x, vals[ci], 1.15);
+  }
+  ctx.restore();
+}
+
+function drawOverlay(u) {
+  const ctx = u.ctx, { left, top, width, height } = u.bbox, min = u.scales.x.min, max = u.scales.x.max;
+  if (min == null) return;
+  ctx.save(); ctx.setLineDash([]); ctx.beginPath(); ctx.rect(left, top, width, height); ctx.clip();
+  ctx.strokeStyle = css('--text2'); ctx.globalAlpha = 0.35; ctx.lineWidth = 1;
+  for (let t = Math.floor(min / 3600) * 3600; t <= max; t += 3600) {
+    const d = uPlot.tzDate(new Date(t * 1000), TZ);
+    if (d.getHours() === 0 && d.getMinutes() === 0) { const x = Math.round(u.valToPos(t, 'x', true)) + 0.5; ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + height); ctx.stroke(); }
+  }
+  const now = Date.now() / 1000;
+  if (now >= min && now <= max) {
+    ctx.globalAlpha = 0.9; ctx.strokeStyle = css('--now'); ctx.setLineDash([3, 3]); ctx.lineWidth = 1.5 * devicePixelRatio;
+    const x = Math.round(u.valToPos(now, 'x', true)); ctx.beginPath(); ctx.moveTo(x, top); ctx.lineTo(x, top + height); ctx.stroke();
+  }
+  ctx.restore();
+}
+
+/* ===================== TABLE & CSV ===================== */
+let tableRows = null;
+function renderTable(all) {
+  const xs = [...new Set(all.flatMap(s => s.xs.map(x => s.d ? x - 12 * 3600 : x)))].sort((a, b) => a - b);
+  const maps = all.map(s => { const m = new Map(); s.xs.forEach((x, i) => m.set(s.d ? x - 12 * 3600 : x, s.vals[i])); return m; });
+  tableRows = { xs, all, maps };
+  let h = '<table class="data"><thead><tr><th>Time (local)</th>' + all.map(s => `<th title="${esc(s.label)}">${s.code}${s.unit ? '<br><span class="hint">' + esc(s.unit) + '</span>' : ''}</th>`).join('') + '</tr></thead><tbody>';
+  for (const x of xs) h += `<tr><td>${fmtLocal.format(new Date(x * 1000))}</td>` + all.map((s, i) => { const v = maps[i].get(x); return `<td>${v == null ? '' : (+v).toFixed(s.decimals)}</td>`; }).join('') + '</tr>';
+  $('tablewrap').innerHTML = h + '</tbody></table>';
+}
+$('btnTable').onclick = () => { const w = $('tablewrap'); const on = w.style.display !== 'block'; w.style.display = on ? 'block' : 'none'; $('btnTable').textContent = on ? 'Hide table' : 'Table'; };
+$('btnCsv').onclick = () => {
+  if (!tableRows || !state.point) return;
+  const P = state.point, { xs, all, maps } = tableRows;
+  const iso = new Intl.DateTimeFormat('sv-SE', { timeZone: TZ, year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' });
+  let csv = `# Source: MeteoSwiss – Open Data local forecast (ogd-local-forecasting), CC BY 4.0, https://opendatadocs.meteoswiss.ch/general/terms-of-use\n# Not an official MeteoSwiss product; cloud cover in %, times in UTC and local time\n# Run ${state.run} UTC; ${pointLabel(P)}; point_id ${P.pid}; point_type_id ${P.ptype}\n`;
+  csv += 'time_utc;time_local;' + all.map(s => s.code).join(';') + '\n';
+  for (const x of xs) {
+    const d = new Date(x * 1000);
+    csv += d.toISOString().slice(0, 16).replace('T', ' ') + ';' + iso.format(d) + ';' + all.map((s, i) => { const v = maps[i].get(x); return v == null ? '' : v; }).join(';') + '\n';
+  }
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+  a.download = `local_forecast_${P.pid}_${P.ptype}_${state.run}.csv`;
+  a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+};
+$('win').onchange = render;
+let rsT; new ResizeObserver(() => { clearTimeout(rsT); rsT = setTimeout(() => { const w = Math.max(300, $('charts').clientWidth - 26); state.charts.forEach(c => c.setSize({ width: w, height: c.height })); }, 150); }).observe(document.body);
+
+if (typeof uPlot === 'undefined') setStatus('<span class="err">The chart library (uPlot) could not be loaded – internet access to cdn.jsdelivr.net is required.</span>');
+else init().catch(e => setStatus(`<span class="err">Initialisation failed: ${esc(e.message)}</span>`));
+</script>
+</body>
+</html>
