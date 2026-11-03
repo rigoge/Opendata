@@ -85,7 +85,7 @@ footer{max-width:1550px;margin:0 auto 28px;padding:0 clamp(12px,3vw,34px);font-s
 <div class="field" style="margin-top:18px"><label for="placeSearch">5. Find a place or postcode</label><div class="row"><input id="placeSearch" type="search" autocomplete="postal-code" placeholder="e.g. Bern or 4051"><button id="placeSearchBtn" class="secondary" type="button">Search</button></div><select id="placeResults" class="search-results" aria-label="Search results" hidden></select><div class="small">Searches Swiss places, postcodes and addresses using the official geo.admin.ch location service.</div></div>
 <div class="hint">
 Click anywhere on the map to read the exact grid value under the cursor. For precipitation, this is bilinear-interpolated from the 4 surrounding grid cells at the exact click position; for temperature, sunshine duration, and all other parameters, it's the real value of the single nearest grid cell (no interpolation).<br><br>
-The colour scale auto-adjusts to the min/max of whichever parameter and year you load. For temperature, precipitation, and sunshine duration it re-adjusts to each individual frame's own min/max as you step through the animation; other parameters use one fixed range across the whole file. Negative values are treated as no-data (shown transparent); for precipitation and sunshine duration a value of exactly 0 is also shown fully transparent. Each yearly file is animated frame by frame (daily, monthly, or yearly time steps, depending on the parameter).
+The colour scale auto-adjusts to the min/max of whichever parameter and year you load. For temperature, precipitation, and sunshine duration it re-adjusts to each individual frame's own min/max as you step through the animation; other parameters use one fixed range across the whole file. For temperature parameters (including trecabs) negative values are valid and shown; only values below −100 °C are treated as no-data. For all other parameters negative values are treated as no-data (shown transparent); for precipitation and sunshine duration a value of exactly 0 is also shown fully transparent. Each yearly file is animated frame by frame (daily, monthly, or yearly time steps, depending on the parameter).
 </div>
 </section>
 <section class="card mapcard">
@@ -343,7 +343,7 @@ const SREL_STOPS=[[255,255,204],[255,204,102],[255,140,60],[220,50,30]];
 function paramType(code){
   code=String(code||'').toLowerCase();
   if(code.startsWith('rhires'))return'hires';
-  if(/^(tabs|tmin|tmax)/.test(code))return'temp';
+  if(/^(tabs|tmin|tmax|trec)/.test(code))return'temp';
   if(code.startsWith('srel'))return'srel';
   return'default';
 }
