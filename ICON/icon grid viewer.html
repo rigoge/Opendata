@@ -1,0 +1,1470 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ICON Grid Viewer</title>
+<!-- ICON Grid Viewer · MeteoSwiss OGD ICON-CH1/CH2-EPS · MIT License -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/ol@10.11.0/dist/ol.js"></script>
+<style>
+:root,:host {--ol-background-color: white;--ol-accent-background-color: #F5F5F5;--ol-subtle-background-color: rgba(128, 128, 128, 0.25);--ol-partial-background-color: rgba(255, 255, 255, 0.75);--ol-foreground-color: #333333;--ol-subtle-foreground-color: #666666;--ol-brand-color: #00AAFF;}.ol-box {box-sizing: border-box;border-radius: 2px;border: 1.5px solid var(--ol-background-color);background-color: var(--ol-partial-background-color);}.ol-mouse-position {top: 8px;right: 8px;position: absolute;}.ol-scale-line {background: var(--ol-partial-background-color);border-radius: 4px;bottom: 8px;left: 8px;padding: 2px;position: absolute;}.ol-scale-line-inner {border: 1px solid var(--ol-subtle-foreground-color);border-top: none;color: var(--ol-foreground-color);font-size: 10px;text-align: center;margin: 1px;will-change: contents, width;transition: all 0.25s;}.ol-scale-bar {position: absolute;bottom: 8px;left: 8px;}.ol-scale-bar-inner {display: flex;}.ol-scale-step-marker {width: 1px;height: 15px;background-color: var(--ol-foreground-color);float: right;z-index: 10;}.ol-scale-step-text {position: absolute;bottom: -5px;font-size: 10px;z-index: 11;color: var(--ol-foreground-color);text-shadow: -1.5px 0 var(--ol-partial-background-color), 0 1.5px var(--ol-partial-background-color), 1.5px 0 var(--ol-partial-background-color), 0 -1.5px var(--ol-partial-background-color);}.ol-scale-text {position: absolute;font-size: 12px;text-align: center;bottom: 25px;color: var(--ol-foreground-color);text-shadow: -1.5px 0 var(--ol-partial-background-color), 0 1.5px var(--ol-partial-background-color), 1.5px 0 var(--ol-partial-background-color), 0 -1.5px var(--ol-partial-background-color);}.ol-scale-singlebar {position: relative;height: 10px;z-index: 9;box-sizing: border-box;border: 1px solid var(--ol-foreground-color);}.ol-scale-singlebar-even {background-color: var(--ol-subtle-foreground-color);}.ol-scale-singlebar-odd {background-color: var(--ol-background-color);}.ol-unsupported {display: none;}.ol-viewport,.ol-unselectable {-webkit-touch-callout: none;-webkit-user-select: none;-moz-user-select: none;user-select: none;-webkit-tap-highlight-color: transparent;}.ol-viewport canvas {all: unset;overflow: hidden;}.ol-viewport {touch-action: pan-x pan-y;}.ol-selectable {-webkit-touch-callout: default;-webkit-user-select: text;-moz-user-select: text;user-select: text;}.ol-grabbing {cursor: -webkit-grabbing;cursor: -moz-grabbing;cursor: grabbing;}.ol-grab {cursor: move;cursor: -webkit-grab;cursor: -moz-grab;cursor: grab;}.ol-control {position: absolute;background-color: var(--ol-subtle-background-color);border-radius: 4px;}.ol-zoom {top: .5em;left: .5em;}.ol-rotate {top: .5em;right: .5em;transition: opacity .25s linear, visibility 0s linear;}.ol-rotate.ol-hidden {opacity: 0;visibility: hidden;transition: opacity .25s linear, visibility 0s linear .25s;}.ol-zoom-extent {top: 4.643em;left: .5em;}.ol-full-screen {right: .5em;top: .5em;}.ol-control button {display: block;margin: 1px;padding: 0;color: var(--ol-subtle-foreground-color);font-weight: bold;text-decoration: none;font-size: inherit;text-align: center;height: 1.375em;width: 1.375em;line-height: .4em;background-color: var(--ol-background-color);border: none;border-radius: 2px;}.ol-control button::-moz-focus-inner {border: none;padding: 0;}.ol-zoom-extent button {line-height: 1.4em;}.ol-compass {display: block;font-weight: normal;will-change: transform;}.ol-touch .ol-control button {font-size: 1.5em;}.ol-touch .ol-zoom-extent {top: 5.5em;}.ol-control button:hover,.ol-control button:focus {text-decoration: none;outline: 1px solid var(--ol-subtle-foreground-color);color: var(--ol-foreground-color);}.ol-zoom .ol-zoom-in {border-radius: 2px 2px 0 0;}.ol-zoom .ol-zoom-out {border-radius: 0 0 2px 2px;}.ol-attribution {text-align: right;bottom: .5em;right: .5em;max-width: calc(100% - 1.3em);display: flex;flex-flow: row-reverse;align-items: center;}.ol-attribution a {color: var(--ol-subtle-foreground-color);text-decoration: none;}.ol-attribution ul {margin: 0;padding: 1px .5em;color: var(--ol-foreground-color);text-shadow: 0 0 2px var(--ol-background-color);font-size: 12px;}.ol-attribution li {display: inline;list-style: none;}.ol-attribution li:not(:last-child):after {content: " ";}.ol-attribution img {max-height: 2em;max-width: inherit;vertical-align: middle;}.ol-attribution button {flex-shrink: 0;}.ol-attribution.ol-collapsed ul {display: none;}.ol-attribution:not(.ol-collapsed) {background: var(--ol-partial-background-color);}.ol-attribution.ol-uncollapsible {bottom: 0;right: 0;border-radius: 4px 0 0;}.ol-attribution.ol-uncollapsible img {margin-top: -.2em;max-height: 1.6em;}.ol-attribution.ol-uncollapsible button {display: none;}.ol-zoomslider {top: 4.5em;left: .5em;height: 200px;}.ol-zoomslider button {position: relative;height: 10px;}.ol-touch .ol-zoomslider {top: 5.5em;}.ol-overviewmap {left: 0.5em;bottom: 0.5em;}.ol-overviewmap.ol-uncollapsible {bottom: 0;left: 0;border-radius: 0 4px 0 0;}.ol-overviewmap .ol-overviewmap-map,.ol-overviewmap button {display: block;}.ol-overviewmap .ol-overviewmap-map {border: 1px solid var(--ol-subtle-foreground-color);height: 150px;width: 150px;}.ol-overviewmap:not(.ol-collapsed) button {bottom: 0;left: 0;position: absolute;}.ol-overviewmap.ol-collapsed .ol-overviewmap-map,.ol-overviewmap.ol-uncollapsible button {display: none;}.ol-overviewmap:not(.ol-collapsed) {background: var(--ol-subtle-background-color);}.ol-overviewmap-box {border: 1.5px dotted var(--ol-subtle-foreground-color);}.ol-overviewmap .ol-overviewmap-box:hover {cursor: move;}.ol-overviewmap .ol-viewport:hover {cursor: pointer;}
+:root{
+  --bg:#f4f5f7; --panel:#ffffff; --ink:#1c2128; --ink2:#59616c; --ink3:#8a929c;
+  --line:#e2e5ea; --line2:#cfd4db; --accent:#d8232a; --accent-ink:#ffffff; --accent-soft:#fbe9ea;
+  --ok:#2f8f5b; --warn:#c77700; --err:#c62828; --sel:#eef2f7;
+  --mono:'IBM Plex Mono',ui-monospace,Menlo,monospace; --sans:'IBM Plex Sans',system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{font-family:var(--sans);font-size:13px;color:var(--ink);background:var(--bg);display:flex;flex-direction:column}
+header{display:flex;align-items:center;gap:14px;padding:0 16px;height:48px;background:var(--panel);border-bottom:1px solid var(--line);flex:none}
+.logo{width:24px;height:24px;flex:none;display:block}
+header h1{font-size:15px;font-weight:600;margin:0;letter-spacing:.01em}
+header .sub{color:var(--ink3);font-size:12px}
+header .sp{flex:1}
+#status{font-size:12px;color:var(--ink2);display:flex;align-items:center;gap:8px;max-width:55%;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#status .dot{width:8px;height:8px;border-radius:50%;background:var(--ink3);flex:none}
+#status.busy .dot{background:var(--warn);animation:pulse 1s infinite}
+#status.ok .dot{background:var(--ok)} #status.err .dot{background:var(--err)}
+#status.err{color:var(--err)}
+@keyframes pulse{50%{opacity:.3}}
+main{flex:1;display:flex;min-height:0}
+aside{width:330px;flex:none;background:var(--panel);border-right:1px solid var(--line);overflow-y:auto;display:flex;flex-direction:column}
+.step{padding:14px 16px;border-bottom:1px solid var(--line)}
+.step h2{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--ink2);margin:0 0 10px;display:flex;align-items:center;gap:8px}
+.step h2 .n{width:18px;height:18px;border-radius:50%;background:var(--ink);color:#fff;font-size:10px;display:inline-flex;align-items:center;justify-content:center}
+.step.dis{opacity:.45;pointer-events:none}
+label.f{display:block;font-size:11px;color:var(--ink2);margin:8px 0 4px}
+select,input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;padding:6px 8px;border:1px solid var(--line2);border-radius:5px;background:#fff;color:var(--ink)}
+select:focus,input:focus{outline:2px solid #1c212833;border-color:var(--ink2)}
+.seg{display:flex;border:1px solid var(--line2);border-radius:6px;overflow:hidden}
+.seg button{flex:1;font:inherit;padding:6px 4px;border:0;background:#fff;color:var(--ink2);cursor:pointer;border-right:1px solid var(--line2)}
+.seg button:last-child{border-right:0}
+.seg button.on{background:var(--ink);color:#fff}
+#plist{max-height:280px;overflow-y:auto;border:1px solid var(--line2);border-radius:6px;margin-top:6px}
+#plist .grp{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--ink3);padding:8px 10px 4px;background:#fafbfc;position:sticky;top:0;border-bottom:1px solid var(--line)}
+#plist .it{padding:6px 10px;cursor:pointer;border-bottom:1px solid #f0f2f5;display:grid;grid-template-columns:auto 1fr;column-gap:8px}
+#plist .it:hover{background:var(--sel)}
+#plist .it.on{background:var(--accent-soft);box-shadow:inset 3px 0 0 var(--accent)}
+#plist .it b{font-family:var(--mono);font-weight:500;font-size:12px}
+#plist .it span{color:var(--ink2);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#plist .it small{grid-column:1/3;color:var(--ink3);font-size:11px}
+.hint{font-size:11px;color:var(--ink3);margin-top:6px;line-height:1.45}
+.hint.warn{color:var(--warn)}
+.row{display:flex;gap:8px}.row>*{flex:1}
+.chk{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:12px;color:var(--ink2)}
+.btn{font:inherit;font-weight:600;padding:9px 12px;border-radius:6px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);cursor:pointer;width:100%}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.sec{background:#fff;color:var(--ink);border-color:var(--line2);font-weight:500}
+.go{padding:14px 16px;position:sticky;bottom:0;background:var(--panel);border-top:1px solid var(--line);margin-top:auto}
+details.adv summary{cursor:pointer;color:var(--ink2);font-size:12px}
+.mapwrap{flex:1;display:flex;flex-direction:column;min-width:0;position:relative}
+#map{flex:1;min-height:0;background:#e9ecef}
+.card{position:absolute;background:rgba(255,255,255,.95);border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(20,30,40,.08)}
+#title{top:12px;left:12px;padding:10px 12px;max-width:calc(100% - 300px)}
+#title .t1{font-weight:600;font-size:14px}
+#title .t2{color:var(--ink2);font-size:12px;margin-top:2px}
+#probe{top:12px;right:12px;padding:8px 10px;font-family:var(--mono);font-size:11.5px;min-width:220px;line-height:1.55;display:none}
+#probe .v{font-size:16px;font-weight:500;font-family:var(--sans)}
+#legend{right:12px;bottom:88px;padding:8px 10px 6px;min-width:300px;display:none}
+#legend .lt{font-size:11px;color:var(--ink2);margin-bottom:5px;display:flex;justify-content:space-between}
+#legend canvas{display:block;width:100%;height:14px;border-radius:2px}
+#legend .ticks{position:relative;height:16px;font-family:var(--mono);font-size:10px;color:var(--ink2)}
+#legend .ticks span{position:absolute;transform:translateX(-50%);top:2px;white-space:nowrap}
+.timebar{flex:none;background:var(--panel);border-top:1px solid var(--line);padding:8px 14px 10px;display:flex;align-items:center;gap:12px}
+.timebar .play{width:34px;height:34px;border-radius:50%;border:1px solid var(--line2);background:#fff;cursor:pointer;display:flex;align-items:center;justify-content:center;flex:none}
+.timebar .play svg{width:14px;height:14px;fill:var(--ink)}
+.tl{flex:1;min-width:0}
+.tl input[type=range]{width:100%;margin:0;accent-color:var(--accent)}
+#strip{display:flex;gap:1px;height:5px;margin-top:3px}
+#strip i{flex:1;background:#e3e6ea;border-radius:1px}
+#strip i.l{background:#9fb3c8}#strip i.ld{background:var(--warn)}#strip i.ok{background:var(--ok)}#strip i.er{background:var(--err)}#strip i.cur{outline:1.5px solid var(--ink)}
+.tlabel{font-family:var(--mono);font-size:12px;min-width:210px;text-align:right;line-height:1.35}
+.tlabel b{font-family:var(--sans);font-size:14px}
+#meta{font-family:var(--mono);font-size:11px;color:var(--ink2);white-space:pre-wrap;line-height:1.5;margin-top:6px}
+.ol-zoom{top:auto;bottom:12px;left:12px}
+.ol-scale-line{left:auto;right:12px;bottom:56px}
+#drop{position:absolute;inset:0;background:rgba(216,35,42,.08);border:3px dashed var(--accent);display:none;align-items:center;justify-content:center;font-size:16px;font-weight:600;color:var(--accent);z-index:20;pointer-events:none}
+@media (max-width:820px){main{flex-direction:column}aside{width:100%;max-height:45vh}#title{max-width:calc(100% - 24px)}#probe{top:auto;bottom:150px}#legend{min-width:220px}}
+</style>
+</head>
+<body>
+<header>
+  <svg class="logo" viewBox="0 0 24 24" aria-hidden="true"><rect width="24" height="24" rx="5" fill="#1c2128"/><path d="M4 18h16L12 5z M8 18l4-6.5 4 6.5M8 18" fill="none" stroke="#fff" stroke-width="1.4" stroke-linejoin="round"/><path d="M12 11.5L8 18h8z" fill="#d8232a"/></svg>
+  <h1>ICON Grid Viewer</h1>
+  <span class="sub">MeteoSchweiz OGD · ICON-CH1/CH2-EPS · Darstellung in LV95</span>
+  <span class="sp"></span>
+  <div id="status"><span class="dot"></span><span id="statusTxt">Bereit</span></div>
+</header>
+<main>
+<aside>
+  <section class="step" id="s1">
+    <h2><span class="n">1</span>Modell &amp; Quelle</h2>
+    <div class="seg" id="modelSeg">
+      <button data-m="icon-ch1" class="on">ICON-CH1-EPS</button>
+      <button data-m="icon-ch2">ICON-CH2-EPS</button>
+    </div>
+    <div class="hint" id="modelHint"></div>
+    <details class="adv" style="margin-top:10px">
+      <summary>Lokale GRIB2-Dateien statt STAC</summary>
+      <div class="hint">Falls der Download blockiert ist: GRIB2-Dateien auswählen oder auf die Karte ziehen. Die Datei <code>horizontal_constants_…grib2</code> wird nur gebraucht, wenn das Gitter noch nicht im Browser-Cache liegt. Dateinamen sollten die Variable enthalten (z.&nbsp;B. <code>…-t_2m-…</code>).</div>
+      <input type="file" id="localFiles" multiple accept=".grib2,.grb2,.grib,.grb" style="margin-top:6px;width:100%">
+      <div class="hint" id="localInfo"></div>
+    </details>
+    <details class="adv" style="margin-top:8px">
+      <summary>Proxy für den Datendownload</summary>
+      <div class="hint">Die GRIB-Dateien liegen auf <code>rgw.cscs.ch</code>, das keinen direkten Browser-Zugriff (CORS) erlaubt. Mit <code>python3 icon_grid_proxy.py</code> (im selben Ordner) läuft alles automatisch.</div>
+      <div class="row" style="margin-top:6px"><input type="text" id="proxyUrl" placeholder="http://127.0.0.1:8765/proxy"><button class="btn sec" id="proxyBtn" style="width:auto;flex:none">Prüfen</button></div>
+      <div class="hint" id="proxyInfo">Proxy wird gesucht…</div>
+    </details>
+    <div id="dlBox" style="display:none;margin-top:10px">
+      <div class="hint warn">Ohne Proxy: diese Dateien herunterladen und anschliessend alle auf die Karte ziehen.</div>
+      <div id="dlList" style="display:flex;flex-direction:column;gap:3px;margin-top:6px;font-family:var(--mono);font-size:11px;max-height:140px;overflow-y:auto"></div>
+    </div>
+  </section>
+  <section class="step" id="s2">
+    <h2><span class="n">2</span>Parameter</h2>
+    <input type="search" id="psearch" placeholder="Suchen (z. B. T_2M, Niederschlag, Wind)…">
+    <div id="plist"></div>
+    <div class="hint" id="pcat"></div>
+  </section>
+  <section class="step dis" id="s3">
+    <h2><span class="n">3</span>Modelllauf &amp; Member</h2>
+    <label class="f" for="run">Referenzzeit (Initialisierung)</label>
+    <select id="run"></select>
+    <label class="f" for="ens">Ensemble</label>
+    <select id="ens">
+      <option value="ctrl">Kontrolllauf (deterministisch)</option>
+      <option value="mean">Ensemble-Mittel (11 Member)</option>
+      <option value="median">Ensemble-Median</option>
+      <option value="min">Ensemble-Minimum</option>
+      <option value="max">Ensemble-Maximum</option>
+      <option value="std">Ensemble-Spread (Std.-Abw.)</option>
+    </select>
+    <div class="hint warn" id="ensHint" style="display:none">Ensemble-Dateien sind ca. 10× grösser; Zeitschritte werden nur bei Bedarf geladen.</div>
+    <div id="levelBox" style="display:none">
+      <label class="f" for="level">Vertikalniveau</label>
+      <select id="level"><option value="auto">automatisch (unterste Schicht)</option></select>
+      <div class="hint warn">Multi-Level-Dateien enthalten alle Schichten (ICON-CH1: bis ca. 180&nbsp;MB pro Zeitschritt).</div>
+    </div>
+  </section>
+  <section class="step dis" id="s4">
+    <h2><span class="n">4</span>Darstellung</h2>
+    <div id="aggBox" style="display:none">
+      <label class="f" for="agg">Zeitliche Aufbereitung</label>
+      <select id="agg"></select>
+    </div>
+    <label class="f" for="pal">Farbskala</label>
+    <select id="pal"></select>
+    <div class="row">
+      <div><label class="f" for="vmin">Min</label><input type="number" id="vmin" step="any"></div>
+      <div><label class="f" for="vmax">Max</label><input type="number" id="vmax" step="any"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="autoRange" checked> Bereich automatisch (alle geladenen Zeitschritte)</label>
+    <label class="f" for="opac">Deckkraft <span id="opacV">75 %</span></label>
+    <input type="range" id="opac" min="0" max="100" value="75" style="width:100%;accent-color:var(--accent)">
+    <label class="chk" id="arrowsBox" style="display:none"><input type="checkbox" id="arrows" checked> Windpfeile</label>
+    <label class="chk"><input type="checkbox" id="borders" checked> Kantonsgrenzen</label>
+    <label class="f" for="basemap">Hintergrundkarte</label>
+    <select id="basemap">
+      <option value="ch.swisstopo.pixelkarte-grau|jpeg">swisstopo Landeskarte grau</option>
+      <option value="ch.swisstopo.pixelkarte-farbe|jpeg">swisstopo Landeskarte farbig</option>
+      <option value="ch.swisstopo.swissimage|jpeg">SWISSIMAGE</option>
+      <option value="none">keine</option>
+    </select>
+    <div id="meta"></div>
+  </section>
+  <div class="go"><button class="btn" id="goBtn" disabled>Visualisieren</button></div>
+</aside>
+<div class="mapwrap" id="mapwrap">
+  <div id="map"></div>
+  <div class="card" id="title"><div class="t1" id="t1">Parameter wählen</div><div class="t2" id="t2">Daten: MeteoSchweiz Open Government Data · Karte: swisstopo (LV95 / EPSG:2056)</div></div>
+  <div class="card" id="probe"></div>
+  <div class="card" id="legend"><div class="lt"><span id="legTitle"></span><span id="legUnit"></span></div><canvas id="legCanvas" width="600" height="14"></canvas><div class="ticks" id="legTicks"></div></div>
+  <div id="drop">GRIB2-Dateien hier ablegen</div>
+  <div class="timebar">
+    <button class="play" id="playBtn" title="Animation abspielen"><svg viewBox="0 0 16 16" id="playIcon"><path d="M3 1.5v13l11-6.5z"/></svg></button>
+    <div class="tl"><input type="range" id="tslider" min="0" max="0" value="0" disabled><div id="strip"></div></div>
+    <div class="tlabel" id="tlabel"><b>–</b><br><span>&nbsp;</span></div>
+  </div>
+</div>
+</main>
+<script>
+"use strict";
+// ===== GRIB2 decoder (simple packing 5.0, CCSDS/AEC packing 5.42, bitmap 6.0) =====
+// MIT License
+const GRIB2 = (() => {
+  const u16 = (b, o) => (b[o] << 8) | b[o + 1];
+  const u32 = (b, o) => ((b[o] << 24) >>> 0) + (b[o + 1] << 16) + (b[o + 2] << 8) + b[o + 3];
+  const s16 = (b, o) => { const v = u16(b, o); return v & 0x8000 ? -(v & 0x7fff) : v; };
+  const s8 = (b, o) => (b[o] & 0x80 ? -(b[o] & 0x7f) : b[o]);
+  const s32 = (b, o) => { const v = u32(b, o); return v & 0x80000000 ? -(v & 0x7fffffff) : v; };
+  const f32 = (b, o) => new DataView(b.buffer, b.byteOffset + o, 4).getFloat32(0, false);
+  const hex = (b, o, n) => Array.from(b.subarray(o, o + n), x => x.toString(16).padStart(2, '0')).join('');
+
+  // Find complete messages in a buffer; returns {messages:[{offset,length}], consumed}
+  function scan(buf, start = 0) {
+    const out = [];
+    let i = start;
+    while (i + 16 <= buf.length) {
+      if (buf[i] === 0x47 && buf[i + 1] === 0x52 && buf[i + 2] === 0x49 && buf[i + 3] === 0x42) {
+        if (buf[i + 7] !== 2) throw new Error('Nur GRIB Edition 2 wird unterstützt');
+        const len = u32(buf, i + 8) * 4294967296 + u32(buf, i + 12);
+        if (i + len > buf.length) break; // incomplete
+        out.push({ offset: i, length: len });
+        i += len;
+      } else i++;
+    }
+    return { messages: out, consumed: i };
+  }
+
+  // Parse metadata (sections 0-6 headers) without decoding values
+  function parseMessage(buf, offset = 0) {
+    const m = { discipline: buf[offset + 6], sections: {} };
+    const total = u32(buf, offset + 8) * 4294967296 + u32(buf, offset + 12);
+    let p = offset + 16;
+    const end = offset + total - 4;
+    while (p < end) {
+      const len = u32(buf, p), num = buf[p + 4];
+      m.sections[num] = { o: p, len };
+      if (num === 1) {
+        m.refTime = new Date(Date.UTC(u16(buf, p + 12), buf[p + 14] - 1, buf[p + 15], buf[p + 16], buf[p + 17], buf[p + 18]));
+        m.centre = u16(buf, p + 5);
+      } else if (num === 3) {
+        m.numberOfDataPoints = u32(buf, p + 6);
+        m.gridTemplate = u16(buf, p + 12);
+        if (m.gridTemplate === 101) {
+          m.numberOfGridUsed = (buf[p + 15] << 16) | (buf[p + 16] << 8) | buf[p + 17];
+          m.numberOfGridInReference = buf[p + 18];
+          m.uuidOfHGrid = hex(buf, p + 19, 16);
+        }
+      } else if (num === 4) {
+        const t = u16(buf, p + 7);
+        m.productTemplate = t;
+        m.parameterCategory = buf[p + 9];
+        m.parameterNumber = buf[p + 10];
+        if ([0, 1, 8, 11].includes(t)) {
+          m.timeUnit = buf[p + 17];
+          m.forecastTime = s32(buf, p + 18);
+          m.typeOfFirstFixedSurface = buf[p + 22];
+          const sf = s8(buf, p + 23), sv = s32(buf, p + 24);
+          m.level = buf[p + 22] === 255 ? null : sv / Math.pow(10, sf);
+          m.typeOfSecondFixedSurface = buf[p + 28];
+          if (buf[p + 28] !== 255) m.level2 = s32(buf, p + 30) / Math.pow(10, s8(buf, p + 29));
+          if (t === 1 || t === 11) {
+            m.typeOfEnsembleForecast = buf[p + 34];
+            m.perturbationNumber = buf[p + 35];
+            m.numberOfForecastsInEnsemble = buf[p + 36];
+          }
+        }
+      } else if (num === 5) {
+        m.numberOfValues = u32(buf, p + 5);
+        m.dataTemplate = u16(buf, p + 9);
+        m.R = f32(buf, p + 11);
+        m.E = s16(buf, p + 15);
+        m.D = s16(buf, p + 17);
+        m.bits = buf[p + 19];
+        if (m.dataTemplate === 42) {
+          m.ccsdsFlags = buf[p + 21];
+          m.ccsdsBlockSize = buf[p + 22];
+          m.ccsdsRsi = u16(buf, p + 23);
+        }
+      } else if (num === 6) {
+        m.bitmapIndicator = buf[p + 5];
+      } else if (num === 7) {
+        m.dataOffset = p + 5; m.dataLength = len - 5;
+      }
+      p += len;
+    }
+    return m;
+  }
+
+  // Simple packing bit unpacker
+  function unpackSimple(buf, off, len, n, bits, outInts) {
+    if (bits === 0) { outInts.fill(0, 0, n); return; }
+    if (bits === 8) { for (let i = 0; i < n; i++) outInts[i] = buf[off + i]; return; }
+    if (bits === 16) { for (let i = 0, o = off; i < n; i++, o += 2) outInts[i] = (buf[o] << 8) | buf[o + 1]; return; }
+    if (bits === 24) { for (let i = 0, o = off; i < n; i++, o += 3) outInts[i] = (buf[o] << 16) | (buf[o + 1] << 8) | buf[o + 2]; return; }
+    let acc = 0, nacc = 0, o = off;
+    const mask = bits >= 32 ? 0xffffffff : (2 ** bits) - 1;
+    for (let i = 0; i < n; i++) {
+      while (nacc < bits) { acc = acc * 256 + buf[o++]; nacc += 8; }
+      nacc -= bits;
+      const div = 2 ** nacc;
+      const v = Math.floor(acc / div);
+      outInts[i] = v & mask;
+      acc -= v * div;
+    }
+  }
+
+  // CCSDS 121.0 adaptive entropy decoder (port of libaec decode logic)
+  function aecDecode(buf, off, len, n, bits, blockSize, rsi, flags, out) {
+    const SIGNED = 1, PREPROCESS = 8, RESTRICTED = 16, PAD_RSI = 32;
+    let idLen;
+    if (bits > 16) idLen = 5; else if (bits > 8) idLen = 4;
+    else if (flags & RESTRICTED) idLen = bits <= 2 ? 1 : 2; else idLen = 3;
+    const pp = !!(flags & PREPROCESS);
+    const signed = !!(flags & SIGNED);
+    const uncompId = (1 << idLen) - 1;
+    const se = new Int32Array(2 * 91 + 2);
+    { let k = 0; for (let i = 0; i < 13; i++) { const ms = k; for (let j = 0; j <= i; j++) { se[2 * k] = i; se[2 * k + 1] = ms; k++; } } }
+    const end = off + len;
+    let bytePos = off, bitPos = 0; // bitPos: bit index in current byte (0 = MSB)
+    const getBits = (nb) => {
+      let v = 0;
+      while (nb > 0) {
+        if (bytePos >= end) return v * (2 ** nb);
+        const avail = 8 - bitPos;
+        const take = nb < avail ? nb : avail;
+        const byte = buf[bytePos];
+        const shifted = (byte >> (avail - take)) & ((1 << take) - 1);
+        v = v * (1 << take) + shifted;
+        nb -= take; bitPos += take;
+        if (bitPos === 8) { bitPos = 0; bytePos++; }
+      }
+      return v;
+    };
+    const getFS = () => {
+      let fs = 0;
+      for (;;) {
+        if (bytePos >= end) return fs;
+        const byte = (buf[bytePos] << bitPos) & 0xff;
+        if (byte === 0) { fs += 8 - bitPos; bitPos = 0; bytePos++; continue; }
+        const lz = Math.clz32(byte) - 24;
+        fs += lz; bitPos += lz + 1;
+        if (bitPos >= 8) { bitPos -= 8; bytePos++; }
+        return fs;
+      }
+    };
+    const rsiSize = rsi * blockSize;
+    const buffer = new Float64Array(rsiSize);
+    const xmax = signed ? 2 ** (bits - 1) - 1 : 2 ** bits - 1;
+    const xmin = signed ? -xmax - 1 : 0;
+    let written = 0;
+    const fs_k = new Float64Array(blockSize);
+    while (written < n) {
+      // decode one RSI into buffer
+      let used = 0;
+      let first = true;
+      while (used < rsiSize) {
+        const ref = pp && first ? 1 : 0;
+        const encSize = blockSize - ref;
+        const id = getBits(idLen);
+        if (id === 0) {
+          const lowId = getBits(1);
+          if (ref) buffer[used++] = getBits(bits);
+          if (lowId === 1) {
+            // second extension
+            let i = ref;
+            while (i < blockSize) {
+              const m = getFS();
+              if (m > 90) throw new Error('AEC: ungültiger SE-Code');
+              const d1 = m - se[2 * m + 1];
+              if ((i & 1) === 0) { buffer[used++] = se[2 * m] - d1; i++; }
+              buffer[used++] = d1; i++;
+            }
+          } else {
+            let zb = getFS() + 1;
+            if (zb === 5) {
+              const b = Math.floor(used / blockSize);
+              zb = Math.min(rsi - b, 64 - (b % 64));
+            } else if (zb > 5) zb--;
+            const zs = zb * blockSize - ref;
+            for (let i = 0; i < zs; i++) buffer[used++] = 0;
+          }
+        } else if (id === uncompId) {
+          for (let i = 0; i < blockSize; i++) buffer[used++] = getBits(bits);
+        } else {
+          const k = id - 1;
+          if (ref) buffer[used++] = getBits(bits);
+          for (let i = 0; i < encSize; i++) fs_k[i] = getFS() * (2 ** k);
+          for (let i = 0; i < encSize; i++) buffer[used++] = fs_k[i] + (k ? getBits(k) : 0);
+        }
+        first = false;
+        // stop early if all requested samples are covered (last partial RSI)
+        if (written + used >= n) break;
+      }
+      // postprocess
+      if (pp) {
+        let data = buffer[0];
+        if (signed && data > xmax) data -= 2 ** bits;
+        out[written++] = data;
+        for (let i = 1; i < used && written < n; i++) {
+          const d = buffer[i];
+          const halfD = Math.floor(d / 2) + (d % 2);
+          const delta = d % 2 ? -Math.floor(d / 2) - 1 : d / 2;
+          const lo = data - xmin, hi = xmax - data;
+          if (lo <= hi) { if (halfD <= lo) data += delta; else data = xmin + d; }
+          else { if (halfD <= hi) data += delta; else data = xmax - d; }
+          out[written++] = data;
+        }
+      } else {
+        for (let i = 0; i < used && written < n; i++) {
+          let v = buffer[i];
+          if (signed && v > xmax) v -= 2 ** bits;
+          out[written++] = v;
+        }
+      }
+      if (flags & PAD_RSI) { if (bitPos) { bitPos = 0; bytePos++; } }
+      if (bytePos >= end && written < n) break;
+    }
+    return written;
+  }
+
+  // Decode values into Float32Array (NaN where bitmap says missing)
+  function decodeValues(buf, m) {
+    const nPts = m.numberOfDataPoints, nVal = m.numberOfValues;
+    const ints = new Float64Array(nVal);
+    if (m.bits === 0) ints.fill(0);
+    else if (m.dataTemplate === 0) unpackSimple(buf, m.dataOffset, m.dataLength, nVal, m.bits, ints);
+    else if (m.dataTemplate === 42) aecDecode(buf, m.dataOffset, m.dataLength, nVal, m.bits, m.ccsdsBlockSize, m.ccsdsRsi, m.ccsdsFlags, ints);
+    else throw new Error('Nicht unterstützte GRIB2-Packung (Template 5.' + m.dataTemplate + ')');
+    const R = m.R, scaleE = 2 ** m.E, scaleD = 10 ** -m.D;
+    const vals = new Float32Array(nPts);
+    const s6 = m.sections[6];
+    if (m.bitmapIndicator === 0 && s6) {
+      const bo = s6.o + 6;
+      let j = 0;
+      for (let i = 0; i < nPts; i++) {
+        if (buf[bo + (i >> 3)] & (128 >> (i & 7))) vals[i] = (R + ints[j++] * scaleE) * scaleD;
+        else vals[i] = NaN;
+      }
+    } else {
+      for (let i = 0; i < nPts; i++) vals[i] = (R + ints[i] * scaleE) * scaleD;
+    }
+    return vals;
+  }
+
+  return { scan, parseMessage, decodeValues };
+})();
+
+
+// ===================== Konfiguration =====================
+const API = 'https://data.geo.admin.ch/api/stac/v1';
+const MODELS = {
+  'icon-ch1': { coll: 'ch.meteoschweiz.ogd-forecasting-icon-ch1', label: 'ICON-CH1-EPS', hconst: 'horizontal_constants_icon-ch1-eps.grib2', maxLead: 33, cellKm: 1.0,
+    hint: '≈1 km · 34 Stundenschritte (+0…+33 h) · Lauf alle 3 h · Daten 24 h verfügbar' },
+  'icon-ch2': { coll: 'ch.meteoschweiz.ogd-forecasting-icon-ch2', label: 'ICON-CH2-EPS', hconst: 'horizontal_constants_icon-ch2-eps.grib2', maxLead: 120, cellKm: 2.1,
+    hint: '≈2.1 km · 121 Stundenschritte (+0…+120 h) · Lauf alle 6 h · Daten 24 h verfügbar' }
+};
+// Zielraster in LV95 (EPSG:2056) = Ausdehnung der swisstopo-WMTS-Kachelmatrix
+const R = { e0: 2420000, n1: 1350000, res: 500, w: 960, h: 640 };
+R.e1 = R.e0 + R.w * R.res; R.n0 = R.n1 - R.h * R.res;
+const NPX = R.w * R.h;
+
+// Fallback-Katalog (wird durch die Parameter-CSV der STAC-Collection ersetzt/ergänzt)
+const FALLBACK = [
+  ['T_2M','Temperatur 2 m über Boden','K','single','instant'],
+  ['TD_2M','Taupunkt 2 m','K','single','instant'],
+  ['RELHUM_2M','Relative Feuchte 2 m','%','single','instant'],
+  ['TMAX_2M','Maximum Temperatur 2 m','K','single','max'],
+  ['TMIN_2M','Minimum Temperatur 2 m','K','single','min'],
+  ['T_G','Oberflächentemperatur','K','single','instant'],
+  ['TOT_PREC','Gesamtniederschlag','kg m-2','single','accum'],
+  ['RAIN_GSP','Regen (gitterskalig)','kg m-2','single','accum'],
+  ['SNOW_GSP','Schnee (gitterskalig)','kg m-2','single','accum'],
+  ['U_10M','U-Wind 10 m','m s-1','single','instant'],
+  ['V_10M','V-Wind 10 m','m s-1','single','instant'],
+  ['VMAX_10M','Böenspitze 10 m','m s-1','single','max'],
+  ['PMSL','Luftdruck auf Meereshöhe','Pa','single','instant'],
+  ['PS','Bodendruck','Pa','single','instant'],
+  ['CLCT','Gesamtbewölkung','%','single','instant'],
+  ['CLCL','Tiefe Bewölkung','%','single','instant'],
+  ['CLCM','Mittelhohe Bewölkung','%','single','instant'],
+  ['CLCH','Hohe Bewölkung','%','single','instant'],
+  ['DURSUN','Sonnenscheindauer','s','single','accum'],
+  ['ASWDIR_S','Direkte kurzwellige Strahlung (Boden)','W m-2','single','avg'],
+  ['ASWDIFD_S','Diffuse kurzwellige Strahlung (Boden)','W m-2','single','avg'],
+  ['ASOB_S','Kurzwellige Nettostrahlung (Boden)','W m-2','single','avg'],
+  ['ATHB_S','Langwellige Nettostrahlung (Boden)','W m-2','single','avg'],
+  ['ALHFL_S','Latenter Wärmefluss','W m-2','single','avg'],
+  ['ASHFL_S','Sensibler Wärmefluss','W m-2','single','avg'],
+  ['HZEROCL','Nullgradgrenze','m','single','instant'],
+  ['SNOWLMT','Schneefallgrenze','m','single','instant'],
+  ['H_SNOW','Schneehöhe','m','single','instant'],
+  ['W_SNOW','Schnee-Wasseräquivalent','kg m-2','single','instant'],
+  ['CAPE_ML','CAPE (Mixed Layer)','J kg-1','single','instant'],
+  ['CIN_ML','CIN (Mixed Layer)','J kg-1','single','instant'],
+  ['T','Temperatur (Modellschichten)','K','multi','instant'],
+  ['U','U-Wind (Modellschichten)','m s-1','multi','instant'],
+  ['V','V-Wind (Modellschichten)','m s-1','multi','instant'],
+  ['W','Vertikalwind (Halbschichten)','m s-1','multi','instant'],
+  ['QV','Spezifische Feuchte (Modellschichten)','kg kg-1','multi','instant'],
+  ['P','Druck (Modellschichten)','Pa','multi','instant'],
+  ['T_SO','Bodentemperatur (Bodenschichten)','K','multi','instant'],
+].map(([v,name,unit,level,agg]) => ({ v, name, unit, level, agg, aggFromRef: true }));
+
+// Abgeleitete Parameter wie in den Notebooks 03 (Wind) und 06 (Globalstrahlung)
+const DERIVED = [
+  { v: 'WIND_10M', name: 'Windgeschwindigkeit 10 m (aus U_10M, V_10M)', unit: 'm s-1', level: 'single', agg: 'instant', sources: ['U_10M','V_10M'], derived: true },
+  { v: 'GLOB', name: 'Globalstrahlung (ASWDIR_S + ASWDIFD_S)', unit: 'W m-2', level: 'single', agg: 'avg', aggFromRef: true, sources: ['ASWDIR_S','ASWDIFD_S'], derived: true },
+];
+
+// Farbskalen. Diskrete Skalen aus den MeteoSwiss-NCL-Tabellen im Repo opendata-nwp-demos
+const PALETTES = {
+  temp:     { name: 'Temperatur', stops: ['#3b0f70','#2c58a8','#3d9bd6','#9fd4e8','#eef4cc','#f9d057','#f29e2e','#d7301f','#7f0000'] },
+  viridis:  { name: 'Viridis', stops: ['#440154','#482878','#3e4989','#31688e','#26828e','#1f9e89','#35b779','#6ece58','#b5de2b','#fde725'] },
+  inferno:  { name: 'Inferno (Strahlung)', stops: ['#000004','#320a5e','#781c6d','#bc3754','#ed6925','#fbb61a','#fcffa4'] },
+  cloud:    { name: 'Bewölkung', stops: ['#1d3b5a','#4f6d8a','#8fa6ba','#c9d4de','#ffffff'] },
+  humidity: { name: 'Feuchte', stops: ['#8c510a','#d8b365','#f6e8c3','#c7eae5','#5ab4ac','#01665e'] },
+  div:      { name: 'Divergierend (±)', stops: ['#2166ac','#67a9cf','#d1e5f0','#f7f7f7','#fddbc7','#ef8a62','#b2182b'], symmetric: true },
+  precip1h: { name: 'Niederschlag 1 h (MeteoSchweiz)', discrete: true, transparentBelow: true,
+    levels: [0.1,1,2,4,6,9,12,15,20,25,30,35],
+    colors: ['#edfac2','#cdffcd','#99f0b2','#53bd9f','#32a696','#3296b4','#0570b0','#05508c','#0a1f96','#2c0246','#6a2c5a'] },
+  precipSum:{ name: 'Niederschlagssumme', discrete: true, transparentBelow: true,
+    levels: [0.1,1,2,5,10,20,30,50,75,100,150,200],
+    colors: ['#edfac2','#cdffcd','#99f0b2','#53bd9f','#32a696','#3296b4','#0570b0','#05508c','#0a1f96','#2c0246','#6a2c5a'] },
+  wind:     { name: 'Wind m/s (MeteoSchweiz)', discrete: true, transparentBelow: false,
+    levels: [1,2,3,4,5,6,7,8,10,11,12,14,17,19,22,25,28],
+    colors: ['#ffffff','#eff4d1','#e8f49e','#aace63','#e2ed16','#ffed00','#ffed82','#f4d17f','#eda549','#e58c3d','#db7c3d','#ef073d','#e856a3','#9b70a8','#6370f7','#7f96ff','#8eb2ff','#b5c9ff'] },
+};
+
+// ===================== Koordinaten: WGS84 <-> LV95 (swisstopo Näherungsformeln, ~1 m) =====================
+function wgs84ToLV95(latDeg, lonDeg) {
+  const p = (latDeg * 3600 - 169028.66) / 10000, l = (lonDeg * 3600 - 26782.5) / 10000;
+  const E = 2600072.37 + 211455.93 * l - 10938.51 * l * p - 0.36 * l * p * p - 44.54 * l * l * l;
+  const N = 1200147.07 + 308807.95 * p + 3745.25 * l * l + 76.63 * p * p - 194.56 * l * l * p + 119.79 * p * p * p;
+  return [E, N];
+}
+function lv95ToWgs84(E, N) {
+  const y = (E - 2600000) / 1e6, x = (N - 1200000) / 1e6;
+  const l = 2.6779094 + 4.728982 * y + 0.791484 * y * x + 0.1306 * y * x * x - 0.0436 * y * y * y;
+  const p = 16.9023892 + 3.238272 * x - 0.270978 * y * y - 0.002528 * x * x - 0.0447 * y * y * x - 0.0140 * x * x * x;
+  return [p * 100 / 36, l * 100 / 36];
+}
+
+// ===================== Hilfsfunktionen =====================
+const $ = id => document.getElementById(id);
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const yieldUI = () => new Promise(r => setTimeout(r, 0));
+function setStatus(txt, cls = '') { $('statusTxt').textContent = txt; $('status').className = cls; $('status').title = txt; }
+const fmtMB = b => (b / 1048576).toFixed(b > 1e7 ? 0 : 1) + ' MB';
+const pad = n => String(n).padStart(2, '0');
+const dtfLocal = new Intl.DateTimeFormat('de-CH', { timeZone: 'Europe/Zurich', weekday: 'short', day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+const fmtUTC = d => `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())} ${pad(d.getUTCHours())}:${pad(d.getUTCMinutes())} UTC`;
+const isoZ = d => d.toISOString().replace(/\.\d{3}Z$/, 'Z');
+function parseHorizon(s) {
+  const m = /^P(?:(\d+)D)?(?:T(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?)?$/.exec(s || '');
+  if (!m) return null;
+  return (+(m[1] || 0)) * 24 + (+(m[2] || 0)) + (+(m[3] || 0)) / 60 + (+(m[4] || 0)) / 3600;
+}
+function niceNum(x, up) {
+  if (!isFinite(x) || x === 0) return 0;
+  const e = Math.pow(10, Math.floor(Math.log10(Math.abs(x))) - 1);
+  return (up ? Math.ceil(x / e) : Math.floor(x / e)) * e;
+}
+function fmtVal(v) {
+  if (!isFinite(v)) return '–';
+  if (v === 0) return '0';
+  const a = Math.abs(v);
+  return a >= 1000 ? v.toFixed(0) : a >= 100 ? v.toFixed(1) : a >= 1 ? v.toFixed(2) : a >= 0.01 ? v.toFixed(3) : v.toExponential(2);
+}
+
+// ===================== Einheiten =====================
+// Einheit vereinheitlichen: "kg m⁻²", "kg/m2", "kg m**-2", "kg m^-2" -> "kg m-2"
+function normUnit(u) {
+  return String(u || '').trim().replace(/⁻/g, '-').replace(/¹/g, '1').replace(/²/g, '2').replace(/³/g, '3')
+    .replace(/\*\*|\^/g, '').replace(/\s*\/\s*m2\b/g, ' m-2').replace(/\s*\/\s*s\b/g, ' s-1').replace(/\s+/g, ' ');
+}
+const isPrecipVar = v => /PREC|RAIN|SNOW|GRAU|HAIL/.test(v) && !/^H_SNOW|SNOWLMT/.test(v);
+// Wassermengen (kg m-2) -> mm (1 kg/m² = 1 mm = 1 l/m²); Raten (kg m-2 s-1) -> mm/h.
+// Hinweis: In der OGD-Parameter-CSV tragen auch akkumulierte Felder (z. B. GRAU_GSP) teils die Einheit
+// "kg m-2 s-1"; massgebend ist dann die Aggregation: akkumuliert = Menge (mm), momentan = Rate (mm/h).
+function displayUnit(p, aggMode) {
+  const u = normUnit(p.unit);
+  const water = /^(kg m-2|mm|l m-2)$/i.test(u), rate = /^(kg m-2 s-1|mm s-1)$/i.test(u);
+  if (water || rate) {
+    if (rate && (p.agg === 'instant' || p.agg === 'max' || p.agg === 'min')) return { unit: 'mm/h', f: v => v * 3600 };
+    return { unit: 'mm', f: v => v };
+  }
+  if (u === 'K') return { unit: '°C', f: v => v - 273.15 };
+  if (u === 'Pa') return { unit: 'hPa', f: v => v / 100 };
+  if (u === 's' && p.v === 'DURSUN') return { unit: 'min', f: v => v / 60 };
+  if (u === 'm s-1') return { unit: 'm/s', f: v => v };
+  if (u === 'W m-2') return { unit: 'W/m²', f: v => v };
+  if (u === 'kg m-2') return { unit: 'kg/m²', f: v => v };
+  if (u === 'J kg-1') return { unit: 'J/kg', f: v => v };
+  return { unit: u || '', f: v => v };
+}
+function defaultPalette(p, aggMode) {
+  const v = p.v;
+  if (p.unit === 'K') return 'temp';
+  const du = displayUnit(p, aggMode).unit;
+  if (du === 'mm/h') return 'precip1h';
+  if (du === 'mm' && isPrecipVar(v) && !/^W_SNOW/.test(v)) return aggMode === 'hourly' ? 'precip1h' : 'precipSum';
+  if (/^(WIND|VMAX|FF|SP_)/.test(v)) return 'wind';
+  if (/^(U|V|W|U_10M|V_10M)$/.test(v)) return 'div';
+  if (/^CLC/.test(v)) return 'cloud';
+  if (/RELHUM|^QV/.test(v)) return 'humidity';
+  if (/^(ASWD|ASOB|GLOB|DURSUN|ASWDIR|ASWDIFD)/.test(v)) return 'inferno';
+  if (/^(ALHFL|ASHFL|ATHB)/.test(v)) return 'div';
+  return 'viridis';
+}
+
+// ===================== STAC =====================
+// POST mit JSON löst einen CORS-Preflight aus. Schlägt er fehl, wird ohne Content-Type-Header
+// ("simple request", kein Preflight) erneut versucht; die gewählte Variante wird gemerkt.
+let postMode = 'json';
+async function postJSON(url, body) {
+  const modes = postMode === 'json' ? ['json', 'plain'] : ['plain', 'json'];
+  let lastErr;
+  for (const m of modes) {
+    try {
+      const opt = { method: 'POST', body: JSON.stringify(body) };
+      if (m === 'json') opt.headers = { 'Content-Type': 'application/json' };
+      const r = await fetch(url, opt);
+      if (m === 'plain' && (r.status === 415 || r.status === 400)) { lastErr = new Error(`HTTP ${r.status}`); continue; }
+      postMode = m; return r;
+    } catch (e) { lastErr = e; }
+  }
+  throw netError(lastErr, url);
+}
+function netError(e, url) {
+  if (!(e instanceof TypeError)) return e;
+  const host = (() => { try { return new URL(url).host; } catch (_) { return url; } })();
+  const err = new Error(url.startsWith(API)
+    ? `Keine Verbindung zu ${host} (${e.message}). Datei bitte direkt im Browser öffnen – Vorschau-Fenster blockieren Netzwerkzugriffe.`
+    : `${host} erlaubt keinen direkten Browser-Download (CORS). Lösung: icon_grid_proxy.py starten – oder die Dateien über die Links in Schritt 1 herunterladen und auf die Karte ziehen.`);
+  err.net = true; return err;
+}
+// Proxy (icon_grid_proxy.py): same-origin oder http://127.0.0.1:8765
+let PROXY = null;
+const corsBad = new Set();
+const proxied = url => `${PROXY}?url=${encodeURIComponent(url)}`;
+async function detectProxy() {
+  const cands = [];
+  try { const saved = localStorage.getItem('iconProxy'); if (saved) cands.push(saved); } catch (e) { }
+  if (location.protocol.startsWith('http')) cands.push(location.origin + '/proxy');
+  cands.push('http://127.0.0.1:8765/proxy');
+  for (const c of cands) {
+    try { const r = await fetch(c + '/ping', { cache: 'no-store' }); if (r.ok && (await r.text()) === 'ok') { PROXY = c; break; } } catch (e) { }
+  }
+  $('proxyInfo').textContent = PROXY ? `Proxy aktiv: ${PROXY}` : 'Kein Proxy gefunden (icon_grid_proxy.py nicht gestartet).';
+  $('proxyInfo').style.color = PROXY ? 'var(--ok)' : '';
+  return PROXY;
+}
+async function safeFetch(url, opt) {
+  let host = ''; try { host = url.startsWith(API) ? 'api' : new URL(url).host; } catch (e) { }
+  if (PROXY && corsBad.has(host)) return fetch(proxied(url), opt);
+  try { return await fetch(url, opt); }
+  catch (e) {
+    if (!(e instanceof TypeError)) throw e;
+    corsBad.add(host);
+    if (!PROXY) await detectProxy();
+    if (PROXY && host !== 'api') {
+      try { return await fetch(proxied(url), opt); } catch (e2) { throw netError(e2, url); }
+    }
+    throw netError(e, url);
+  }
+}
+async function addHconstLink() {
+  try { const M = MODELS[S.model]; const a = (await collectionAssets(M.coll)).find(a => a.id === M.hconst); if (a) addDownloadLink(a.href); } catch (e) { }
+}
+// Downloadliste für den manuellen Weg (ohne Proxy)
+const dlLinks = new Map();
+function addDownloadLink(href) {
+  const name = href.split('?')[0].split('/').pop();
+  if (dlLinks.has(name)) return; dlLinks.set(name, href);
+  const box = $('dlBox'); box.style.display = '';
+  const a = document.createElement('a'); a.href = href; a.textContent = name; a.download = name; a.target = '_blank'; a.rel = 'noopener';
+  $('dlList').appendChild(a);
+}
+async function stacSearch(body) {
+  const items = [];
+  let url = API + '/search', b = Object.assign({ limit: 100 }, body);
+  for (let guard = 0; guard < 50 && url; guard++) {
+    const r = await postJSON(url, b);
+    if (!r.ok) throw new Error(`STAC-Suche fehlgeschlagen (HTTP ${r.status})`);
+    const j = await r.json();
+    items.push(...(j.features || []));
+    const next = (j.links || []).find(l => l.rel === 'next');
+    if (next) { url = next.href; if (next.body) b = next.merge ? Object.assign({}, b, next.body) : next.body; }
+    else url = null;
+  }
+  return items;
+}
+function itemInfo(it) {
+  const pr = it.properties || {};
+  const hrefs = Object.values(it.assets || {}).map(a => a.href).filter(Boolean);
+  const href = hrefs.find(h => /\.grib2?(\?|$)/i.test(h)) || hrefs[0];
+  let ref = pr['forecast:reference_datetime'] ? new Date(pr['forecast:reference_datetime']) : null;
+  let lead = parseHorizon(pr['forecast:horizon']);
+  const m = /-(\d{12})-(\d+)-/.exec(href || '');
+  if ((!ref || isNaN(ref)) && m) ref = new Date(Date.UTC(+m[1].slice(0, 4), +m[1].slice(4, 6) - 1, +m[1].slice(6, 8), +m[1].slice(8, 10), +m[1].slice(10, 12)));
+  if (lead == null && m) lead = +m[2];
+  return { ref, lead, href };
+}
+const collAssetCache = {};
+async function collectionAssets(coll) {
+  if (collAssetCache[coll]) return collAssetCache[coll];
+  const r = await safeFetch(`${API}/collections/${coll}/assets`);
+  if (!r.ok) throw new Error(`Collection-Assets nicht abrufbar (HTTP ${r.status})`);
+  const j = await r.json();
+  return (collAssetCache[coll] = j.assets || []);
+}
+
+// ===================== Parameter-CSV =====================
+function parseCSV(text) {
+  const first = text.split(/\r?\n/)[0];
+  const delim = (first.match(/;/g) || []).length >= (first.match(/,/g) || []).length ? ';' : ',';
+  const rows = []; let row = [], cur = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) { if (c === '"') { if (text[i + 1] === '"') { cur += '"'; i++; } else q = false; } else cur += c; }
+    else if (c === '"') q = true;
+    else if (c === delim) { row.push(cur); cur = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && text[i + 1] === '\n') i++; row.push(cur); rows.push(row); row = []; cur = ''; }
+    else cur += c;
+  }
+  if (cur || row.length) { row.push(cur); rows.push(row); }
+  return rows.filter(r => r.some(x => x.trim()));
+}
+function catalogFromCSV(text) {
+  const rows = parseCSV(text);
+  if (rows.length < 2) return null;
+  const H = rows[0].map(h => h.trim().toLowerCase());
+  const find = (...res) => { for (const re of res) { const i = H.findIndex(h => re.test(h)); if (i >= 0) return i; } return -1; };
+  const iS = find(/short/, /^parameter$/, /^param(eter)?_?(name)?$/, /variable/, /^name$/);
+  if (iS < 0) return null;
+  const iL = find(/description.*en|_en$/, /long ?name/, /description/, /long/);
+  const iU = find(/unit/);
+  const iLev = find(/^level$/, /level.?type/, /^level/);
+  const iV = find(/vertical/);
+  const iA = find(/aggregation(?!.*start)/, /aggreg/);
+  const iAS = find(/start/);
+  const out = [];
+  for (const r of rows.slice(1)) {
+    const v = (r[iS] || '').trim();
+    if (!v || !/^[A-Za-z][A-Za-z0-9_]*$/.test(v)) continue;
+    const at = (iA >= 0 ? r[iA] : '').toLowerCase();
+    const st = (iAS >= 0 ? r[iAS] : '').toLowerCase();
+    const lev = ((iLev >= 0 ? r[iLev] : '') + ' ' + (iV >= 0 ? r[iV] : '')).toLowerCase();
+    let agg = 'instant';
+    if (/accum|sum/.test(at)) agg = 'accum'; else if (/average|mean/.test(at)) agg = 'avg'; else if (/max/.test(at)) agg = 'max'; else if (/min/.test(at)) agg = 'min';
+    out.push({ v, name: (iL >= 0 ? r[iL] : '').trim() || v, unit: (iU >= 0 ? r[iU] : '').trim().replace(/⁻/g, '-').replace(/[¹]/g, '1').replace(/[²]/g, '2').replace(/[³]/g, '3'),
+      level: /multi/.test(lev) ? 'multi' : 'single', levelText: lev.trim(), agg, aggFromRef: !st || /reference|ref|forecast|start of/.test(st) && !/previous|last|output/.test(st) });
+  }
+  return out.length ? out : null;
+}
+
+// ===================== IndexedDB-Cache für Gitter-Index =====================
+const IDB = {
+  db: null,
+  async open() {
+    if (this.db) return this.db;
+    return this.db = await new Promise((res, rej) => {
+      const r = indexedDB.open('icon-grid-browser', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('kv');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async get(k) { try { const db = await this.open(); return await new Promise((res) => { const q = db.transaction('kv').objectStore('kv').get(k); q.onsuccess = () => res(q.result); q.onerror = () => res(undefined); }); } catch (e) { return undefined; } },
+  async set(k, v) { try { const db = await this.open(); await new Promise((res) => { const t = db.transaction('kv', 'readwrite'); t.objectStore('kv').put(v, k); t.oncomplete = res; t.onerror = res; }); } catch (e) { } },
+};
+
+// ===================== ICON-Zellen -> LV95-Raster (Nearest Neighbour) =====================
+const gridIndex = new Map(); // uuid -> Int32Array (Pixel -> Zellindex, -1 = ausserhalb)
+function buildIndex(clat, clon, maxDist) {
+  let rad = 0; for (let i = 0; i < clat.length; i += 997) if (Math.abs(clat[i]) > rad) rad = Math.abs(clat[i]);
+  const k = rad < 3.2 ? 180 / Math.PI : 1; // Radiant oder Grad
+  const B = maxDist; // Bucketgrösse = Suchradius
+  const bx0 = R.e0 - B, by0 = R.n0 - B;
+  const nbx = Math.ceil((R.e1 - R.e0 + 2 * B) / B), nby = Math.ceil((R.n1 - R.n0 + 2 * B) / B);
+  const n = clat.length;
+  const E = new Float32Array(n), N = new Float32Array(n), bk = new Int32Array(n).fill(-1);
+  const counts = new Int32Array(nbx * nby + 1);
+  for (let i = 0; i < n; i++) {
+    const la = clat[i] * k, lo = clon[i] * k;
+    if (!(la > 44 && la < 49 && lo > 4 && lo < 12.5)) continue;
+    const [e, nn] = wgs84ToLV95(la, lo);
+    const ix = Math.floor((e - bx0) / B), iy = Math.floor((nn - by0) / B);
+    if (ix < 0 || iy < 0 || ix >= nbx || iy >= nby) continue;
+    E[i] = e; N[i] = nn; bk[i] = iy * nbx + ix; counts[bk[i] + 1]++;
+  }
+  for (let i = 1; i < counts.length; i++) counts[i] += counts[i - 1];
+  const fill = counts.slice(0, -1), cells = new Int32Array(counts[counts.length - 1]);
+  for (let i = 0; i < n; i++) if (bk[i] >= 0) cells[fill[bk[i]]++] = i;
+  const idx = new Int32Array(NPX).fill(-1);
+  const md2 = maxDist * maxDist;
+  for (let j = 0; j < R.h; j++) {
+    const yn = R.n1 - (j + 0.5) * R.res;
+    const iy = Math.floor((yn - by0) / B);
+    for (let i = 0; i < R.w; i++) {
+      const xe = R.e0 + (i + 0.5) * R.res;
+      const ix = Math.floor((xe - bx0) / B);
+      let best = -1, bd = md2;
+      for (let dy = -1; dy <= 1; dy++) {
+        const yy = iy + dy; if (yy < 0 || yy >= nby) continue;
+        for (let dx = -1; dx <= 1; dx++) {
+          const xx = ix + dx; if (xx < 0 || xx >= nbx) continue;
+          const b = yy * nbx + xx;
+          for (let c = counts[b], ce = counts[b + 1]; c < ce; c++) {
+            const ci = cells[c], de = E[ci] - xe, dn = N[ci] - yn, d = de * de + dn * dn;
+            if (d < bd) { bd = d; best = ci; }
+          }
+        }
+      }
+      idx[j * R.w + i] = best;
+    }
+  }
+  return idx;
+}
+
+// GRIB-Datei streamend laden; optional früh abbrechen, wenn stopWhen(messages) true liefert
+async function fetchGrib(url, { onProgress, stopWhen } = {}) {
+  let r;
+  try { r = await safeFetch(url); } catch (e) { if (e.net) addDownloadLink(url); throw e; }
+  if (!r.ok) throw new Error(`Download fehlgeschlagen (HTTP ${r.status})${r.status === 403 ? ' – Daten evtl. älter als 24 h oder Link abgelaufen' : ''}`);
+  const total = +r.headers.get('content-length') || 0;
+  if (!r.body || !r.body.getReader) { const b = new Uint8Array(await r.arrayBuffer()); onProgress && onProgress(b.length, b.length); return b; }
+  const reader = r.body.getReader();
+  let buf = new Uint8Array(total || 4 << 20), len = 0, scanned = 0; const found = [];
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    if (len + value.length > buf.length) { const nb = new Uint8Array(Math.max(buf.length * 2, len + value.length)); nb.set(buf.subarray(0, len)); buf = nb; }
+    buf.set(value, len); len += value.length;
+    onProgress && onProgress(len, total);
+    if (stopWhen) {
+      const s = GRIB2.scan(buf.subarray(0, len), scanned);
+      for (const m of s.messages) found.push(m);
+      scanned = s.consumed;
+      if (stopWhen(buf, found)) { try { reader.cancel(); } catch (e) { } return buf.subarray(0, len); }
+    }
+  }
+  return buf.subarray(0, len);
+}
+
+async function ensureIndex(uuid, modelKey, hconstBuf) {
+  if (gridIndex.has(uuid)) return gridIndex.get(uuid);
+  const key = `idx2|${uuid}|${R.e0},${R.n1},${R.res},${R.w},${R.h}`;
+  const cached = await IDB.get(key);
+  if (cached && cached.byteLength === NPX * 4) { const a = new Int32Array(cached); gridIndex.set(uuid, a); return a; }
+  const M = MODELS[modelKey];
+  let buf = hconstBuf;
+  if (!buf) {
+    setStatus('Gitterkoordinaten (CLAT/CLON) laden…', 'busy');
+    const assets = await collectionAssets(M.coll);
+    const a = assets.find(a => a.id === M.hconst) || assets.find(a => /horizontal/i.test(a.id));
+    if (!a) throw new Error('horizontal_constants-Asset nicht gefunden');
+    const isLL = (b, m) => { const x = GRIB2.parseMessage(b, m.offset); return x.discipline === 0 && x.parameterCategory === 191 && (x.parameterNumber === 1 || x.parameterNumber === 2); };
+    buf = await fetchGrib(a.href, {
+      onProgress: (l, t) => setStatus(`Gitterkoordinaten laden… ${fmtMB(l)}${t ? ' / ' + fmtMB(t) : ''} (einmalig, wird gecacht)`, 'busy'),
+      stopWhen: (b, msgs) => msgs.filter(m => isLL(b, m)).length >= 2,
+    });
+  }
+  setStatus('ICON-Gitter → LV95-Raster indexieren…', 'busy'); await yieldUI();
+  let clat = null, clon = null, hu = null;
+  for (const mm of GRIB2.scan(buf).messages) {
+    const m = GRIB2.parseMessage(buf, mm.offset);
+    if (m.discipline !== 0 || m.parameterCategory !== 191) continue;
+    if (m.parameterNumber === 1 && !clat) { clat = GRIB2.decodeValues(buf, m); hu = m.uuidOfHGrid; }
+    if (m.parameterNumber === 2 && !clon) clon = GRIB2.decodeValues(buf, m);
+  }
+  if (!clat || !clon) throw new Error('CLAT/CLON nicht in den horizontalen Konstanten gefunden');
+  if (hu && uuid && hu !== uuid) console.warn('uuidOfHGrid unterscheidet sich:', hu, uuid);
+  const idx = buildIndex(clat, clon, Math.max(1500, M.cellKm * 1600));
+  gridIndex.set(uuid, idx);
+  IDB.set(key, idx.buffer.slice(0));
+  return idx;
+}
+
+// ===================== Zustand =====================
+const S = {
+  model: 'icon-ch1', catalog: FALLBACK.slice(), param: null, runs: [], gen: 0,
+  steps: [], // [{lead, valid}]
+  hrefs: {}, // `${var}|${pert}|${lead}` -> href
+  base: new Map(), baseBytes: 0, // `${var}|${ens}|${level}|${lead}` -> Float32Array[] (Member-Raster)
+  disp: new Map(), // lead -> {val, u, v}
+  stepState: {}, cur: 0, playing: false, range: null, lastMeta: null, levels: null,
+  local: null, // {files:[{name, buf, msgs}]}
+};
+
+// ===================== UI: Modell & Parameter =====================
+function setModel(m) {
+  S.model = m;
+  document.querySelectorAll('#modelSeg button').forEach(b => b.classList.toggle('on', b.dataset.m === m));
+  $('modelHint').textContent = MODELS[m].hint;
+  loadCatalog();
+  if (S.param) selectParam(S.param.v);
+}
+async function loadCatalog() {
+  const M = MODELS[S.model];
+  $('pcat').textContent = 'Parameterliste wird aus der STAC-Collection geladen…';
+  try {
+    const assets = await collectionAssets(M.coll);
+    const csv = assets.find(a => /param/i.test(a.id) && /\.csv/i.test(a.id + (a.href || ''))) || assets.find(a => /\.csv/i.test(a.id + (a.href || '')));
+    if (!csv) throw new Error('keine CSV');
+    const r = await safeFetch(csv.href); const ab = await r.arrayBuffer();
+    let txt = new TextDecoder('utf-8').decode(ab);
+    if (txt.includes('�')) txt = new TextDecoder('windows-1252').decode(ab);
+    const cat = catalogFromCSV(txt);
+    if (!cat) throw new Error('CSV-Format unbekannt');
+    S.catalog = cat;
+    $('pcat').textContent = `${cat.length} Parameter aus ${csv.id}`;
+  } catch (e) {
+    S.catalog = FALLBACK.slice();
+    $('pcat').textContent = `Eingebaute Parameterliste (${e.message}). Nicht jeder Parameter existiert in jedem Modell.`;
+  }
+  renderParamList();
+}
+function allParams() {
+  const have = new Set(S.catalog.map(p => p.v));
+  const der = DERIVED.filter(d => d.sources.every(s => have.has(s))).map(d => {
+    const src = S.catalog.find(p => p.v === d.sources[0]);
+    return Object.assign({}, d, { agg: src ? src.agg : d.agg, aggFromRef: src ? src.aggFromRef : d.aggFromRef });
+  });
+  return [...der, ...S.catalog];
+}
+function renderParamList() {
+  const q = $('psearch').value.trim().toLowerCase();
+  const ps = allParams().filter(p => !q || (p.v + ' ' + p.name).toLowerCase().includes(q));
+  const groups = [['Abgeleitet (wie Notebooks 03/06)', ps.filter(p => p.derived)], ['Einzel-Level', ps.filter(p => !p.derived && p.level === 'single')], ['Multi-Level', ps.filter(p => !p.derived && p.level === 'multi')]];
+  const aggTxt = { instant: 'Momentanwert', accum: 'akkumuliert', avg: 'gemittelt', max: 'Maximum', min: 'Minimum' };
+  const el = $('plist'); el.innerHTML = '';
+  for (const [g, list] of groups) {
+    if (!list.length) continue;
+    const h = document.createElement('div'); h.className = 'grp'; h.textContent = `${g} (${list.length})`; el.appendChild(h);
+    for (const p of list) {
+      const d = document.createElement('div'); d.className = 'it' + (S.param && S.param.v === p.v ? ' on' : ''); d.dataset.v = p.v;
+      d.innerHTML = `<b></b><span></span><small></small>`;
+      d.children[0].textContent = p.v; d.children[1].textContent = p.name; d.children[1].title = p.name;
+      const du = displayUnit(p, 'raw').unit;
+      d.children[2].textContent = [du === 'mm' ? 'mm (= l/m²)' : du === 'mm/h' ? 'mm/h (= l/m² pro h)' : du, aggTxt[p.agg] + (p.agg === 'accum' || p.agg === 'avg' ? (p.aggFromRef ? ' seit Laufbeginn' : ' seit letztem Output') : '')].filter(Boolean).join(' · ');
+      d.onclick = () => selectParam(p.v);
+      el.appendChild(d);
+    }
+  }
+  if (!el.children.length) el.innerHTML = '<div class="hint" style="padding:10px">Keine Treffer</div>';
+}
+async function selectParam(v) {
+  const p = allParams().find(p => p.v === v); if (!p) return;
+  S.param = p;
+  renderParamList();
+  // Darstellung
+  const aggSel = $('agg'); aggSel.innerHTML = '';
+  if ((p.agg === 'accum' || p.agg === 'avg') && p.aggFromRef) {
+    $('aggBox').style.display = '';
+    const o = p.agg === 'accum' ? [['hourly', 'Stundensumme (deakkumuliert)'], ['raw', 'Summe seit Laufbeginn']] : [['hourly', 'Stundenmittel (de-gemittelt)'], ['raw', 'Mittel seit Laufbeginn']];
+    for (const [k, t] of o) aggSel.add(new Option(t, k));
+  } else $('aggBox').style.display = 'none';
+  $('levelBox').style.display = p.level === 'multi' ? '' : 'none';
+  $('level').innerHTML = '<option value="auto">automatisch (unterste Schicht)</option>';
+  $('arrowsBox').style.display = p.v === 'WIND_10M' ? '' : 'none';
+  fillPalettes();
+  $('s3').classList.remove('dis'); $('s4').classList.remove('dis');
+  await loadRuns();
+}
+function fillPalettes() {
+  const p = S.param; const sel = $('pal'); sel.innerHTML = '';
+  const def = defaultPalette(p, aggMode());
+  for (const [k, pl] of Object.entries(PALETTES)) sel.add(new Option(pl.name + (k === def ? ' (Standard)' : ''), k));
+  sel.value = def;
+  S.range = null; S.rawRange = null; $('vmin').value = ''; $('vmax').value = ''; $('autoRange').checked = true;
+}
+const aggMode = () => ($('aggBox').style.display === 'none' ? 'raw' : $('agg').value);
+
+// ===================== Läufe =====================
+async function loadRuns() {
+  const p = S.param, M = MODELS[S.model];
+  const sel = $('run'); sel.innerHTML = ''; $('goBtn').disabled = true;
+  if (S.local) { return loadLocalRuns(); }
+  const v0 = (p.sources || [p.v])[0];
+  setStatus(`Verfügbare Läufe für ${v0} suchen…`, 'busy');
+  try {
+    const since = new Date(Date.now() - 36 * 3600e3);
+    const items = await stacSearch({ collections: [M.coll], 'forecast:variable': v0, 'forecast:perturbed': false, 'forecast:reference_datetime': isoZ(since) + '/..' });
+    const runs = new Map();
+    for (const it of items) {
+      const inf = itemInfo(it); if (!inf.ref || inf.lead == null) continue;
+      const k = inf.ref.getTime();
+      if (!runs.has(k)) runs.set(k, new Set());
+      runs.get(k).add(inf.lead);
+      S.hrefs[`${S.model}|${v0}|0|${k}|${inf.lead}`] = inf.href;
+    }
+    S.runs = [...runs.entries()].sort((a, b) => b[0] - a[0]).map(([k, s]) => ({ ref: new Date(k), leads: [...s].sort((a, b) => a - b) }));
+    if (!S.runs.length) throw new Error(`Keine Daten für ${v0} in ${M.label} gefunden (Parameter evtl. nicht verfügbar)`);
+    const full = M.maxLead + 1;
+    for (const r of S.runs) sel.add(new Option(`${fmtUTC(r.ref)} · ${r.leads.length}/${full} Schritte${r.leads.length < full ? ' (unvollständig)' : ''}`, r.ref.getTime()));
+    const firstComplete = S.runs.find(r => r.leads.length >= full);
+    sel.value = (firstComplete || S.runs[0]).ref.getTime();
+    setStatus(`${S.runs.length} Läufe gefunden`, 'ok');
+    $('goBtn').disabled = false;
+  } catch (e) {
+    console.error(e);
+    setStatus(e.message, 'err');
+  }
+}
+
+// ===================== Daten laden =====================
+async function hrefsFor(v, pert, ref, gen) {
+  const M = MODELS[S.model]; const k0 = `${S.model}|${v}|${pert ? 1 : 0}|${ref.getTime()}|`;
+  if (Object.keys(S.hrefs).some(k => k.startsWith(k0))) return;
+  const items = await stacSearch({ collections: [M.coll], 'forecast:variable': v, 'forecast:perturbed': pert, 'forecast:reference_datetime': isoZ(ref) });
+  if (gen !== S.gen) return;
+  for (const it of items) { const inf = itemInfo(it); if (inf.lead != null) S.hrefs[k0 + inf.lead] = inf.href; }
+}
+function membersWanted() { return $('ens').value === 'ctrl' ? ['ctrl'] : ['ctrl', 'pert']; }
+
+// Liefert Member-Raster (Float32Array[]) für Variable v zum Lead
+async function getBase(v, lead, gen) {
+  const ens = $('ens').value, lvl = $('level').value;
+  const key = `${S.model}|${v}|${ens}|${lvl}|${$('run').value}|${lead}`;
+  if (S.base.has(key)) { const e = S.base.get(key); S.base.delete(key); S.base.set(key, e); return e; }
+  const ref = new Date(+$('run').value);
+  const files = [];
+  if (S.local) {
+    for (const f of localFilesFor(v, lead)) files.push(f);
+    if (!files.length) throw new Error(`Keine lokale Datei für ${v} +${lead} h`);
+  } else {
+    for (const kind of membersWanted()) {
+      const pert = kind === 'pert';
+      await hrefsFor(v, pert, ref, gen);
+      const href = S.hrefs[`${S.model}|${v}|${pert ? 1 : 0}|${ref.getTime()}|${lead}`];
+      if (!href) throw new Error(`Kein Asset für ${v} +${lead} h (${pert ? 'Ensemble' : 'Kontrolllauf'})`);
+      const label = `${v} +${lead} h${pert ? ' Ensemble' : ''}`;
+      const buf = await fetchGrib(href, { onProgress: (l, t) => { if (gen === S.gen) setStatus(`${label}: ${fmtMB(l)}${t ? ' / ' + fmtMB(t) : ''}`, 'busy'); } });
+      files.push({ buf, name: href.split('?')[0].split('/').pop() });
+    }
+  }
+  if (gen !== S.gen) throw new Error('abgebrochen');
+  const out = [];
+  for (const f of files) {
+    const msgs = GRIB2.scan(f.buf).messages.map(mm => GRIB2.parseMessage(f.buf, mm.offset));
+    if (!msgs.length) throw new Error('Keine GRIB2-Nachricht in ' + f.name);
+    // Level-Auswahl
+    let sel = msgs;
+    const levs = [...new Set(msgs.map(m => m.level))].filter(l => l != null).sort((a, b) => a - b);
+    if (levs.length > 1) {
+      if (!S.levels || S.levels.join() !== levs.join()) {
+        S.levels = levs;
+        const ls = $('level'), keep = ls.value; ls.innerHTML = '<option value="auto">automatisch (unterste Schicht)</option>';
+        const t = msgs[0].typeOfFirstFixedSurface;
+        for (const l of levs) ls.add(new Option((t === 106 || t === 151 ? `Tiefe ${l} m` : `Schicht ${l}`), String(l)));
+        ls.value = levs.map(String).includes(keep) ? keep : 'auto';
+      }
+      const t = msgs[0].typeOfFirstFixedSurface;
+      const want = lvl === 'auto' ? (t === 106 || t === 151 ? levs[0] : levs[levs.length - 1]) : +lvl;
+      sel = msgs.filter(m => m.level === want);
+      if (!sel.length) throw new Error(`Niveau ${want} nicht in Datei`);
+    }
+    // Member-Auswahl
+    if (ens === 'ctrl') sel = [sel.find(m => !m.perturbationNumber) || sel[0]];
+    S.lastMeta = Object.assign({ file: f.name, size: f.buf.length, nmsg: msgs.length }, sel[0]);
+    const idx = await ensureIndex(sel[0].uuidOfHGrid || 'unknown', S.model, S.local && S.local.hconst);
+    S.idx = idx;
+    if (gen !== S.gen) throw new Error('abgebrochen');
+    for (const m of sel) {
+      const vals = GRIB2.decodeValues(f.buf, m);
+      const r = new Float32Array(NPX);
+      for (let p = 0; p < NPX; p++) { const i = idx[p]; r[p] = i >= 0 ? vals[i] : NaN; }
+      out.push(r);
+      await yieldUI();
+    }
+  }
+  S.base.set(key, out); S.baseBytes += out.length * NPX * 4;
+  while (S.baseBytes > 300 * 1048576 && S.base.size > 1) { const [k, e] = S.base.entries().next().value; S.base.delete(k); S.baseBytes -= e.length * NPX * 4; }
+  return out;
+}
+
+async function computeDisplay(lead, gen) {
+  const p = S.param, mode = aggMode();
+  const srcs = p.sources || [p.v];
+  const perVar = [];
+  for (const v of srcs) {
+    let cur = await getBase(v, lead, gen);
+    if (mode === 'hourly') {
+      const prevLead = S.steps.map(s => s.lead).filter(l => l < lead).pop();
+      if (prevLead == null) return { val: null, note: 'Für +0 h gibt es keinen Stundenwert' };
+      const prev = await getBase(v, prevLead, gen);
+      const dt = lead - prevLead;
+      cur = cur.map((a, m) => {
+        const b = prev[m] || prev[0], r = new Float32Array(NPX);
+        if (p.agg === 'accum') for (let i = 0; i < NPX; i++) r[i] = a[i] - b[i];
+        else for (let i = 0; i < NPX; i++) r[i] = (a[i] * lead - b[i] * prevLead) / dt;
+        return r;
+      });
+    }
+    perVar.push(cur);
+  }
+  // Member kombinieren (abgeleitete Parameter)
+  const nm = Math.min(...perVar.map(a => a.length));
+  let members = [];
+  for (let m = 0; m < nm; m++) {
+    if (p.v === 'WIND_10M') { const u = perVar[0][m], v = perVar[1][m], r = new Float32Array(NPX); for (let i = 0; i < NPX; i++) r[i] = Math.hypot(u[i], v[i]); members.push(r); }
+    else if (p.v === 'GLOB') { const a = perVar[0][m], b = perVar[1][m], r = new Float32Array(NPX); for (let i = 0; i < NPX; i++) r[i] = a[i] + b[i]; members.push(r); }
+    else members.push(perVar[0][m]);
+  }
+  const ens = $('ens').value;
+  let val;
+  if (members.length === 1 || ens === 'ctrl') val = members[0];
+  else {
+    val = new Float32Array(NPX); const n = members.length, tmp = new Float32Array(n);
+    for (let i = 0; i < NPX; i++) {
+      let s = 0, mn = Infinity, mx = -Infinity;
+      for (let m = 0; m < n; m++) { const x = members[m][i]; tmp[m] = x; s += x; if (x < mn) mn = x; if (x > mx) mx = x; }
+      const mean = s / n;
+      if (ens === 'mean') val[i] = mean; else if (ens === 'min') val[i] = mn; else if (ens === 'max') val[i] = mx;
+      else if (ens === 'std') { let q = 0; for (let m = 0; m < n; m++) q += (tmp[m] - mean) ** 2; val[i] = Math.sqrt(q / (n - 1)); }
+      else { tmp.sort(); val[i] = n % 2 ? tmp[(n - 1) >> 1] : (tmp[n / 2 - 1] + tmp[n / 2]) / 2; }
+    }
+  }
+  const du = displayUnit(p, mode);
+  const conv = (ens === 'std' && du.unit === '°C') ? (x => x) : du.f;
+  const outv = new Float32Array(NPX); for (let i = 0; i < NPX; i++) outv[i] = conv(val[i]);
+  let u = null, v = null;
+  if (p.v === 'WIND_10M') { // Komponenten (gemittelt) für Pfeile
+    const mu = (arr) => { if (arr.length === 1) return arr[0]; const r = new Float32Array(NPX); for (const a of arr) for (let i = 0; i < NPX; i++) r[i] += a[i] / arr.length; return r; };
+    u = mu(perVar[0]); v = mu(perVar[1]);
+  }
+  return { val: outv, u, v, unit: du.unit };
+}
+
+// ===================== Visualisieren / Zeitachse =====================
+async function visualize() {
+  const gen = ++S.gen;
+  stopPlay();
+  S.disp.clear(); S.stepState = {}; S.range = null; S.rawRange = null;
+  const p = S.param; if (!p) return;
+  const run = S.local ? S.localRun : S.runs.find(r => r.ref.getTime() === +$('run').value);
+  if (!run) return;
+  S.steps = run.leads.map(l => ({ lead: l, valid: new Date(run.ref.getTime() + l * 3600e3) }));
+  const sl = $('tslider'); sl.max = S.steps.length - 1; sl.disabled = false;
+  const startIdx = Math.min(+sl.value || 0, S.steps.length - 1);
+  // bei Stundenwerten nicht bei +0 starten
+  S.cur = aggMode() === 'hourly' && startIdx === 0 && S.steps.length > 1 ? 1 : startIdx;
+  sl.value = S.cur;
+  buildStrip();
+  const ens = $('ens').value;
+  $('t1').textContent = `${p.v} · ${p.name}`;
+  $('t2').textContent = `${S.local ? 'Lokale Dateien' : MODELS[S.model].label} · Lauf ${fmtUTC(run.ref)} · ${$('ens').selectedOptions[0].text}${aggMode() !== 'raw' ? ' · ' + $('agg').selectedOptions[0].text : ''}`;
+  await showStep(S.cur, gen);
+  // Hintergrund-Vorladen (nur Kontrolllauf & Einzel-Level)
+  if (ens === 'ctrl' && p.level !== 'multi') preloadAll(gen);
+  else preloadAround(S.cur, gen);
+}
+async function loadDisp(i, gen) {
+  const st = S.steps[i]; if (!st) return null;
+  if (S.disp.has(st.lead)) return S.disp.get(st.lead);
+  if (S.stepState[i] === 'ld') { while (S.stepState[i] === 'ld' && gen === S.gen) await sleep(80); return S.disp.get(st.lead) || null; }
+  S.stepState[i] = 'ld'; markStrip();
+  try {
+    const d = await computeDisplay(st.lead, gen);
+    if (gen !== S.gen) return null;
+    S.disp.set(st.lead, d); S.stepState[i] = 'ok';
+    // Auto-Bereich über alle geladenen Zeitschritte (verhindert 0…1 bei nächtlichem Startschritt)
+    if (d.val && growRange(d.val) && curDisp && curDisp.val) drawRaster(curDisp);
+    // Speicher begrenzen (~400 MB für fertige Raster)
+    const per = NPX * 4 * (d.u ? 3 : 1);
+    while (S.disp.size * per > 400 * 1048576) { const k = S.disp.keys().next().value; if (k === st.lead) break; S.disp.delete(k); const j = S.steps.findIndex(s => s.lead === k); if (j >= 0) S.stepState[j] = undefined; }
+    markStrip(); return d;
+  } catch (e) {
+    if (gen !== S.gen) return null;
+    console.error(e); S.stepState[i] = 'er'; markStrip(); S.lastError = e.message;
+    if (e.net && !S.local) addHconstLink();
+    setStatus(e.message, 'err'); return null;
+  }
+}
+async function showStep(i, gen = S.gen) {
+  S.cur = i; $('tslider').value = i; updateTimeLabel(); markStrip();
+  const d = await loadDisp(i, gen);
+  if (gen !== S.gen || S.cur !== i) return;
+  if (!d) { drawRaster(null); return; }
+  if (!d.val) { drawRaster(null); setStatus(d.note, ''); return; }
+  growRange(d.val);
+  if (!S.range) S.range = [0, 1];
+  drawRaster(d);
+  updateMeta();
+  if (!S.playing) setStatus(`Bereit · ${S.steps.length} Zeitschritte`, 'ok');
+}
+async function preloadAll(gen) {
+  const order = []; for (let k = 0; k < S.steps.length; k++) order.push((S.cur + k) % S.steps.length);
+  let n = 0;
+  const worker = async () => { while (order.length && gen === S.gen) { const i = order.shift(); await loadDisp(i, gen); n++; if (gen === S.gen && !S.playing) setStatus(`Zeitschritte geladen: ${Object.values(S.stepState).filter(s => s === 'ok').length}/${S.steps.length}`, 'busy'); } };
+  await Promise.all([worker(), worker()]);
+  if (gen === S.gen && !S.playing) {
+    const ok = Object.values(S.stepState).filter(s => s === 'ok').length, er = Object.values(S.stepState).filter(s => s === 'er').length;
+    if (er) setStatus(`${er} von ${S.steps.length} Zeitschritten fehlgeschlagen – ${S.lastError || ''}`, 'err');
+    else setStatus(`Bereit · ${ok} Zeitschritte geladen`, 'ok');
+  }
+}
+function preloadAround(i, gen) { if (S.steps[i + 1]) loadDisp(i + 1, gen); }
+function buildStrip() { const s = $('strip'); s.innerHTML = ''; for (let i = 0; i < S.steps.length; i++) s.appendChild(document.createElement('i')); markStrip(); }
+function markStrip() { const c = $('strip').children; for (let i = 0; i < c.length; i++) c[i].className = (S.stepState[i] === 'ok' ? 'ok' : S.stepState[i] === 'ld' ? 'ld' : S.stepState[i] === 'er' ? 'er' : '') + (i === S.cur ? ' cur' : ''); }
+function updateTimeLabel() {
+  const st = S.steps[S.cur]; if (!st) return;
+  $('tlabel').innerHTML = `<b>+${pad(st.lead)} h</b> · ${dtfLocal.format(st.valid)}<br><span>gültig ${fmtUTC(st.valid)}</span>`;
+}
+function stopPlay() { S.playing = false; $('playIcon').innerHTML = '<path d="M3 1.5v13l11-6.5z"/>'; }
+async function togglePlay() {
+  if (S.playing) return stopPlay();
+  if (!S.steps.length) return;
+  S.playing = true; $('playIcon').innerHTML = '<path d="M3 2h3.5v12H3zM9.5 2H13v12H9.5z"/>';
+  const gen = S.gen;
+  while (S.playing && gen === S.gen) {
+    const t0 = performance.now();
+    let n = (S.cur + 1) % S.steps.length;
+    if (aggMode() === 'hourly' && n === 0 && S.steps.length > 1) n = 1;
+    await showStep(n, gen);
+    if ($('ens').value !== 'ctrl' || S.param.level === 'multi') preloadAround(n, gen);
+    await sleep(Math.max(0, 450 - (performance.now() - t0)));
+  }
+}
+
+// ===================== Farbskala & Rendering =====================
+function hexRgb(h) { return [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)]; }
+function makeLUT(stops) {
+  const c = stops.map(hexRgb), lut = new Uint8Array(256 * 3);
+  for (let i = 0; i < 256; i++) {
+    const t = i / 255 * (c.length - 1), k = Math.min(Math.floor(t), c.length - 2), f = t - k;
+    for (let j = 0; j < 3; j++) lut[i * 3 + j] = Math.round(c[k][j] + (c[k + 1][j] - c[k][j]) * f);
+  }
+  return lut;
+}
+// Feste, physikalisch sinnvolle Bereiche (in Anzeigeeinheiten)
+function presetRange() {
+  const v = S.param.v, mode = aggMode();
+  if (/^(GLOB|ASWDIR_S|ASWDIFD_S|ASOB_S|ASWD)/.test(v)) return [0, 1000];
+  if (/^CLC/.test(v) || /RELHUM/.test(v)) return [0, 100];
+  if (v === 'DURSUN' && mode === 'hourly') return [0, 60];
+  return null;
+}
+function stepRange(val) {
+  const sample = []; for (let i = 0; i < val.length; i += 5) if (val[i] === val[i]) sample.push(val[i]);
+  if (!sample.length) return null;
+  sample.sort((a, b) => a - b);
+  return [sample[Math.floor(sample.length * 0.01)], sample[Math.floor(sample.length * 0.99)]];
+}
+// Erweitert den Auto-Bereich mit einem weiteren Zeitschritt; true = Bereich hat sich geändert
+function growRange(val) {
+  if (!$('autoRange').checked || !val) return false;
+  const pal = PALETTES[$('pal').value];
+  const old = S.range ? S.range.join() : '';
+  if (pal.discrete) S.range = [pal.levels[0], pal.levels[pal.levels.length - 1]];
+  else {
+    const pre = presetRange();
+    if (pre) S.range = pre;
+    else {
+      const r = stepRange(val);
+      if (r) {
+        S.rawRange = S.rawRange ? [Math.min(S.rawRange[0], r[0]), Math.max(S.rawRange[1], r[1])] : r;
+        let [lo, hi] = S.rawRange;
+        if (pal.symmetric) { const m = Math.max(Math.abs(lo), Math.abs(hi)); lo = -m; hi = m; }
+        if (hi - lo < 1e-6 * Math.max(1, Math.abs(lo))) hi = lo + 1; // konstantes Feld (z. B. Nacht)
+        S.range = [niceNum(lo, false), niceNum(hi, true)];
+      }
+    }
+  }
+  if (!S.range) S.range = [0, 1];
+  setRangeInputs();
+  return S.range.join() !== old;
+}
+function recomputeRange() {
+  S.range = null; S.rawRange = null;
+  for (const d of S.disp.values()) if (d && d.val) growRange(d.val);
+  if (curDisp && curDisp.val) growRange(curDisp.val);
+}
+function setRangeInputs() { $('vmin').value = +S.range[0].toPrecision(4); $('vmax').value = +S.range[1].toPrecision(4); }
+
+const rasterCanvas = document.createElement('canvas'); rasterCanvas.width = R.w; rasterCanvas.height = R.h;
+const rctx = rasterCanvas.getContext('2d');
+const imgData = rctx.createImageData(R.w, R.h);
+let curDisp = null;
+function colorize(val) {
+  const pal = PALETTES[$('pal').value], px = imgData.data;
+  if (!val) { px.fill(0); return; }
+  if (pal.discrete) {
+    const L = pal.levels, C = pal.colors.map(hexRgb);
+    const lowColor = pal.transparentBelow ? null : C[0], off = pal.transparentBelow ? 0 : 1;
+    for (let i = 0, o = 0; i < NPX; i++, o += 4) {
+      const v = val[i];
+      if (!(v === v)) { px[o + 3] = 0; continue; }
+      let k = -1; for (let j = 0; j < L.length; j++) { if (v >= L[j]) k = j; else break; }
+      let c;
+      if (k < 0) { if (!lowColor) { px[o + 3] = 0; continue; } c = lowColor; }
+      else c = C[Math.min(k + off, C.length - 1)];
+      px[o] = c[0]; px[o + 1] = c[1]; px[o + 2] = c[2]; px[o + 3] = 255;
+    }
+  } else {
+    const lut = makeLUT(pal.stops), [lo, hi] = S.range || [0, 1], sc = 255 / (hi - lo || 1);
+    for (let i = 0, o = 0; i < NPX; i++, o += 4) {
+      const v = val[i];
+      if (!(v === v)) { px[o + 3] = 0; continue; }
+      let t = Math.round((v - lo) * sc); t = t < 0 ? 0 : t > 255 ? 255 : t;
+      px[o] = lut[t * 3]; px[o + 1] = lut[t * 3 + 1]; px[o + 2] = lut[t * 3 + 2]; px[o + 3] = 255;
+    }
+  }
+  rctx.putImageData(imgData, 0, 0);
+}
+function drawRaster(d) {
+  curDisp = d;
+  colorize(d && d.val);
+  dataSource.changed();
+  drawLegend();
+}
+function drawLegend() {
+  const leg = $('legend');
+  if (!curDisp || !curDisp.val) { leg.style.display = 'none'; return; }
+  leg.style.display = 'block';
+  const pal = PALETTES[$('pal').value], cv = $('legCanvas'), cx = cv.getContext('2d'), W = cv.width;
+  const ticks = $('legTicks'); ticks.innerHTML = '';
+  $('legTitle').textContent = S.param.v + (aggMode() === 'hourly' ? ' (1 h)' : '');
+  $('legUnit').textContent = (curDisp.unit === 'mm' ? (aggMode() === 'hourly' ? 'mm/h (l/m² pro Stunde)' : 'mm (l/m²)') : curDisp.unit === 'mm/h' ? 'mm/h (l/m² pro Stunde)' : curDisp.unit) || '';
+  cx.clearRect(0, 0, W, 14);
+  const addTick = (x, t) => { const s = document.createElement('span'); s.style.left = (x / W * 100) + '%'; s.textContent = t; ticks.appendChild(s); };
+  if (pal.discrete) {
+    const n = pal.levels.length, cols = pal.transparentBelow ? pal.colors : pal.colors.slice(1);
+    const bw = W / n;
+    for (let k = 0; k < n; k++) { cx.fillStyle = cols[Math.min(k, cols.length - 1)]; cx.fillRect(k * bw, 0, bw + 0.5, 14); }
+    pal.levels.forEach((l, k) => { if (n <= 12 || k % 2 === 0) addTick(Math.max(8, k * bw), String(l)); });
+  } else {
+    const lut = makeLUT(pal.stops);
+    for (let x = 0; x < W; x++) { const t = Math.round(x / (W - 1) * 255); cx.fillStyle = `rgb(${lut[t * 3]},${lut[t * 3 + 1]},${lut[t * 3 + 2]})`; cx.fillRect(x, 0, 1, 14); }
+    const [lo, hi] = S.range;
+    for (let k = 0; k <= 4; k++) addTick(Math.min(W - 14, Math.max(14, k / 4 * W)), fmtVal(lo + (hi - lo) * k / 4));
+  }
+}
+function updateMeta() {
+  const m = S.lastMeta; if (!m) return;
+  const pack = m.dataTemplate === 42 ? `CCSDS (5.42), ${m.bits} bit` : m.dataTemplate === 0 ? `simple (5.0), ${m.bits} bit` : '5.' + m.dataTemplate;
+  $('meta').textContent = `Datei      ${m.file}\nGrösse     ${fmtMB(m.size)} · ${m.nmsg} Nachr.\nGitter     Template 3.${m.gridTemplate} (unstrukt.)\nZellen     ${m.numberOfDataPoints.toLocaleString('de-CH')}\nuuidOfHGrid ${(m.uuidOfHGrid || '–').slice(0, 16)}…\nPackung    ${pack}\nRaster     LV95 ${R.res} m · ${R.w}×${R.h} px\nRegridding nächste ICON-Zelle`;
+}
+
+// ===================== Karte (OpenLayers, EPSG:2056) =====================
+const RES = [4000, 3750, 3500, 3250, 3000, 2750, 2500, 2250, 2000, 1750, 1500, 1250, 1000, 750, 650, 500, 250, 100, 50, 20, 10, 5, 2.5, 2, 1.5, 1, 0.5, 0.25, 0.1];
+const EXT = [2420000, 1030000, 2900000, 1350000];
+const proj = new ol.proj.Projection({ code: 'EPSG:2056', units: 'm', extent: EXT });
+const tileGrid = new ol.tilegrid.WMTS({ origin: [EXT[0], EXT[3]], resolutions: RES, matrixIds: RES.map((_, i) => String(i)), extent: EXT });
+function wmts(layer, fmt, attributions) {
+  return new ol.source.WMTS({ url: `https://wmts.geo.admin.ch/1.0.0/{Layer}/default/current/2056/{TileMatrix}/{TileCol}/{TileRow}.${fmt}`, requestEncoding: 'REST', layer, matrixSet: '2056', format: 'image/' + fmt, style: 'default', projection: proj, tileGrid, attributions });
+}
+const baseLayer = new ol.layer.Tile({ source: wmts('ch.swisstopo.pixelkarte-grau', 'jpeg', '© swisstopo') });
+const borderLayer = new ol.layer.Tile({ source: wmts('ch.swisstopo.swissboundaries3d-kanton-flaeche.fill', 'png'), opacity: 0.7 });
+const dataSource = new ol.source.ImageCanvas({
+  projection: proj, ratio: 1, attributions: 'Daten: MeteoSchweiz OGD',
+  canvasFunction(extent, resolution, pixelRatio, size) {
+    const c = document.createElement('canvas'); c.width = size[0]; c.height = size[1];
+    const cx = c.getContext('2d'); cx.imageSmoothingEnabled = false;
+    if (!curDisp || !curDisp.val) return c;
+    const sx = (extent[0] - R.e0) / R.res, sy = (R.n1 - extent[3]) / R.res, sw = (extent[2] - extent[0]) / R.res, sh = (extent[3] - extent[1]) / R.res;
+    // nur den überlappenden Teil zeichnen (Browser-unabhängig)
+    const x0 = Math.max(0, sx), y0 = Math.max(0, sy), x1 = Math.min(R.w, sx + sw), y1 = Math.min(R.h, sy + sh);
+    if (x1 > x0 && y1 > y0) {
+      const kx = size[0] / sw, ky = size[1] / sh;
+      cx.drawImage(rasterCanvas, x0, y0, x1 - x0, y1 - y0, (x0 - sx) * kx, (y0 - sy) * ky, (x1 - x0) * kx, (y1 - y0) * ky);
+    }
+    if (curDisp.u && $('arrows').checked) drawArrows(cx, extent, size, pixelRatio);
+    return c;
+  },
+});
+function drawArrows(cx, extent, size, pr) {
+  const step = 38 * pr, mx = (extent[2] - extent[0]) / size[0];
+  cx.strokeStyle = 'rgba(20,24,30,.85)'; cx.fillStyle = 'rgba(20,24,30,.85)'; cx.lineWidth = 1.2 * pr;
+  for (let y = step / 2; y < size[1]; y += step) for (let x = step / 2; x < size[0]; x += step) {
+    const E = extent[0] + x * mx, N = extent[3] - y * mx;
+    const i = Math.floor((E - R.e0) / R.res), j = Math.floor((R.n1 - N) / R.res);
+    if (i < 0 || j < 0 || i >= R.w || j >= R.h) continue;
+    const u = curDisp.u[j * R.w + i], v = curDisp.v[j * R.w + i];
+    if (!(u === u)) continue;
+    const sp = Math.hypot(u, v); if (sp < 0.3) continue;
+    const L = Math.min(1, 0.35 + sp / 15) * step * 0.45, dx = u / sp * L, dy = -v / sp * L;
+    cx.beginPath(); cx.moveTo(x - dx, y - dy); cx.lineTo(x + dx, y + dy); cx.stroke();
+    const a = Math.atan2(dy, dx), h = 4 * pr;
+    cx.beginPath(); cx.moveTo(x + dx, y + dy); cx.lineTo(x + dx - h * Math.cos(a - 0.45), y + dy - h * Math.sin(a - 0.45)); cx.lineTo(x + dx - h * Math.cos(a + 0.45), y + dy - h * Math.sin(a + 0.45)); cx.closePath(); cx.fill();
+  }
+}
+const dataLayer = new ol.layer.Image({ source: dataSource, opacity: 0.75 });
+const map = new ol.Map({
+  target: 'map', layers: [baseLayer, dataLayer, borderLayer],
+  view: new ol.View({ projection: proj, center: [2660000, 1190000], resolution: 500, resolutions: RES.slice(5, 22), constrainResolution: false, extent: EXT, showFullExtent: true }),
+  controls: ol.control.defaults.defaults({ rotate: false, attributionOptions: { collapsible: false } }).extend([new ol.control.ScaleLine()]),
+});
+map.getView().fit(EXT, { padding: [70, 20, 20, 20] });
+map.on('pointermove', e => {
+  const pr = $('probe');
+  if (!curDisp || !curDisp.val || e.dragging) { pr.style.display = 'none'; return; }
+  const [E, N] = e.coordinate;
+  const i = Math.floor((E - R.e0) / R.res), j = Math.floor((R.n1 - N) / R.res);
+  if (i < 0 || j < 0 || i >= R.w || j >= R.h) { pr.style.display = 'none'; return; }
+  const p = j * R.w + i, v = curDisp.val[p];
+  const [lat, lon] = lv95ToWgs84(E, N);
+  const idx = S.idx ? S.idx[p] : -1;
+  pr.style.display = 'block';
+  pr.innerHTML = `<div class="v">${fmtVal(v)} <small>${curDisp.unit || ''}</small></div>E ${Math.round(E).toLocaleString('de-CH')} · N ${Math.round(N).toLocaleString('de-CH')}<br>${lat.toFixed(4)}° N · ${lon.toFixed(4)}° E<br>ICON-Zelle ${idx >= 0 ? idx.toLocaleString('de-CH') : '–'}` + (curDisp.u ? `<br>U ${fmtVal(curDisp.u[p])} · V ${fmtVal(curDisp.v[p])} m/s` : '');
+});
+map.getViewport().addEventListener('mouseleave', () => $('probe').style.display = 'none');
+
+// ===================== Lokale Dateien =====================
+function isLLmsg(m) { return m.discipline === 0 && m.parameterCategory === 191 && (m.parameterNumber === 1 || m.parameterNumber === 2); }
+async function loadLocal(fileList) {
+  const files = [];
+  for (const f of fileList) {
+    const buf = new Uint8Array(await f.arrayBuffer());
+    let msgs; try { msgs = GRIB2.scan(buf).messages.map(mm => GRIB2.parseMessage(buf, mm.offset)); } catch (e) { continue; }
+    if (msgs.length) files.push({ name: f.name, buf, msgs });
+  }
+  if (!files.length) { $('localInfo').textContent = 'Keine GRIB2-Daten gefunden.'; return; }
+  const hc = files.find(f => f.msgs.some(isLLmsg));
+  const data = files.filter(f => f !== hc);
+  S.local = { files: data, hconst: hc ? hc.buf : (S.local && S.local.hconst) };
+  $('localInfo').textContent = `${data.length} Datendatei(en)${hc ? ' + horizontale Konstanten' : ''} geladen. Parameter wählen, dann Visualisieren.`;
+  setStatus('Lokaler Modus', 'ok');
+  if (S.param) loadRuns();
+}
+function localFilesFor(v, lead) {
+  const vv = v.toLowerCase();
+  let fs = S.local.files.filter(f => f.name.toLowerCase().includes('-' + vv + '-') || f.name.toLowerCase().includes('_' + vv + '.') || f.name.toLowerCase().includes(vv));
+  if (!fs.length) fs = S.local.files;
+  return fs.filter(f => (f.msgs[0].forecastTime ?? 0) === lead).map(f => ({ buf: f.buf, name: f.name }));
+}
+function loadLocalRuns() {
+  const fs = S.local.files; if (!fs.length) return;
+  const ref = fs[0].msgs[0].refTime;
+  const leads = [...new Set(fs.map(f => f.msgs[0].forecastTime ?? 0))].sort((a, b) => a - b);
+  S.localRun = { ref, leads };
+  const sel = $('run'); sel.innerHTML = ''; sel.add(new Option(`${fmtUTC(ref)} · ${leads.length} lokale Schritte`, ref.getTime()));
+  $('goBtn').disabled = false;
+}
+
+// ===================== Events =====================
+document.querySelectorAll('#modelSeg button').forEach(b => b.onclick = () => { S.local = null; $('localInfo').textContent = ''; setModel(b.dataset.m); });
+$('psearch').oninput = renderParamList;
+$('goBtn').onclick = visualize;
+$('tslider').oninput = e => { stopPlay(); showStep(+e.target.value); if ($('ens').value !== 'ctrl' || (S.param && S.param.level === 'multi')) preloadAround(+e.target.value, S.gen); };
+$('playBtn').onclick = togglePlay;
+$('ens').onchange = () => { $('ensHint').style.display = $('ens').value === 'ctrl' ? 'none' : ''; };
+$('agg').onchange = () => { fillPalettes(); };
+$('pal').onchange = () => { $('autoRange').checked = true; recomputeRange(); if (curDisp && curDisp.val) drawRaster(curDisp); };
+const applyRange = () => { const a = parseFloat($('vmin').value), b = parseFloat($('vmax').value); if (isFinite(a) && isFinite(b) && b > a) { S.range = [a, b]; $('autoRange').checked = false; if (curDisp) drawRaster(curDisp); } };
+$('vmin').onchange = applyRange; $('vmax').onchange = applyRange;
+$('autoRange').onchange = () => { if ($('autoRange').checked) { recomputeRange(); if (curDisp && curDisp.val) drawRaster(curDisp); } };
+$('opac').oninput = e => { dataLayer.setOpacity(e.target.value / 100); $('opacV').textContent = e.target.value + ' %'; };
+$('arrows').onchange = () => dataSource.changed();
+$('borders').onchange = e => borderLayer.setVisible(e.target.checked);
+$('basemap').onchange = e => { const v = e.target.value; if (v === 'none') baseLayer.setVisible(false); else { const [l, f] = v.split('|'); baseLayer.setSource(wmts(l, f, '© swisstopo')); baseLayer.setVisible(true); } };
+$('level').onchange = () => { if (S.steps.length) visualize(); };
+$('localFiles').onchange = e => loadLocal(e.target.files);
+const mw = $('mapwrap');
+mw.addEventListener('dragover', e => { e.preventDefault(); $('drop').style.display = 'flex'; });
+mw.addEventListener('dragleave', e => { if (e.target === mw || !mw.contains(e.relatedTarget)) $('drop').style.display = 'none'; });
+mw.addEventListener('drop', e => { e.preventDefault(); $('drop').style.display = 'none'; if (e.dataTransfer.files.length) { document.querySelector('details.adv').open = true; loadLocal(e.dataTransfer.files); } });
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,select') || !S.steps.length) return;
+  if (e.key === 'ArrowRight') { stopPlay(); showStep(Math.min(S.steps.length - 1, S.cur + 1)); }
+  if (e.key === 'ArrowLeft') { stopPlay(); showStep(Math.max(0, S.cur - 1)); }
+  if (e.key === ' ') { e.preventDefault(); togglePlay(); }
+});
+
+setModel('icon-ch1');
+$('proxyBtn').onclick = async () => { const v = $('proxyUrl').value.trim().replace(/\/ping$/, ''); try { if (v) localStorage.setItem('iconProxy', v); else localStorage.removeItem('iconProxy'); } catch (e) { } PROXY = null; await detectProxy(); };
+try { $('proxyUrl').value = localStorage.getItem('iconProxy') || ''; } catch (e) { }
+detectProxy();
+// Verbindungstest beim Start
+safeFetch(API + '/collections/' + MODELS['icon-ch1'].coll).then(r => { if (!r.ok) setStatus(`STAC-API antwortet mit HTTP ${r.status}`, 'err'); })
+  .catch(e => { setStatus(e.message, 'err'); console.error(e); });
+</script>
+</body>
+</html>
