@@ -209,6 +209,8 @@ tr:hover td { background: var(--sky); }
 .prod-CPCH { background: #0f766e; }
 .prod-rzc { background: #7c3aed; }
 .prod-tzc { background: #0891b2; }
+.prod-BZC { background: #ea580c; }
+.prod-MZC { background: #be123c; }
 .time-badge { font-family: var(--mono); font-size: 12px; }
 
 /* Empty/loading states */
@@ -319,7 +321,7 @@ tr:hover td { background: var(--sky); }
     </div>
     <div>
       <div class="header-title">Switzerland Latest Radar</div>
-      <div class="header-sub">Weather Radar · STAC API</div>
+      <div class="header-sub">Weather Radar · Precipitation &amp; Hail · STAC API</div>
     </div>
   </div>
   <div class="api-badge">data.geo.admin.ch/api/stac/v1</div>
@@ -328,6 +330,7 @@ tr:hover td { background: var(--sky); }
   <div class="notice-bar notice-source">Data attribution: <strong>Source: MeteoSwiss</strong></div>
   <div class="notice-bar notice-license">Software license: <strong>MIT License</strong>. The license text is included in this HTML file and in the bundled LICENSE file.</div>
   <div class="notice-bar notice-radar">Availability note: Radar data is available for a maximum of the last 14 days.</div>
+  <div class="notice-bar notice-radar">Hail products from <code>ch.meteoschweiz.ogd-radar-hail</code>: <strong>BZC</strong> (POH, probability of hail) and <strong>MZC</strong> (MESHS, maximum expected hailstone size) every 5 min, plus the daily sums (<code>2400</code> = 00:00–24:00 UTC, <code>3000</code> = 06:00–06:00 UTC), which are valid for both products and are always listed. For detailed information about the POH and MESHS products see <a href="https://opendatadocs.meteoswiss.ch/d-radar-data/d3-hail-radar-products" target="_blank" rel="noopener">opendatadocs.meteoswiss.ch/d-radar-data/d3-hail-radar-products</a>.</div>
 </div>
 
 <div class="layout">
@@ -359,6 +362,16 @@ tr:hover td { background: var(--sky); }
           <span class="product-code" style="background:#0891b2">tzc</span>
           <span class="product-desc">Precip-SV (Sideview)<br>every 5 min</span>
         </label>
+        <label class="product-item" id="lbl-BZC">
+          <input type="checkbox" value="BZC" onchange="toggleProduct('BZC', this.checked)">
+          <span class="product-code" style="background:#ea580c">BZC</span>
+          <span class="product-desc">POH · Probability of Hail<br>5 min + daily sums</span>
+        </label>
+        <label class="product-item" id="lbl-MZC">
+          <input type="checkbox" value="MZC" onchange="toggleProduct('MZC', this.checked)">
+          <span class="product-code" style="background:#be123c">MZC</span>
+          <span class="product-desc">MESHS · Hailstone size<br>5 min + daily sums</span>
+        </label>
       </div>
     </div>
 
@@ -366,7 +379,7 @@ tr:hover td { background: var(--sky); }
     <div class="sidebar-section">
       <div class="section-label">📅 Date</div>
       <input type="date" class="date-input" id="datePicker">
-      <div class="product-desc" style="margin-top:8px">CPCH is available only for dates 8 to 14 days before today.</div>
+      <div class="product-desc" style="margin-top:8px">CPCH is available only for dates 8 to 14 days before today. BZC / MZC: daily sums are always listed for the selected day.</div>
     </div>
 
     <!-- Time range -->
@@ -419,6 +432,8 @@ tr:hover td { background: var(--sky); }
       <div class="stat">CPCH: <strong id="statCPCH">–</strong></div>
       <div class="stat">rzc: <strong id="statrzc">–</strong></div>
       <div class="stat">tzc: <strong id="stattzc">–</strong></div>
+      <div class="stat">BZC: <strong id="statBZC">–</strong></div>
+      <div class="stat">MZC: <strong id="statMZC">–</strong></div>
       <div class="stat" style="margin-left:auto">Queue: <strong id="statQueue">0</strong></div>
     </div>
 
@@ -431,6 +446,8 @@ tr:hover td { background: var(--sky); }
         <option value="CPCH">CPCH</option>
         <option value="rzc">rzc</option>
         <option value="tzc">tzc</option>
+        <option value="BZC">BZC</option>
+        <option value="MZC">MZC</option>
       </select>
       <button class="btn btn-ghost" onclick="addAllToQueue()">+ Add all to queue</button>
       <button class="btn btn-ghost" onclick="downloadQueue()" id="dlBtn" disabled>⬇ Download Queue</button>
@@ -442,7 +459,7 @@ tr:hover td { background: var(--sky); }
         <div class="empty-state">
           <div class="empty-icon">📡</div>
           <div class="empty-title">Ready</div>
-          <div class="empty-sub">Choose products and a time range, then click “Load Files”.</div>
+          <div class="empty-sub">Choose products (precipitation and/or hail) and a time range, then click “Load Files”.</div>
         </div>
       </div>
       <table id="fileTable" style="display:none">
@@ -482,6 +499,8 @@ tr:hover td { background: var(--sky); }
 const BASE_API   = 'https://data.geo.admin.ch/api/stac/v1';
 const COLLECTION = 'ch.meteoschweiz.ogd-radar-precip';
 const BASE_URL   = `${BASE_API}/collections/${COLLECTION}`;
+const HAIL_COLLECTION = 'ch.meteoschweiz.ogd-radar-hail';
+const HAIL_URL   = `${BASE_API}/collections/${HAIL_COLLECTION}`;
 
 // Cache-busting for STAC metadata only.
 // The daily STAC item can change during the day while keeping the same URL.
@@ -501,6 +520,8 @@ const PRODUCTS_INFO = {
   CPCH: { prefix: 'cpc', intervalMin: 60, desc: 'Combiprecip hourly', virtual: true, baseProduct: 'CPC', hourlyOnly: true, minAgeDays: 8 },
   rzc: { prefix: 'rzc', intervalMin: 5,  desc: 'Radar Composite CH' },
   tzc: { prefix: 'tzc', intervalMin: 5, desc: 'Precip-SV (Sideview)' },
+  BZC: { prefix: 'bzc', intervalMin: 5, desc: 'POH · Probability of Hail', hail: true },
+  MZC: { prefix: 'mzc', intervalMin: 5, desc: 'MESHS · Maximum expected hailstone size', hail: true },
 };
 
 // ─── State ─────────────────────────────────────────────────────────────────
@@ -561,10 +582,24 @@ function showToast(msg, type = '') {
 // Format: {product}{YY}{DOY}{HH}{MM}{extra}_{seq}.h5
 // e.g. cpc2606900200_00060.001.h5 → CPC, 2026-03-10 00:20 UTC
 function parseRadarFilename(filename) {
+  // Hail products: BZCyyjjjHHMMvl.845.h5 (POH) / MZCyyjjjHHMMvl.850.h5 (MESHS).
+  // HHMM is the 5-minute UTC time, or the daily-sum code 2400 (00:00-24:00 UTC)
+  // or 3000 (06:00-06:00 UTC) - both codes are valid for either product.
+  const hm = filename.match(/^(BZC|MZC)(\d{2})(\d{3})(\d{4})([0-9A-Za-z]+)\.(845|850)\.h5$/i);
+  if (hm) {
+    const hhmm = hm[4], year = 2000 + parseInt(hm[2]), doy = parseInt(hm[3]);
+    const isDaily = hhmm === '2400' || hhmm === '3000';
+    const hour = parseInt(hhmm.slice(0, 2)), minute = parseInt(hhmm.slice(2, 4));
+    if (!isDaily && (hour > 23 || minute > 59 || minute % 5 !== 0)) return null;
+    const day = new Date(Date.UTC(year, 0, 1) + (doy - 1) * 86400000);
+    const dt = new Date(day.getTime());
+    if (!isDaily) dt.setUTCHours(hour, minute, 0, 0);
+    return { product: hm[1].toUpperCase(), datetime: dt, year, doy, hour, minute, isDaily, hhmm, dateStr: day.toISOString().slice(0, 10) };
+  }
   const name = filename.toLowerCase();
   let product = null, prefixLen = 0;
   for (const [prod, info] of Object.entries(PRODUCTS_INFO)) {
-    if (info.virtual) continue;
+    if (info.virtual || info.hail) continue;
     if (name.startsWith(info.prefix)) {
       product = prod;
       prefixLen = info.prefix.length;
@@ -592,29 +627,41 @@ function formatDT(dt) {
 }
 
 // ─── API ───────────────────────────────────────────────────────────────────
-async function fetchItem(itemId) {
-  const url = noCacheUrl(`${BASE_URL}/items/${itemId}`);
-  const r = await fetch(url, STAC_FETCH_OPTIONS);
-  if (!r.ok) throw new Error(`HTTP ${r.status} for ${itemId}`);
-  return r.json();
-}
-
-async function fetchAllItemIds(targetPrefix) {
-  const found = [];
-  let url = noCacheUrl(`${BASE_URL}/items?limit=200`);
+// Collects all assets of one day from a collection. First the daily item
+// "<YYYYMMDD>-ch" is tried; if it does not exist, the item list is paged and
+// the assets of items whose id starts with the date are used. For the hail
+// collection (byFilename) assets are additionally matched by the date coded in
+// the file name, so the lookup does not depend on the item naming scheme.
+async function collectAssetsForDate(base, compact, dateVal, byFilename) {
+  try {
+    const r = await fetch(noCacheUrl(`${base}/items/${compact}-ch`), STAC_FETCH_OPTIONS);
+    if (r.ok) {
+      const item = await r.json();
+      return Object.entries(item.assets || {});
+    }
+  } catch (e) { /* fall through to the paged search */ }
+  const out = [];
+  let url = noCacheUrl(`${base}/items?limit=200`);
   let pages = 0;
-  while (url && pages < 20) {
+  while (url && pages < 30) {
     const r = await fetch(noCacheUrl(url), STAC_FETCH_OPTIONS);
     if (!r.ok) break;
     const data = await r.json();
     for (const f of (data.features || [])) {
-      if (f.id.startsWith(targetPrefix)) found.push(f.id);
+      if (f.id.startsWith(compact)) {
+        out.push(...Object.entries(f.assets || {}));
+      } else if (byFilename) {
+        for (const [k, a] of Object.entries(f.assets || {})) {
+          const info = parseRadarFilename(((a.href || k).split('/').pop()) || k);
+          if (info && info.dateStr === dateVal) out.push([k, a]);
+        }
+      }
     }
     const next = (data.links || []).find(l => l.rel === 'next');
     url = next ? next.href : null;
     pages++;
   }
-  return found;
+  return out;
 }
 
 // ─── Load files ────────────────────────────────────────────────────────────
@@ -654,28 +701,20 @@ async function fetchFiles() {
     }
     // sinceHours === -1 → latest only, no time filter yet
 
-    // Try direct item fetch first
-    const dailyId = targetPrefix + '-ch';
-    document.getElementById('loadMsg').textContent = `Loading item ${dailyId}...`;
-
+    const needPrecip = ['CPC', 'CPCH', 'rzc', 'tzc'].some(p => selectedProducts.has(p));
+    const needHail   = ['BZC', 'MZC'].some(p => selectedProducts.has(p));
+    const loadMsg = document.getElementById('loadMsg');
     let allAssets = [];
-    try {
-      const item = await fetchItem(dailyId);
-      allAssets = Object.entries(item.assets || {});
-      document.getElementById('loadMsg').textContent = `${allAssets.length} assets found. Filtering...`;
-    } catch(e) {
-      // Fallback: paginate
-      document.getElementById('loadMsg').textContent = `Item not found, searching the item list...`;
-      const ids = await fetchAllItemIds(targetPrefix);
-      if (ids.length === 0) throw new Error('No items found for this date.');
-      document.getElementById('loadMsg').textContent = `${ids.length} item(s) found. Loading assets...`;
-      for (const id of ids) {
-        try {
-          const item = await fetchItem(id);
-          allAssets.push(...Object.entries(item.assets || {}));
-        } catch(e2) { /* skip */ }
-      }
+    if (needPrecip) {
+      loadMsg.textContent = `Loading precipitation item ${targetPrefix}-ch...`;
+      allAssets.push(...await collectAssetsForDate(BASE_URL, targetPrefix, dateVal, false));
     }
+    if (needHail) {
+      loadMsg.textContent = `Loading hail items (BZC / MZC) for ${dateVal}...`;
+      allAssets.push(...await collectAssetsForDate(HAIL_URL, targetPrefix, dateVal, true));
+    }
+    if (allAssets.length === 0) throw new Error('No items found for this date.');
+    loadMsg.textContent = `${allAssets.length} assets found. Filtering...`;
 
     // Parse and filter.
     // CPCH is a virtual product: it uses CPC assets, but only offers full-hour files (XX:00)
@@ -687,8 +726,12 @@ async function fetchFiles() {
       const info = parseRadarFilename(fname);
       if (!info) continue;
 
+      // hail files are matched by the day coded in the file name
+      if (info.dateStr && info.dateStr !== dateVal) continue;
+
       if (selectedProducts.has(info.product)) {
-        if (!since_dt || info.datetime >= since_dt) {
+        // daily-sum files (hail 2400 / 3000) are always listed, independent of the time range
+        if (info.isDaily || !since_dt || info.datetime >= since_dt) {
           parsed.push({ filename: fname, url: href, info: { ...info }, size: asset['file:size'] || null, updated: asset.updated || null });
         }
       }
@@ -699,7 +742,7 @@ async function fetchFiles() {
     }
 
     // Sort by product, then datetime
-    parsed.sort((a, b) => a.info.product.localeCompare(b.info.product) || a.info.datetime - b.info.datetime);
+    parsed.sort((a, b) => a.info.product.localeCompare(b.info.product) || (b.info.isDaily ? 1 : 0) - (a.info.isDaily ? 1 : 0) || a.info.datetime - b.info.datetime || a.filename.localeCompare(b.filename));
 
     // Latest only: keep newest per product.
     // CPCH remains a full-day hourly list because it is explicitly defined as a selected-day product.
@@ -708,13 +751,13 @@ async function fetchFiles() {
       const cpchFiles = [];
       for (const f of parsed) {
         const p = f.info.product;
-        if (p === 'CPCH') {
+        if (p === 'CPCH' || f.info.isDaily) {
           cpchFiles.push(f);
         } else if (!latest[p] || f.info.datetime > latest[p].info.datetime) {
           latest[p] = f;
         }
       }
-      allFiles = [...Object.values(latest), ...cpchFiles].sort((a,b) => a.info.product.localeCompare(b.info.product) || a.info.datetime - b.info.datetime);
+      allFiles = [...Object.values(latest), ...cpchFiles].sort((a,b) => a.info.product.localeCompare(b.info.product) || (b.info.isDaily ? 1 : 0) - (a.info.isDaily ? 1 : 0) || a.info.datetime - b.info.datetime || a.filename.localeCompare(b.filename));
     } else {
       allFiles = parsed;
     }
@@ -779,7 +822,7 @@ function renderTable() {
   table.style.display = 'table';
 
   tbody.innerHTML = filteredFiles.map((f, i) => {
-    const ts = formatDT(f.info.datetime);
+    const ts = f.info.isDaily ? (f.info.hhmm === '2400' ? 'Daily sum 00:00–24:00 UTC' : 'Daily sum 06:00–06:00 UTC') : formatDT(f.info.datetime);
     const inQueue = queue.some(q => q.url === f.url);
     const sizeStr = f.size ? `${(f.size/1024).toFixed(0)} KB` : '–';
     const updatedStr = (f.info.product === 'CPCH' && f.updated) ? ` <span style="color:var(--muted);font-size:10px">(updated: ${formatDT(new Date(f.updated))})</span>` : '';
@@ -807,13 +850,15 @@ function renderTable() {
 }
 
 function updateStats() {
-  const counts = { CPC: 0, CPCH: 0, rzc: 0, tzc: 0 };
+  const counts = { CPC: 0, CPCH: 0, rzc: 0, tzc: 0, BZC: 0, MZC: 0 };
   allFiles.forEach(f => counts[f.info.product]++);
   document.getElementById('statTotal').textContent = allFiles.length;
   document.getElementById('statCPC').textContent = counts.CPC;
   document.getElementById('statCPCH').textContent = counts.CPCH;
   document.getElementById('statrzc').textContent = counts.rzc;
   document.getElementById('stattzc').textContent = counts.tzc;
+  document.getElementById('statBZC').textContent = counts.BZC;
+  document.getElementById('statMZC').textContent = counts.MZC;
   document.getElementById('statQueue').textContent = queue.length;
 }
 
